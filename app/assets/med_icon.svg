@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Botol obat, gaya rounded senada Kalem (nggak ada sudut tajam khas
+       Material Design). Fill di sini cuma placeholder -- warna final
+       ditentukan pas dipakai lewat ft.Image(color=..., color_blend_mode=
+       ft.BlendMode.SRC_IN), jadi yang penting bentuk & opacity-nya. -->
+  <rect x="44" y="8" width="32" height="20" rx="8" fill="#000000"/>
+  <rect x="46" y="18" width="28" height="4" rx="2" fill="#000000" opacity="0.4"/>
+  <rect x="32" y="24" width="56" height="80" rx="18" fill="#000000"/>
+  <rect x="32" y="56" width="56" height="16" fill="#000000" opacity="0.32"/>
+  <circle cx="50" cy="86" r="4" fill="#000000" opacity="0.55"/>
+  <circle cx="70" cy="86" r="4" fill="#000000" opacity="0.55"/>
+</svg>

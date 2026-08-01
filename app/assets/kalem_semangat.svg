@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Kalem — mood: semangat (energised) -->
+  <ellipse cx="60" cy="108" rx="30" ry="5" fill="#4A473F" opacity="0.07"/>
+  <path d="M60 14c-6 0-9-5-9-9" stroke="#8FBCA0" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="48" cy="6" rx="7" ry="4.5" fill="#A9C6DE" transform="rotate(-25 48 6)"/>
+  <path d="M60 16c22 0 35 16 35 38 0 24-15 40-35 40S25 78 25 54c0-22 13-38 35-38z" fill="#8FBCA0"/>
+  <path d="M60 16c22 0 35 16 35 38 0 6-1 11-2 16-6-30-30-42-56-36C42 24 50 16 60 16z" fill="#FFFFFF" opacity="0.18"/>
+  <ellipse cx="37" cy="69" rx="7.5" ry="5.5" fill="#F3B88B" opacity="0.65"/>
+  <ellipse cx="83" cy="69" rx="7.5" ry="5.5" fill="#F3B88B" opacity="0.65"/>
+  <!-- eyes: happy upward arcs -->
+  <path d="M39 60c3-6 10-6 13 0" stroke="#4A473F" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <path d="M68 60c3-6 10-6 13 0" stroke="#4A473F" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <!-- mouth: open cheerful smile -->
+  <path d="M50 72c4 8 16 8 20 0z" fill="#4A473F"/>
+  <path d="M50 72c4 8 16 8 20 0" stroke="#4A473F" stroke-width="3.5" stroke-linejoin="round" fill="none"/>
+  <!-- sparkles -->
+  <path d="M18 40l2.2 5.3 5.3 2.2-5.3 2.2L18 55l-2.2-5.3-5.3-2.2 5.3-2.2z" fill="#F3B88B"/>
+  <path d="M101 34l1.7 4 4 1.7-4 1.7-1.7 4-1.7-4-4-1.7 4-1.7z" fill="#F3B88B"/>
+  <path d="M99 78l1.4 3.3 3.3 1.4-3.3 1.4-1.4 3.3-1.4-3.3-3.3-1.4 3.3-1.4z" fill="#A9C6DE"/>
+</svg>

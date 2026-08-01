@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Kalem — mood: sedih (sad) -->
+  <ellipse cx="60" cy="108" rx="30" ry="5" fill="#4A473F" opacity="0.07"/>
+  <path d="M60 22c-6 0-10-4-11-8" stroke="#8FBCA0" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="46" cy="13" rx="7" ry="4.5" fill="#A9C6DE" transform="rotate(-55 46 13)"/>
+  <path d="M60 24c22 0 35 16 35 37 0 23-15 39-35 39S25 84 25 61c0-21 13-37 35-37z" fill="#8FBCA0" opacity="0.92"/>
+  <path d="M60 24c22 0 35 16 35 37 0 6-1 11-2 15-6-29-30-41-56-35C42 32 50 24 60 24z" fill="#FFFFFF" opacity="0.14"/>
+  <ellipse cx="38" cy="76" rx="6.5" ry="4.5" fill="#F3B88B" opacity="0.35"/>
+  <ellipse cx="82" cy="76" rx="6.5" ry="4.5" fill="#F3B88B" opacity="0.35"/>
+  <!-- sad inward-raised brows -->
+  <path d="M39 51c4-4 10-3 13 2" stroke="#4A473F" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M81 51c-4-4-10-3-13 2" stroke="#4A473F" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- downcast eyes -->
+  <circle cx="46" cy="64" r="5.5" fill="#4A473F"/>
+  <circle cx="74" cy="64" r="5.5" fill="#4A473F"/>
+  <circle cx="47.5" cy="65.5" r="1.8" fill="#FFFFFF" opacity="0.85"/>
+  <circle cx="75.5" cy="65.5" r="1.8" fill="#FFFFFF" opacity="0.85"/>
+  <!-- frown: arcs upward in the middle, corners pulled down -->
+  <path d="M52 84c4-6 12-6 16 0" stroke="#4A473F" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <!-- tear -->
+  <path d="M43 71c0 0 4 6 4 8.5a4 4 0 0 1-8 0C39 77 43 71 43 71z" fill="#A9C6DE"/>
+</svg>

@@ -1,0 +1,182 @@
+"""Inbox -- isi quick capture ("Ada yang keinget? Tulis cepat").
+
+Sebelum halaman ini ada, catatan quick capture cuma masuk ke storage dan
+nggak pernah bisa dibaca lagi: `get_inbox()` cuma kepakai buat ngitung
+angka di Home, dan `delete_inbox_note()` nggak pernah dipanggil sama
+sekali. Jadi datanya ke-capture tapi nggak ada jalan keluarnya.
+
+Halaman ini yang nutup lingkarannya: catatan mentah -> tugas beneran di
+Tracker, langkah-langkahnya dipecah pakai AI Task Decomposer yang udah ada
+(fallback rule-based tetap jalan kalau API-nya nggak kepakai).
+"""
+from __future__ import annotations
+
+from datetime import datetime
+
+import flet as ft
+
+from app import clock, storage, theme, ui_helpers
+from app.core.decomposer_logic import plan_today
+
+
+def _relative_time(iso: str) -> str:
+    """"2 jam lalu" -- biar kerasa antrian, bukan arsip."""
+    try:
+        when = datetime.fromisoformat(iso)
+    except (TypeError, ValueError):
+        return ""
+    mins = int((clock.now() - when).total_seconds() // 60)
+    if mins < 0:
+        return "barusan"
+    if mins < 1:
+        return "barusan"
+    if mins < 60:
+        return f"{mins} menit lalu"
+    hours = mins // 60
+    if hours < 24:
+        return f"{hours} jam lalu"
+    return f"{hours // 24} hari lalu"
+
+
+def build(page: ft.Page, navigate) -> ft.Control:
+    body = ft.Column(spacing=12, scroll=ft.ScrollMode.AUTO, expand=True)
+    notes_column = ft.Column(spacing=10)
+
+    def to_task(note: dict):
+        """Ubah catatan mentah jadi tugas + langkah kecil."""
+        title_field = ft.TextField(label="Jadiin tugas apa?", value=note["text"], multiline=True, max_lines=3)
+        urgent_check = ft.Checkbox(label="Mendesak (deadline dekat)", value=False)
+        important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
+        can_split = storage.can_use("decompose")
+        split_check = ft.Checkbox(
+            label="Pecah otomatis jadi langkah kecil",
+            value=can_split,
+            disabled=not can_split,
+        )
+        # Kalau kuotanya abis, bilang terus terang -- jangan biarin checkbox
+        # kepencet terus diem-diem nggak ngapa-ngapain.
+        note_text = ft.Text(
+            "" if can_split else "Jatah Pecah Tugas pakai AI hari ini udah abis. "
+            "Tugasnya tetap kebikin, langkahnya bisa kamu isi manual.",
+            size=11,
+            color=theme.MUTED,
+        )
+
+        def submit(ev):
+            name = (title_field.value or "").strip()
+            if not name:
+                title_field.error = "Isi dulu ya"
+                page.update()
+                return
+
+            task = storage.add_task(
+                name,
+                clock.today().isoformat(),
+                urgent_check.value,
+                important_check.value,
+                steps=[{"text": name, "done": False}],
+                difficulty_est=2,
+            )
+
+            # Kuota Pecah Tugas dicek DI SINI juga. Dulu jalur ini manggil
+            # plan_today() tanpa cek apa pun, jadi user gratis bisa nembus
+            # batas 3x/hari cukup dengan lewat Inbox -- pintu belakang buat
+            # fitur yang dibatesin di Tracker.
+            if split_check.value and storage.can_use("decompose"):
+                energy = storage.today_energy() or 3
+                result = plan_today([task], energy)
+                if result.source == "ai":
+                    storage.record_usage("decompose")
+                steps = [
+                    {"text": step, "done": False}
+                    for title, step, _m in result.steps
+                    if title == name
+                ]
+                if steps:
+                    storage.set_task_steps(task["id"], steps)
+
+            # Catatan mentahnya dibuang -- udah "naik kelas" jadi tugas.
+            storage.delete_inbox_note(note["id"])
+            page.pop_dialog()
+            render_notes()
+            page.update()
+
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Rapikan jadi tugas", size=16),
+                content=ft.Column(
+                    [title_field, urgent_check, important_check, split_check, note_text],
+                    spacing=8,
+                    tight=True,
+                ),
+                actions=[
+                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()),
+                    ui_helpers.primary_button("Jadiin tugas", submit),
+                ],
+            )
+        )
+
+    def drop(note_id: str):
+        storage.delete_inbox_note(note_id)
+        render_notes()
+        page.update()
+
+    def render_notes():
+        notes = storage.get_inbox()
+        if not notes:
+            notes_column.controls = [
+                ui_helpers.empty_state(
+                    "Belum ada catatan. Tulis apa pun yang keinget dari Beranda.",
+                    ft.Icons.EDIT_NOTE,
+                )
+            ]
+            return
+
+        notes_column.controls = [
+            ui_helpers.card(
+                ft.Column(
+                    [
+                        ft.Text(note["text"], size=13.5, color=theme.ON_BACKGROUND),
+                        ft.Text(_relative_time(note.get("created_at", "")), size=10.5, color=theme.MUTED),
+                        ft.Row(
+                            [
+                                ft.TextButton(
+                                    content=ft.Text("Jadiin tugas", size=12, weight=ft.FontWeight.BOLD),
+                                    icon=ft.Icons.ARROW_FORWARD,
+                                    on_click=lambda e, n=note: to_task(n),
+                                ),
+                                ft.Container(expand=True),
+                                ft.IconButton(
+                                    icon=ft.Icons.DELETE_OUTLINE,
+                                    icon_color=theme.MUTED,
+                                    icon_size=18,
+                                    tooltip="Hapus catatan",
+                                    on_click=lambda e, i=note["id"]: drop(i),
+                                ),
+                            ],
+                            spacing=4,
+                        ),
+                    ],
+                    spacing=6,
+                ),
+                padding=14,
+            )
+            for note in notes
+        ]
+
+    render_notes()
+
+    body.controls = [
+        ui_helpers.page_header("Yang Keinget", on_back=lambda e: navigate("home")),
+        ui_helpers.subtitle(
+            "Catatan mentah yang belum jadi tugas. Nggak usah rapi -- "
+            "nanti Kalem yang bantu mecahin jadi langkah kecil."
+        ),
+        notes_column,
+        ui_helpers.disclaimer(
+            "Nggak ada kewajiban ngosongin daftar ini. Kalau ada yang udah "
+            "nggak relevan, hapus aja."
+        ),
+    ]
+    return body

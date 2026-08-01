@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Kalem — mood: cemas (anxious) -->
+  <ellipse cx="60" cy="108" rx="30" ry="5" fill="#4A473F" opacity="0.07"/>
+  <path d="M60 18c-6 0-9-5-9-9" stroke="#8FBCA0" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="48" cy="10" rx="7" ry="4.5" fill="#A9C6DE" transform="rotate(-40 48 10)"/>
+  <path d="M60 20c22 0 35 16 35 38 0 24-15 40-35 40S25 82 25 58c0-22 13-38 35-38z" fill="#8FBCA0"/>
+  <path d="M60 20c22 0 35 16 35 38 0 6-1 11-2 16-6-30-30-42-56-36C42 28 50 20 60 20z" fill="#FFFFFF" opacity="0.16"/>
+  <ellipse cx="38" cy="72" rx="6.5" ry="4.5" fill="#F3B88B" opacity="0.4"/>
+  <ellipse cx="82" cy="72" rx="6.5" ry="4.5" fill="#F3B88B" opacity="0.4"/>
+  <!-- eyes: wide and alert -->
+  <circle cx="46" cy="59" r="6.5" fill="#4A473F"/>
+  <circle cx="74" cy="59" r="6.5" fill="#4A473F"/>
+  <circle cx="48" cy="57" r="2.2" fill="#FFFFFF"/>
+  <circle cx="76" cy="57" r="2.2" fill="#FFFFFF"/>
+  <!-- worried brows -->
+  <path d="M39 47c4-3 9-3 12-1" stroke="#4A473F" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M81 47c-4-3-9-3-12-1" stroke="#4A473F" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- mouth: wavy uneasy line -->
+  <path d="M51 76c3-3 6 3 9 0s6 3 9 0" stroke="#4A473F" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+  <!-- sweat drop -->
+  <path d="M92 44c0 0 5 7 5 10a5 5 0 0 1-10 0c0-3 5-10 5-10z" fill="#A9C6DE"/>
+</svg>

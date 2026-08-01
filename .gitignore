@@ -1,0 +1,20 @@
+# rahasia -- API key nggak boleh ke-commit
+.env
+.env.local
+
+# virtualenv
+.venv/
+.venv-*/
+
+# artefak tooling Flet (dibuat otomatis, aman dihapus)
+.flet/
+app/.flet/
+build/
+
+__pycache__/
+*.pyc
+.DS_Store
+
+# artefak model yang bisa dibangun ulang dari DATASET/
+# (bikin: python tools/latih_model_durasi.py)
+app/data/model_durasi.joblib

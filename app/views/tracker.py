@@ -1,0 +1,1074 @@
+"""Page 2 -- Tracker. Halaman kerja: lihat beban, atur energi, pecah tugas.
+
+Perubahan penting dari versi sebelumnya:
+
+- SESI FOKUS PINDAH KE BERANDA. Dulu tombol FOKUS di Beranda cuma nitip niat
+  terus mental ke sini -- satu aksi kepecah dua halaman, dan timernya mati
+  tiap user pindah halaman. Sekarang timernya hidup di `focus_session` dan
+  ditampilin di Beranda. Di sini tinggal PRATINJAU-nya, biar efek level
+  energi tetap kelihatan tanpa timernya diduplikat.
+- PECAH TUGAS BISA DIPILIH. Nggak lagi maksa semua tugas hari ini sekaligus.
+- TUGAS SELESAI DILIPAT jadi satu baris judul, langkah-langkahnya disembunyiin.
+  Checklist yang udah kelar semua cuma bikin halaman panjang tanpa info baru.
+- RENCANA IKUT DISUSUN ULANG kalau ada tugas yang dihapus -- blok tugas itu
+  dibuang dan sisanya digeser, bukan ninggalin jadwal yang jamnya bolong.
+- Grid 4 kuadran Eisenhower ada di sini, bukan di Beranda: di halaman pertama
+  dia bikin overwhelm, di halaman kerja dia baru berguna.
+"""
+from __future__ import annotations
+
+import calendar
+from datetime import date, timedelta
+
+import flet as ft
+
+from app import clock, focus_session, storage, theme, ui_helpers
+from app.core import kalem_engine
+from app.kalem_ml import fitur as kfitur
+from app.kalem_ml import model_durasi
+from app.core.decomposer_logic import lay_out, plan_today
+from app.core.energy_predictor import ENERGY_HINTS, energy_to_mood_default
+
+MONTH_NAMES = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+]
+DAY_INITIALS = ["S", "S", "R", "K", "J", "S", "M"]
+
+QUADRANT_META = {
+    "lakukan": ("Lakukan sekarang", theme.DANGER),
+    "jadwalkan": ("Jadwalkan", theme.PRIMARY),
+    "delegasikan": ("Bisa didelegasikan", theme.SECONDARY),
+    "nanti": ("Nanti aja", theme.MUTED),
+}
+
+DIFFICULTY_LABELS = {1: "Gampang", 2: "Sedang", 3: "Berat"}
+
+
+def build(page: ft.Page, navigate) -> ft.Control:
+    today = clock.today()
+    latest_mood = storage.latest_mood()
+    default_energy = energy_to_mood_default(latest_mood["score"]) if latest_mood else 3
+
+    # Level energi yang udah dikunci hari ini (dari Morning Brief atau
+    # koreksi manual sebelumnya) menang atas tebakan dari mood log --
+    # inilah yang bikin ramalan pagi kerasa "kepasang", bukan cuma kalimat.
+    locked_energy = storage.today_energy()
+    if locked_energy:
+        default_energy = locked_energy
+
+    state = {
+        "month": today.month,
+        "year": today.year,
+        "selected": today.isoformat(),
+        "energy": default_energy,
+        "show_month": False,
+    }
+
+    # Rencana disimpen sebagai DATA (judul, langkah, menit), bukan cuma baris
+    # yang udah jadi. Bentuk ini yang bikin jadwalnya bisa disusun ulang pas
+    # ada tugas dihapus -- tanpa manggil AI-nya lagi.
+    plan_state: dict = {"steps": [], "source": "", "reason": "", "quota_msg": ""}
+
+    calendar_grid = ft.Column(spacing=6)
+    month_label = ft.Text(size=15, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND)
+    calendar_nav = ft.Row(spacing=0)
+    day_tasks_column = ft.Column(spacing=8)
+    eisenhower_column = ft.Column(spacing=8)
+    timeline_column = ft.Column(spacing=8)
+    energy_row = ft.Row(spacing=6)
+    energy_hint = ft.Text(size=12, color=theme.MUTED)
+    energy_effect = ft.Column(spacing=4)
+    plan_column = ft.Column(spacing=8, visible=False)
+
+    # ---------------------------------------------------------- kalender
+
+    def day_has_task(day_iso: str) -> bool:
+        return any(t["deadline"] == day_iso for t in storage.get_tasks())
+
+    def select_day(day_iso: str):
+        state["selected"] = day_iso
+        render_calendar()
+        render_day_tasks()
+        render_eisenhower()
+        render_timeline()
+        page.update()
+
+    def day_cell(day, in_month: bool) -> ft.Control:
+        iso = day.isoformat()
+        selected = iso == state["selected"]
+        is_today = day == today
+
+        if selected:
+            bg, fg = theme.PRIMARY, "#FFFFFF"
+        elif is_today:
+            bg, fg = theme.SURFACE, theme.PRIMARY
+        else:
+            bg, fg = "#00000000", (theme.ON_BACKGROUND if in_month else theme.BORDER)
+
+        return ft.Container(
+            content=ft.Column(
+                [
+                    ft.Text(
+                        str(day.day),
+                        size=12.5,
+                        color=fg,
+                        weight=ft.FontWeight.BOLD if (selected or is_today) else ft.FontWeight.NORMAL,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    ft.Container(
+                        width=4,
+                        height=4,
+                        bgcolor=(
+                            ("#FFFFFF" if selected else theme.TERTIARY)
+                            if (in_month and day_has_task(iso))
+                            else "#00000000"
+                        ),
+                        border_radius=2,
+                    ),
+                ],
+                spacing=1,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            height=42,
+            expand=True,
+            bgcolor=bg,
+            border=ft.Border.all(1, theme.PRIMARY) if is_today and not selected else None,
+            border_radius=10,
+            alignment=ft.Alignment.CENTER,
+            on_click=(lambda e, d=iso: select_day(d)) if in_month else None,
+            ink=in_month,
+        )
+
+    def render_calendar():
+        if state["show_month"]:
+            year, month = state["year"], state["month"]
+            month_label.value = f"{MONTH_NAMES[month - 1]} {year}"
+            rows: list[ft.Control] = [
+                ft.Row(
+                    [
+                        ft.Container(
+                            content=ft.Text(d, size=11, color=theme.MUTED, text_align=ft.TextAlign.CENTER),
+                            expand=True,
+                            alignment=ft.Alignment.CENTER,
+                        )
+                        for d in DAY_INITIALS
+                    ],
+                    spacing=4,
+                )
+            ]
+            for week in calendar.Calendar(firstweekday=0).monthdatescalendar(year, month):
+                rows.append(ft.Row([day_cell(d, d.month == month) for d in week], spacing=4))
+            calendar_grid.controls = rows
+            calendar_nav.controls = [
+                ft.IconButton(icon=ft.Icons.CHEVRON_LEFT, icon_color=theme.MUTED,
+                              on_click=lambda e: shift_month(-1)),
+                ft.Container(content=month_label, expand=True, alignment=ft.Alignment.CENTER),
+                ft.IconButton(icon=ft.Icons.CHEVRON_RIGHT, icon_color=theme.MUTED,
+                              on_click=lambda e: shift_month(1)),
+            ]
+        else:
+            # Strip 7 hari: minggu berjalan, dimulai dari Senin.
+            start = today - timedelta(days=today.weekday())
+            week = [start + timedelta(days=i) for i in range(7)]
+            month_label.value = f"{MONTH_NAMES[today.month - 1]} {today.year}"
+            calendar_grid.controls = [
+                ft.Row(
+                    [
+                        ft.Container(
+                            content=ft.Text(DAY_INITIALS[i], size=10, color=theme.MUTED,
+                                            text_align=ft.TextAlign.CENTER),
+                            expand=True,
+                            alignment=ft.Alignment.CENTER,
+                        )
+                        for i in range(7)
+                    ],
+                    spacing=4,
+                ),
+                ft.Row([day_cell(d, True) for d in week], spacing=4),
+            ]
+            calendar_nav.controls = [
+                ft.Container(content=month_label, expand=True),
+                ft.TextButton(
+                    content=ft.Text("Lihat bulan", size=12, color=theme.PRIMARY),
+                    on_click=lambda e: toggle_month(True),
+                ),
+            ]
+
+    def toggle_month(show: bool):
+        state["show_month"] = show
+        render_calendar()
+        page.update()
+
+    def shift_month(delta: int):
+        month = state["month"] + delta
+        year = state["year"]
+        if month < 1:
+            month, year = 12, year - 1
+        elif month > 12:
+            month, year = 1, year + 1
+        state["month"], state["year"] = month, year
+        render_calendar()
+        page.update()
+
+    # ------------------------------------------------ ringkasan Eisenhower
+
+    def quadrant_chip(key: str, count: int) -> ft.Container:
+        label, color = QUADRANT_META[key]
+        return ft.Container(
+            content=ft.Column(
+                [
+                    ft.Text(str(count), size=20, weight=ft.FontWeight.BOLD, color=color),
+                    ft.Text(label, size=10, color=theme.MUTED, text_align=ft.TextAlign.CENTER),
+                ],
+                spacing=2,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            expand=True,
+            padding=ft.Padding.symmetric(vertical=12, horizontal=6),
+            bgcolor=theme.SURFACE,
+            border=ft.Border.all(1, theme.BORDER),
+            border_radius=14,
+        )
+
+    def render_eisenhower():
+        buckets = storage.eisenhower_summary(state["selected"])
+        eisenhower_column.controls = [
+            ui_helpers.section_header("Sebaran tugas"),
+            ft.Row([quadrant_chip(k, len(buckets[k])) for k in ["lakukan", "jadwalkan"]], spacing=10),
+            ft.Row([quadrant_chip(k, len(buckets[k])) for k in ["delegasikan", "nanti"]], spacing=10),
+        ]
+
+    # ------------------------------------------------------- mini-timeline
+
+    def render_timeline():
+        tasks = [t for t in storage.tasks_for(state["selected"]) if not storage.task_is_done(t)]
+        if not tasks:
+            timeline_column.controls = []
+            return
+
+        order = {"lakukan": 0, "delegasikan": 1, "jadwalkan": 2, "nanti": 3}
+        tasks.sort(key=lambda t: (order.get(storage.quadrant_of(t), 9), t.get("difficulty_est", 2)))
+
+        bars = [
+            ft.Container(
+                expand=max(t.get("difficulty_est", 2), 1),
+                height=10,
+                bgcolor=QUADRANT_META[storage.quadrant_of(t)][1],
+                border_radius=5,
+                tooltip=t["title"],
+            )
+            for t in tasks
+        ]
+        labels = [
+            ft.Row(
+                [
+                    ft.Container(
+                        width=8,
+                        height=8,
+                        bgcolor=QUADRANT_META[storage.quadrant_of(t)][1],
+                        border_radius=4,
+                    ),
+                    ft.Text(t["title"], size=11.5, color=theme.ON_BACKGROUND, expand=True),
+                    ft.Text(
+                        DIFFICULTY_LABELS.get(t.get("difficulty_est", 2), ""),
+                        size=10,
+                        color=theme.MUTED,
+                    ),
+                ],
+                spacing=8,
+            )
+            for t in tasks
+        ]
+        timeline_column.controls = [
+            ui_helpers.section_header("Urutan yang disaranin"),
+            ft.Row(bars, spacing=4),
+            *labels,
+        ]
+
+    # ------------------------------------------------------ daftar tugas
+
+    def toggle_step(task_id: str, index: int, value: bool):
+        storage.set_step_done(task_id, index, value)
+        refresh_all()
+
+    def reopen_task(task_id: str):
+        """Buka lagi tugas yang udah dilipat -- semua centangnya dilepas."""
+        for task in storage.get_tasks():
+            if task["id"] == task_id:
+                for i in range(len(task.get("steps", []))):
+                    storage.set_step_done(task_id, i, False)
+                break
+        refresh_all()
+
+    def confirm_remove(task: dict):
+        """Hapus tugas SELALU lewat konfirmasi.
+
+        Ini satu-satunya aksi di app yang ngebuang kerjaan user permanen, dan
+        tombolnya duduk sebaris sama checkbox -- kepencet nggak sengaja itu
+        soal waktu doang.
+        """
+        def do_delete(ev):
+            page.pop_dialog()
+            storage.delete_task(task["id"])
+            # Rencana ikut disusun ulang: blok punya tugas ini dibuang, sisanya
+            # digeser biar jamnya nggak bolong.
+            refresh_all()
+
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Hapus tugas ini?", size=16),
+                content=ft.Text(
+                    f"“{task['title']}” bakal dihapus beserta langkah-langkahnya. "
+                    "Nggak bisa dibalikin.",
+                    size=13,
+                ),
+                actions=[
+                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()),
+                    ft.ElevatedButton(
+                        content=ft.Text("Hapus", weight=ft.FontWeight.BOLD),
+                        bgcolor=theme.DANGER,
+                        color="#FFFFFF",
+                        elevation=0,
+                        on_click=do_delete,
+                    ),
+                ],
+            )
+        )
+
+    def done_card(task: dict) -> ft.Control:
+        """Tugas kelar dilipat jadi SATU baris.
+
+        Nampilin checklist yang semua kotaknya kecentang nggak nambah info
+        apa-apa, cuma manjangin halaman -- dan halaman panjang itu persis yang
+        bikin overwhelm.
+        """
+        return ui_helpers.card(
+            ft.Row(
+                [
+                    ft.Icon(ft.Icons.CHECK_CIRCLE, color=theme.SUCCESS, size=20),
+                    ft.Text(
+                        task["title"],
+                        size=13.5,
+                        weight=ft.FontWeight.BOLD,
+                        color=theme.MUTED,
+                        expand=True,
+                    ),
+                    ft.Container(
+                        content=ft.Text("SELESAI", size=9, weight=ft.FontWeight.BOLD,
+                                        color="#FFFFFF"),
+                        bgcolor=theme.SUCCESS,
+                        border_radius=8,
+                        padding=ft.Padding.symmetric(vertical=3, horizontal=7),
+                    ),
+                    ft.IconButton(
+                        icon=ft.Icons.UNDO,
+                        icon_color=theme.MUTED,
+                        icon_size=17,
+                        tooltip="Buka lagi",
+                        on_click=lambda e, tid=task["id"]: reopen_task(tid),
+                    ),
+                    ft.IconButton(
+                        icon=ft.Icons.DELETE_OUTLINE,
+                        icon_color=theme.MUTED,
+                        icon_size=17,
+                        tooltip="Hapus tugas",
+                        on_click=lambda e, t=task: confirm_remove(t),
+                    ),
+                ],
+                spacing=6,
+            ),
+            padding=12,
+        )
+
+    def open_card(task: dict) -> ft.Control:
+        label, color = QUADRANT_META[storage.quadrant_of(task)]
+        steps = task.get("steps", [])
+        done_count = sum(1 for s in steps if s.get("done"))
+
+        step_controls: list[ft.Control] = [
+            ft.Checkbox(
+                label=step["text"],
+                value=step.get("done", False),
+                on_change=lambda e, tid=task["id"], i=i: toggle_step(tid, i, e.control.value),
+            )
+            for i, step in enumerate(steps)
+        ]
+
+        head: list[ft.Control] = [
+            ft.Row(
+                [
+                    ft.Column(
+                        [
+                            ft.Text(task["title"], size=14, weight=ft.FontWeight.BOLD,
+                                    color=theme.ON_BACKGROUND),
+                            ft.Text(
+                                f"{label} · {DIFFICULTY_LABELS.get(task.get('difficulty_est', 2), '')}"
+                                + (f" · {done_count}/{len(steps)} langkah" if len(steps) > 1 else ""),
+                                size=10,
+                                color=color,
+                            ),
+                        ],
+                        spacing=2,
+                        expand=True,
+                    ),
+                    ft.IconButton(
+                        icon=ft.Icons.DELETE_OUTLINE,
+                        icon_color=theme.MUTED,
+                        icon_size=18,
+                        tooltip="Hapus tugas",
+                        on_click=lambda e, t=task: confirm_remove(t),
+                    ),
+                ],
+            )
+        ]
+        if len(steps) > 1:
+            head.append(
+                ft.ProgressBar(
+                    value=done_count / len(steps),
+                    color=theme.PRIMARY,
+                    bgcolor=theme.BORDER,
+                    bar_height=4,
+                )
+            )
+
+        # Tugas yang punya kategori dapet baris perkiraan waktu + tombol yang
+        # langsung nyetel sesi fokus SEPANJANG itu -- bukan durasi standar.
+        if task.get("menit_est"):
+            head.append(
+                ft.Row(
+                    [
+                        ft.Icon(ft.Icons.SCHEDULE, size=14, color=theme.SECONDARY),
+                        ft.Text(
+                            f"~{task['menit_est']} menit",
+                            size=11, color=theme.MUTED, expand=True,
+                        ),
+                        ft.TextButton(
+                            content=ft.Text("Mulai", size=11.5, weight=ft.FontWeight.BOLD),
+                            icon=ft.Icons.PLAY_ARROW,
+                            on_click=lambda e, t=task: start_task_focus(t),
+                        ),
+                    ],
+                    spacing=6,
+                )
+            )
+
+        return ui_helpers.card(ft.Column([*head, *step_controls], spacing=6), padding=14)
+
+    def start_task_focus(task: dict):
+        """Sesi fokus sepanjang perkiraan tugas ini, bukan durasi standar.
+
+        Konteks kategori & jumlah ikut dibawa, jadi begitu sesinya kelar,
+        waktu ASLI yang kepakai kecatat dan jadi bahan belajar kecepatan
+        personal user buat kategori itu.
+        """
+        pending = next((s["text"] for s in task.get("steps", []) if not s.get("done")), task["title"])
+        focus_session.start(
+            max(int(task.get("menit_est") or kalem_engine.focus_minutes_for(state["energy"])), 1),
+            label=pending,
+            task_title=task["title"],
+            kategori=task.get("kategori", ""),
+            jumlah_unit=task.get("jumlah_unit", 0),
+            energi=state["energy"],
+        )
+        navigate("home")
+
+    def render_day_tasks():
+        tasks = storage.tasks_for(state["selected"])
+        if not tasks:
+            day_tasks_column.controls = [
+                ui_helpers.empty_state("Belum ada tugas di tanggal ini.", ft.Icons.EVENT_AVAILABLE)
+            ]
+            return
+
+        # Yang belum kelar naik ke atas -- itu yang perlu dilihat.
+        open_tasks = [t for t in tasks if not storage.task_is_done(t)]
+        done_tasks = [t for t in tasks if storage.task_is_done(t)]
+
+        items: list[ft.Control] = [open_card(t) for t in open_tasks]
+        if done_tasks:
+            items.append(
+                ui_helpers.section_header(f"Udah kelar ({len(done_tasks)})")
+            )
+            items.extend(done_card(t) for t in done_tasks)
+        day_tasks_column.controls = items
+
+    def refresh_all():
+        render_calendar()
+        render_day_tasks()
+        render_eisenhower()
+        render_timeline()
+        render_plan()
+        page.update()
+
+    # -------------------------------------------------------- tambah tugas
+
+    def open_add_task(e):
+        title_field = ft.TextField(label="Nama tugas", hint_text="mis. Bikin Skripsi Bab 1")
+        urgent_check = ft.Checkbox(label="Mendesak (deadline dekat)", value=False)
+        important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
+        difficulty = ft.RadioGroup(
+            value="2",
+            content=ft.Row(
+                [
+                    ft.Radio(value="1", label="Gampang"),
+                    ft.Radio(value="2", label="Sedang"),
+                    ft.Radio(value="3", label="Berat"),
+                ],
+                spacing=0,
+            ),
+        )
+
+        # --- Perkiraan durasi ---
+        # Diramal dari JUDUL tugas, bukan dari kategori+jumlah. Modelnya
+        # dilatih dari 499 tugas berbahasa Indonesia, jadi user nggak perlu
+        # milih apa-apa dulu -- ngetik judul aja udah dapet perkiraan.
+        # Kategori tetap ada tapi OPSIONAL: gunanya nyambungin sesi ke
+        # rata-rata kecepatan personal per jenis tugas.
+        picked = {"kategori": "", "jumlah": 0.0, "menit": 0}
+        kategori_holder = ft.Container()
+        buka_lanjutan = {"on": False}
+        jumlah_field = ft.TextField(
+            label="Berapa banyak?",
+            keyboard_type=ft.KeyboardType.NUMBER,
+            visible=False,
+            on_change=lambda ev: render_estimate(),
+        )
+        estimate_holder = ft.Container()
+
+        def pick_kategori(key: str):
+            picked["kategori"] = "" if picked["kategori"] == key else key
+            render_kategori()
+            render_estimate()
+
+        def render_kategori():
+            if not buka_lanjutan["on"]:
+                kategori_holder.content = ft.TextButton(
+                    content=ft.Text("+ Kasih tau jenis & jumlahnya (opsional)",
+                                    size=11.5, color=theme.PRIMARY),
+                    on_click=lambda ev: (buka_lanjutan.update(on=True), render_kategori(),
+                                         render_estimate()),
+                )
+                return
+            chips = [
+                ui_helpers.choice_chip(
+                    meta["label"], picked["kategori"] == key,
+                    lambda ev, k=key: pick_kategori(k),
+                )
+                for key, meta in model_durasi.KATEGORI.items()
+            ]
+            kategori_holder.content = ft.Column(
+                [
+                    ft.Text("Jenis tugasnya apa? Bikin Kalem inget kecepatan kamu "
+                            "di jenis ini.", size=11, color=theme.MUTED),
+                    ft.Row(chips, spacing=6, wrap=True, run_spacing=6),
+                ],
+                spacing=6,
+            )
+
+        def render_estimate():
+            judul = (title_field.value or "").strip()
+            kategori = picked["kategori"]
+
+            jumlah_field.visible = bool(kategori) and buka_lanjutan["on"]
+            if kategori:
+                satuan = model_durasi.satuan_kategori(kategori)
+                jumlah_field.label = f"Berapa {satuan}?"
+            try:
+                picked["jumlah"] = float((jumlah_field.value or "").strip())
+            except ValueError:
+                picked["jumlah"] = 0.0
+
+            if len(judul) < 3:
+                estimate_holder.content = None
+                picked["menit"] = 0
+                page.update()
+                return
+
+            try:
+                tempo = max(0, (date.fromisoformat(state["selected"]) - today).days)
+            except ValueError:
+                tempo = 0
+            penting = 8 if important_check.value else 4
+            if urgent_check.value:
+                penting = min(10, penting + 2)
+
+            est = model_durasi.perkirakan(
+                judul,
+                tempo_hari=tempo,
+                penting=penting,
+                kategori=kategori,
+                jumlah=picked["jumlah"],
+                records=storage.get_focus_records(),
+                # Energi hari ini ikut dioper: kalau user udah punya beberapa
+                # sesi di pita energi yang sama, faktor kalibrasinya diambil
+                # dari situ -- bukan dari rata-rata semua kondisi.
+                energi=state["energy"],
+            )
+            picked["menit"] = est.menit
+            estimate_holder.content = ft.Container(
+                content=ft.Column(
+                    [
+                        ft.Row(
+                            [
+                                ft.Icon(ft.Icons.SCHEDULE, size=16, color=theme.PRIMARY),
+                                ft.Text(
+                                    f"Biasanya {est.rentang}"
+                                    + (f" · {est.sesi} sesi" if est.sesi > 1 else ""),
+                                    size=13, weight=ft.FontWeight.BOLD,
+                                    color=theme.ON_BACKGROUND, expand=True,
+                                ),
+                            ],
+                            spacing=6,
+                        ),
+                        ft.Text(est.catatan, size=10.5, color=theme.MUTED),
+                    ],
+                    spacing=4,
+                ),
+                bgcolor=theme.BACKGROUND,
+                border_radius=10,
+                padding=ft.Padding.symmetric(vertical=8, horizontal=10),
+            )
+            page.update()
+
+        title_field.on_change = lambda ev: render_estimate()
+        urgent_check.on_change = lambda ev: render_estimate()
+        important_check.on_change = lambda ev: render_estimate()
+
+        render_kategori()
+        render_estimate()
+
+        def submit(ev):
+            name = (title_field.value or "").strip()
+            if not name:
+                title_field.error = "Isi nama tugasnya dulu"
+                page.update()
+                return
+            storage.add_task(
+                name,
+                state["selected"],
+                urgent_check.value,
+                important_check.value,
+                steps=[{"text": name, "done": False}],
+                difficulty_est=int(difficulty.value or 2),
+                kategori=picked["kategori"],
+                jumlah_unit=picked["jumlah"],
+                menit_est=picked["menit"],
+            )
+            page.pop_dialog()
+            refresh_all()
+
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text(f"Tugas untuk {state['selected']}", size=16),
+                content=ft.Column(
+                    [
+                        title_field,
+                        urgent_check,
+                        important_check,
+                        ft.Text("Seberat apa buat dimulai?", size=11, color=theme.MUTED),
+                        difficulty,
+                        ft.Divider(color=theme.BORDER, height=1),
+                        kategori_holder,
+                        jumlah_field,
+                        estimate_holder,
+                    ],
+                    spacing=8,
+                    tight=True,
+                    scroll=ft.ScrollMode.AUTO,
+                ),
+                actions=[
+                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()),
+                    ui_helpers.primary_button("Tambah", submit),
+                ],
+            )
+        )
+
+    # ----------------------------------------------------------- energi
+
+    def render_energy():
+        chips: list[ft.Control] = []
+        for level in range(1, 7):
+            active = level == state["energy"]
+            chips.append(
+                ft.Container(
+                    content=ft.Text(
+                        str(level),
+                        size=14,
+                        weight=ft.FontWeight.BOLD,
+                        color="#FFFFFF" if active else theme.ON_BACKGROUND,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    height=42,
+                    expand=True,
+                    bgcolor=theme.PRIMARY if active else theme.SURFACE,
+                    border=ft.Border.all(1, theme.PRIMARY if active else theme.BORDER),
+                    border_radius=12,
+                    alignment=ft.Alignment.CENTER,
+                    on_click=lambda e, lv=level: set_energy(lv),
+                    ink=True,
+                )
+            )
+        energy_row.controls = chips
+        energy_hint.value = ENERGY_HINTS[state["energy"]]
+
+        # Level energi kelihatan cuma "ngubah timer" kalau efeknya nggak
+        # ditulis. Padahal dia nyetir tiga hal sekaligus -- ditampilin biar
+        # kerasa kepakai, bukan angka pajangan.
+        level = state["energy"]
+        minutes = kalem_engine.focus_minutes_for(level)
+        rest = kalem_engine.break_minutes_for(level)
+        effects = [
+            (ft.Icons.TIMER_OUTLINED, f"Sesi fokus jadi {minutes} menit, istirahat {rest} menit"),
+            (ft.Icons.AUTO_AWESOME, "Ukuran langkah pas 'Pecah Tugas' ikut nyesuain"),
+            (ft.Icons.INSIGHTS, "Jadi dasar saran beban kerja Kalem hari ini"),
+        ]
+        energy_effect.controls = [
+            ft.Row(
+                [
+                    ft.Icon(icon, size=14, color=theme.SECONDARY),
+                    ft.Text(text, size=11.5, color=theme.MUTED, expand=True),
+                ],
+                spacing=8,
+            )
+            for icon, text in effects
+        ] + [
+            ft.Row(
+                [
+                    ui_helpers.primary_button(
+                        f"Mulai fokus {minutes} menit",
+                        start_focus_here,
+                        icon=ft.Icons.PLAY_ARROW,
+                        expand=True,
+                    )
+                ],
+                spacing=0,
+            )
+        ]
+
+    def set_energy(level: int):
+        """Ganti energi = ganti durasi sesi fokus. Inilah sambungannya."""
+        state["energy"] = level
+        # Dikunci buat hari ini juga, biar koreksi user nggak ilang pas
+        # pindah halaman -- dan biar Beranda ikut pakai angka yang sama.
+        storage.set_today_energy(level)
+        render_energy()
+        page.update()
+
+    def start_focus_here(e):
+        """Mulai sesi, terus pindah ke Beranda tempat timernya tinggal.
+
+        Sesinya sendiri disimpan di `focus_session` (global), jadi dia tetap
+        jalan walau user keliling halaman.
+        """
+        found = kalem_engine.pick_next_action(storage.tasks_today())
+        label, title = ("", "")
+        if found:
+            task, _, step_text = found
+            label, title = step_text, task["title"]
+        focus_session.start(
+            kalem_engine.focus_minutes_for(state["energy"]), label=label, task_title=title
+        )
+        navigate("home")
+
+    # ------------------------------------------------------- pecah tugas
+
+    def open_split_picker(e):
+        """Pilih tugas mana yang dipecah -- default semua yang belum kelar.
+
+        Dulu tombolnya langsung ngegas semua tugas hari ini. Buat user yang
+        cuma pengen mecah satu tugas berat, itu ngabisin kuota AI harian dan
+        nimpa langkah tugas lain yang udah rapi.
+        """
+        tasks = [t for t in storage.tasks_today() if not storage.task_is_done(t)]
+        if not tasks:
+            plan_state.update(steps=[], source="", reason="", quota_msg="")
+            plan_column.controls = [
+                ui_helpers.banner("Belum ada tugas hari ini buat dipecah.",
+                                  theme.WARN, ft.Icons.INFO_OUTLINE)
+            ]
+            plan_column.visible = True
+            page.update()
+            return
+
+        # `ft.Checkbox` di Flet 0.86.4 nggak punya parameter `subtitle`, jadi
+        # keterangan "udah punya N langkah" ditaruh sebagai baris sendiri.
+        boxes = {t["id"]: ft.Checkbox(label=t["title"], value=True) for t in tasks}
+
+        def picker_row(task: dict) -> ft.Control:
+            box = boxes[task["id"]]
+            steps = len(task.get("steps", []))
+            if steps <= 1:
+                return box
+            return ft.Column(
+                [
+                    box,
+                    ft.Container(
+                        content=ft.Text(
+                            f"udah punya {steps} langkah — bakal disusun ulang",
+                            size=10.5,
+                            color=theme.MUTED,
+                        ),
+                        padding=ft.Padding.only(left=42),
+                    ),
+                ],
+                spacing=0,
+            )
+
+        def set_all(value: bool):
+            for box in boxes.values():
+                box.value = value
+            page.update()
+
+        def submit(ev):
+            chosen = [t for t in tasks if boxes[t["id"]].value]
+            page.pop_dialog()
+            if chosen:
+                run_split(chosen)
+
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Pecah tugas mana?", size=16),
+                content=ft.Column(
+                    [
+                        ft.Text(
+                            "Cuma yang dicentang yang dipecah. Yang udah punya langkah "
+                            "bakal disusun ulang — centang yang udah selesai tetap aman.",
+                            size=11.5,
+                            color=theme.MUTED,
+                        ),
+                        ft.Row(
+                            [
+                                ft.TextButton(content=ft.Text("Pilih semua", size=12),
+                                              on_click=lambda ev: set_all(True)),
+                                ft.TextButton(content=ft.Text("Kosongkan", size=12),
+                                              on_click=lambda ev: set_all(False)),
+                            ],
+                            spacing=4,
+                        ),
+                        *[picker_row(t) for t in tasks],
+                    ],
+                    spacing=6,
+                    tight=True,
+                    scroll=ft.ScrollMode.AUTO,
+                ),
+                actions=[
+                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()),
+                    ui_helpers.primary_button("Pecah", submit, icon=ft.Icons.AUTO_AWESOME),
+                ],
+            )
+        )
+
+    def run_split(tasks: list[dict]):
+        # Kuota free tier. Yang dibatasi PANGGILAN AI-nya (biaya API per
+        # user nggak nol) -- nambah & ngerjain tugas manual tetap bebas.
+        if not storage.can_use("decompose"):
+            limit = storage.FREE_LIMITS["decompose"]
+            plan_state.update(steps=[], source="", reason="")
+            plan_column.controls = [
+                ui_helpers.upgrade_hint(
+                    f"Pecah Tugas pakai AI udah kepakai {limit}x hari ini. "
+                    "Besok balik lagi, atau buka Premium buat tanpa batas. "
+                    "Tugasnya tetap bisa kamu pecah manual kok."
+                )
+            ]
+            plan_column.visible = True
+            page.update()
+            return
+
+        # Bar progres jalan sementara panggilan API-nya diproses di thread
+        # lain. Panjang bar-nya dari median lama panggilan sebelumnya --
+        # lihat ui_helpers.ProgresAI.
+        progres_holder = ft.Container()
+        plan_column.controls = [progres_holder]
+        plan_column.visible = True
+        page.update()
+
+        async def kerjakan():
+            hasil = await ui_helpers.jalankan_dengan_progres(
+                page, progres_holder,
+                lambda: plan_today(tasks, state["energy"]),
+                "Kalem lagi mecahin tugasnya...",
+            )
+            selesaikan(hasil, tasks)
+
+        page.run_task(kerjakan)
+
+    def selesaikan(result, tasks: list[dict]):
+        """Bagian sesudah panggilan API balik. Dipisah dari `run_split` karena
+        sekarang jalannya asinkron -- `tasks` dioper eksplisit, bukan diambil
+        dari closure, biar nggak ketuker sama daftar yang udah berubah."""
+        # Cuma dihitung kalau AI-nya beneran kepakai -- kalau jatuh ke
+        # fallback rule-based, nggak ada biaya API, jadi nggak motong kuota.
+        if result.source == "ai":
+            storage.record_usage("decompose")
+
+        # Tulis balik langkah-langkahnya ke tiap tugas, bukan cuma ditampilin
+        # sekali di sini terus hilang. Ini yang dipakai Beranda (next-action)
+        # dan checklist di bawah. `set_task_steps` yang njaga centang lama.
+        by_title: dict[str, list[dict]] = {}
+        for title, step, _minutes in result.steps:
+            by_title.setdefault(title, []).append({"text": step, "done": False})
+        for task in tasks:
+            steps = by_title.get(task["title"])
+            if steps:
+                storage.set_task_steps(task["id"], steps)
+
+        left = storage.quota_left("decompose")
+        plan_state.update(
+            steps=list(result.steps),
+            source=result.source,
+            reason=result.reason,
+            quota_msg=f" — sisa {left}x hari ini" if left is not None else "",
+        )
+        refresh_all()
+
+    def render_plan():
+        """Gambar ulang rencana dari langkah yang MASIH punya tugas.
+
+        Dipanggil tiap daftar tugas berubah. Tugas yang dihapus otomatis
+        ilang dari jadwal, dan sisanya disusun ulang lewat `lay_out()` --
+        jadi jamnya rapat lagi, nggak ninggalin lubang.
+        """
+        if not plan_state["steps"]:
+            if not plan_column.controls:
+                plan_column.visible = False
+            return
+
+        alive = {t["title"] for t in storage.tasks_today()}
+        steps = [s for s in plan_state["steps"] if s[0] in alive]
+        removed = len(plan_state["steps"]) - len(steps)
+        plan_state["steps"] = steps
+
+        if not steps:
+            plan_column.controls = [
+                ui_helpers.banner(
+                    "Semua tugas di rencana ini udah dihapus.", theme.MUTED, ft.Icons.INFO_OUTLINE
+                )
+            ]
+            plan_column.visible = True
+            return
+
+        blocks, total = lay_out(steps, state["energy"])
+
+        if plan_state["source"] == "ai":
+            label = "Disusun pakai AI (Gemini API)" + plan_state["quota_msg"]
+            rows: list[ft.Control] = [
+                ui_helpers.banner(label, theme.PRIMARY, ft.Icons.AUTO_AWESOME)
+            ]
+        else:
+            label = "Mode offline: disusun pakai template rule-based"
+            if plan_state["reason"]:
+                label += f" — {plan_state['reason']}"
+            rows = [ui_helpers.banner(label, theme.WARN, ft.Icons.OFFLINE_BOLT)]
+
+        if removed:
+            rows.append(
+                ft.Text(
+                    f"{removed} langkah dibuang karena tugasnya udah dihapus — "
+                    "jadwalnya udah disusun ulang.",
+                    size=11,
+                    color=theme.MUTED,
+                )
+            )
+
+        for block in blocks:
+            rows.append(
+                ft.Row(
+                    [
+                        ft.Container(
+                            content=ft.Text(
+                                block.start,
+                                size=11,
+                                color=theme.MUTED if block.is_break else theme.PRIMARY,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            width=44,
+                        ),
+                        ft.Container(
+                            width=3,
+                            height=26,
+                            bgcolor=theme.BORDER if block.is_break else theme.PRIMARY,
+                            border_radius=2,
+                        ),
+                        ft.Text(
+                            block.step,
+                            size=12.5,
+                            color=theme.MUTED if block.is_break else theme.ON_BACKGROUND,
+                            italic=block.is_break,
+                            expand=True,
+                        ),
+                    ],
+                    spacing=8,
+                )
+            )
+        rows.append(
+            ui_helpers.disclaimer(
+                f"Total sekitar {total} menit. Ini rencana, bukan target wajib."
+            )
+        )
+        plan_column.controls = rows
+        plan_column.visible = True
+
+    # ------------------------------------------------------------ render
+
+    render_calendar()
+    render_day_tasks()
+    render_eisenhower()
+    render_timeline()
+    render_energy()
+
+    calendar_card = ui_helpers.card(
+        ft.Column([calendar_nav, calendar_grid], spacing=8), padding=14
+    )
+
+    energy_card = ui_helpers.card(
+        ft.Column(
+            [
+                ui_helpers.section_header("Level energi sekarang (1-6)"),
+                energy_row,
+                energy_hint,
+                ft.Divider(color=theme.BORDER, height=1),
+                ui_helpers.section_header("Yang ikut berubah"),
+                energy_effect,
+                ui_helpers.disclaimer(
+                    "Skalanya 1-6 biar nggak ada 'angka tengah aman' -- kamu harus milih "
+                    "condong ke mana."
+                ),
+            ],
+            spacing=10,
+        ),
+        padding=16,
+    )
+
+    return ft.Column(
+        [
+            ui_helpers.page_header("Tracker"),
+            calendar_card,
+            ft.Row(
+                [
+                    ui_helpers.primary_button("Tambah Tugas", open_add_task, icon=ft.Icons.ADD, expand=True),
+                    ft.OutlinedButton(
+                        content=ft.Text("Pecah Tugas"),
+                        icon=ft.Icons.AUTO_AWESOME,
+                        on_click=open_split_picker,
+                        expand=True,
+                    ),
+                ],
+                spacing=10,
+            ),
+            ui_helpers.subtitle("'Pecah Tugas' nyusun tugas HARI INI jadi slot waktu — kamu pilih yang mana."),
+            plan_column,
+            eisenhower_column,
+            timeline_column,
+            day_tasks_column,
+            energy_card,
+        ],
+        spacing=14,
+        scroll=ft.ScrollMode.AUTO,
+        expand=True,
+    )

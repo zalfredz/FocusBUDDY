@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Kalem — mood: lelah (drained) -->
+  <ellipse cx="60" cy="108" rx="30" ry="5" fill="#4A473F" opacity="0.07"/>
+  <path d="M62 24c-6 1-10-3-12-7" stroke="#8FBCA0" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="45" cy="15" rx="7" ry="4.5" fill="#A9C6DE" transform="rotate(-65 45 15)"/>
+  <path d="M60 26c22 0 35 15 35 36 0 23-15 38-35 38S25 85 25 62c0-21 13-36 35-36z" fill="#8FBCA0" opacity="0.85"/>
+  <path d="M60 26c22 0 35 15 35 36 0 6-1 10-2 15-6-28-30-40-56-34C42 34 50 26 60 26z" fill="#FFFFFF" opacity="0.12"/>
+  <ellipse cx="38" cy="75" rx="7" ry="4.5" fill="#F3B88B" opacity="0.3"/>
+  <ellipse cx="82" cy="75" rx="7" ry="4.5" fill="#F3B88B" opacity="0.3"/>
+  <!-- eyes: half-closed heavy lids -->
+  <path d="M39 62h13" stroke="#4A473F" stroke-width="4" stroke-linecap="round"/>
+  <path d="M68 62h13" stroke="#4A473F" stroke-width="4" stroke-linecap="round"/>
+  <path d="M39 57c4-2 9-2 13 1" stroke="#4A473F" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+  <path d="M81 57c-4-2-9-2-13 1" stroke="#4A473F" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+  <!-- mouth: small flat line -->
+  <path d="M55 79h10" stroke="#4A473F" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- zzz -->
+  <path d="M92 30h9l-9 10h9" stroke="#A9C6DE" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M104 16h6l-6 7h6" stroke="#A9C6DE" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.75"/>
+</svg>

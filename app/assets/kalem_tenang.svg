@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Kalem — mood: tenang (calm) -->
+  <ellipse cx="60" cy="108" rx="30" ry="5" fill="#4A473F" opacity="0.07"/>
+  <path d="M60 16c-6 0-9-5-9-9" stroke="#8FBCA0" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="48" cy="8" rx="7" ry="4.5" fill="#A9C6DE" transform="rotate(-25 48 8)"/>
+  <path d="M60 18c22 0 35 16 35 38 0 24-15 40-35 40S25 80 25 56c0-22 13-38 35-38z" fill="#8FBCA0"/>
+  <path d="M60 18c22 0 35 16 35 38 0 6-1 11-2 16-6-30-30-42-56-36C42 26 50 18 60 18z" fill="#FFFFFF" opacity="0.18"/>
+  <ellipse cx="38" cy="70" rx="7" ry="5" fill="#F3B88B" opacity="0.5"/>
+  <ellipse cx="82" cy="70" rx="7" ry="5" fill="#F3B88B" opacity="0.5"/>
+  <!-- eyes: gentle closed arcs -->
+  <path d="M40 58c3-4 9-4 12 0" stroke="#4A473F" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M68 58c3-4 9-4 12 0" stroke="#4A473F" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- mouth: soft small smile -->
+  <path d="M54 74c3 4 9 4 12 0" stroke="#4A473F" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+</svg>
