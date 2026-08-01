@@ -5,10 +5,12 @@ app dan ngisi sesuatu dulu; halaman ini yang ngajak duluan. Hambatan ADHD
 paling kritis ada di titik INISIASI (Delay Aversion Model), dan app yang
 nunggu dibuka nggak nolongin di titik itu.
 
-Nggak ada model baru di sini -- ramalannya dari dua mesin yang udah ada
-(mood_model._predict_today & energy_predictor.predict_workload), dibungkus
+Halaman ini nggak ngitung apa-apa sendiri -- ramalannya dari
+`kalem_engine.build_morning_brief()`, yang di baliknya manggil
+`kalem_ml.model_mood` (skor mood hari ini) + `kalem_ml.model_energi`
+(beban kerja & burnout). Yang beda dari halaman Mood: hasilnya dibungkus
 jadi AKSI DEFAULT (nyetel energi + durasi sesi hari itu), bukan cuma
-kalimat info kayak di halaman Mood.
+kalimat info.
 """
 from __future__ import annotations
 

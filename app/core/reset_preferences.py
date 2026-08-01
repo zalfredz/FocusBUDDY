@@ -1,19 +1,22 @@
-"""Personalisasi halaman Reset + deteksi pola distress.
+"""Opsi & data statis buat halaman Reset + deteksi pola distress.
 
-Dua hal berbeda yang sengaja dipisah:
+Personalisasi urutan opsi penenang SEKARANG ada di `kalem_ml/model_penenang.py`
+(dulu di sini, frequency-based murni -- ditinggal karena "sering dipakai"
+nggak sama dengan "beneran nolong", lihat docstring modul itu). Yang tersisa
+di sini cuma dua hal yang emang harus rule-based:
 
-1. Personalisasi opsi penenang -- murni hitung frekuensi pilihan user
-   (bukan ML). Sederhana, transparan, dan langsung kelihatan gunanya.
-
-2. Deteksi pola distress -- kalau user berulang kali mencet SOS sambil
+1. Deteksi pola distress -- kalau user berulang kali mencet SOS sambil
    mood-nya rendah, app berhenti nawarin musik lagi dan lebih tegas
-   ngarahin ke bantuan profesional. Ini rule-based dan sengaja bukan
-   klaim diagnosis, cuma trigger rujukan.
+   ngarahin ke bantuan profesional. Ini SENGAJA bukan ML: keputusan nunjuk
+   ke hotline krisis harus bisa dijelasin dalam satu kalimat dan nggak boleh
+   probabilistik.
+
+2. Data statis: opsi jeda, peta trigger->opsi (dipakai model_penenang buat
+   tebakan awal sebelum ada riwayat), hotline, dan partner telehealth.
 """
 from __future__ import annotations
 
-from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
@@ -58,20 +61,12 @@ SOS_COUNT_THRESHOLD = 3
 LOW_MOOD_THRESHOLD = 2.0  # skor mood rata-rata (skala 1-5)
 
 
-@dataclass
-class ResetPersonalisation:
-    ranked: list[str]                       # urutan opsi, paling sering dipakai duluan
-    counts: dict[str, int] = field(default_factory=dict)
-    top_choice: Optional[str] = None
-    note: str = ""
-
-
 # Trigger overwhelm dari onboarding -> opsi mana yang paling masuk akal
 # dimunculin duluan SEBELUM app punya riwayat pilihan user.
 #
 # Pemicu yang diketik sendiri user nggak ada di sini, dan itu nggak apa-apa:
-# `personalise()` cuma make peta ini buat tebakan awal, terus digantiin sama
-# frekuensi pilihan asli begitu ada riwayat.
+# `model_penenang.peringkat()` cuma make peta ini buat tebakan awal, terus
+# digantiin sama manfaat terukur begitu ada riwayat.
 TRIGGER_DEFAULTS = {
     # Kepala penuh / muter-muter -> tarik balik ke indra dulu.
     "tugas_numpuk": "grounding",
@@ -101,44 +96,6 @@ def music_links(query: str) -> list[dict]:
         {"name": "Spotify", "desc": f"Cari '{query}'", "url": f"https://open.spotify.com/search/{q}"},
         {"name": "YouTube Music", "desc": f"Cari '{query}'", "url": f"https://music.youtube.com/search?q={q}"},
     ]
-
-
-def personalise(
-    reset_events: list[dict],
-    triggers: Optional[list[str]] = None,
-) -> ResetPersonalisation:
-    """Urutkan opsi berdasarkan seberapa sering user milih (frequency-based).
-
-    Selama user belum punya riwayat, urutannya ngikut trigger overwhelm yang
-    dia sebut pas onboarding -- jadi tebakan pertamanya nggak asal.
-    """
-    counts = Counter(e["choice"] for e in reset_events if e.get("choice") in OPTIONS)
-
-    seeded = [TRIGGER_DEFAULTS[t] for t in (triggers or []) if t in TRIGGER_DEFAULTS]
-
-    def rank_key(key: str):
-        used = counts.get(key, 0)
-        # Skor onboarding cuma jadi pemecah seri, nggak pernah ngalahin
-        # data pemakaian asli.
-        seed_rank = seeded.index(key) if key in seeded else 99
-        return (-used, seed_rank, key)
-
-    ranked = sorted(OPTIONS.keys(), key=rank_key)
-
-    top_choice = None
-    note = ""
-    if counts:
-        top_choice, top_count = counts.most_common(1)[0]
-        if top_count >= 2:
-            label = OPTIONS[top_choice]["label"]
-            note = f"Biasanya '{label}' yang paling ngebantu kamu -- Kalem taruh paling atas."
-
-    return ResetPersonalisation(
-        ranked=ranked,
-        counts=dict(counts),
-        top_choice=top_choice,
-        note=note,
-    )
 
 
 @dataclass

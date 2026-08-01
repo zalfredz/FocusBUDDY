@@ -27,7 +27,7 @@ buat melatih -- karena nilai historisnya emang nggak ada.
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 from app import clock, storage
 
@@ -67,16 +67,56 @@ def _tri(nilai) -> float:
     return 0.5
 
 
-def baris_harian(sampai: Optional[date] = None) -> tuple[list[list[float]], list[dict]]:
+def sidik_jari(X: list[list[float]], meta: list[dict]) -> str:
+    """Sidik jari ISI data latih -- buat kunci cache model.
+
+    KENAPA BUKAN len(X) DOANG
+    -------------------------
+    Dulu model di-cache pakai jumlah baris (`tanda = f"{len(X)}"`). Itu bocor
+    parah: dua user beda yang kebetulan sama-sama punya 12 catatan bakal
+    dianggap "data yang sama", dan user kedua dapet ramalan dari model yang
+    dilatih pakai data user pertama. Kebukti di uji: user mood 1/5 terus
+    dapet skor 2.69 karena kepakai model user mood 5/5.
+
+    Di single-device itu nggak kejadian (satu proses = satu storage), tapi
+    begitu app-nya di-host bareng (satu server buat beberapa orang nyoba),
+    itu jadi kebocoran data antar-user.
+
+    Yang di-hash: tanggal + skor + label per hari. Cukup buat mastiin dua
+    dataset yang beda pasti beda kuncinya, dan murah -- nggak nyentuh matriks
+    fitur penuh yang jauh lebih gede.
+    """
+    import hashlib
+
+    bahan = "|".join(
+        f"{m['tanggal']}:{m['skor']}:{int(m['ada_sos'])}" for m in meta
+    )
+    return f"{len(X)}:{hashlib.sha256(bahan.encode()).hexdigest()[:16]}"
+
+
+def baris_harian(
+    sampai: Optional[date] = None, day: Any = None
+) -> tuple[list[list[float]], list[dict]]:
     """Satu baris fitur per hari yang ada check-in-nya.
 
     Return (X, meta). `meta` bawa tanggal + label mentah biar model lain bisa
     bikin target sendiri tanpa ngulang rekonstruksi ini.
+
+    `day` (kalau dioper) itu `kalem_engine.DayState` -- sumber datanya diambil
+    dari situ, bukan storage. Sama alasannya kayak `fitur.bangun_fitur()`:
+    biar model yang dilatih lewat `decide()`/`build_morning_brief()` beneran
+    belajar dari data yang dioper, bukan dari storage yang lagi aktif.
     """
     sampai = sampai or clock.today()
-    logs = [l for l in storage.get_mood_logs() if l.get("score") is not None]
-    sos = storage.get_reset_events()
-    tugas = storage.get_tasks()
+    if day is not None:
+        semua_log, sos, tugas = day.mood_logs, day.reset_events, day.all_tasks
+    else:
+        semua_log, sos, tugas = (
+            storage.get_mood_logs(),
+            storage.get_reset_events(),
+            storage.get_tasks(),
+        )
+    logs = [l for l in semua_log if l.get("score") is not None]
 
     tgl_sos: list[date] = sorted(
         d for d in (_tanggal(e.get("date", "")) for e in sos) if d

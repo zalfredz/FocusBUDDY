@@ -29,7 +29,6 @@ from typing import Optional
 
 from app.core.energy_predictor import (  # dipakai ulang, bukan disalin
     ADVICE_MAP,
-    ENERGY_HINTS,
     MISSED_MED_THRESHOLD,
     NEGLECT_BURNOUT_THRESHOLD,
     predict_workload,
@@ -78,9 +77,13 @@ def nilai(f: Optional[F.Fitur] = None, skor_mood: Optional[float] = None) -> Sar
     dikoreksi = False
     alasan_koreksi = ""
 
-    # Koreksi cuma jalan kalau datanya ada. User baru (n_sesi_7h == 0,
-    # belum ada tugas) nggak boleh kena penalti dari data kosong.
-    punya_data_tugas = f["n_tugas_hari_ini"] > 0 or f["rasio_selesai_7h"] != 0.5
+    # Koreksi cuma jalan kalau datanya ada. User baru (belum ada tugas sama
+    # sekali) nggak boleh kena penalti dari data kosong.
+    #
+    # Pakai flag eksplisit, BUKAN `rasio != 0.5`. Versi lama gitu, dan itu
+    # nutupin kasus rasio 50% yang beneran (1 dari 2 tugas kelar) -- kebaca
+    # sebagai "belum ada data" padahal ada.
+    punya_data_tugas = bool(f["ada_data_tugas_7h"])
     if punya_data_tugas and f["rasio_selesai_7h"] < AMBANG_SELESAI and label != "rendah":
         label = _TURUN[label]
         dikoreksi = True
@@ -127,10 +130,6 @@ def nilai(f: Optional[F.Fitur] = None, skor_mood: Optional[float] = None) -> Sar
         alasan_koreksi=alasan_koreksi,
         alasan=alasan[:3],
     )
-
-
-def petunjuk_energi(level: int) -> str:
-    return ENERGY_HINTS.get(int(level), ENERGY_HINTS[3])
 
 
 def status() -> dict:

@@ -342,9 +342,5 @@ def perkirakan(
                      n_personal=0, catatan=catatan, faktor_personal=geser)
 
 
-def label_kategori(key: str) -> str:
-    return KATEGORI.get(key, {}).get("label", key.title())
-
-
 def satuan_kategori(key: str) -> str:
     return KATEGORI.get(key, {}).get("satuan", "unit")

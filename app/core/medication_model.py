@@ -12,7 +12,10 @@ belum absen hari ini, Kalem yang nanya duluan (lihat kalem_engine.decide).
 
 BUKAN alat diagnosis / pengganti dokter. FocusBuddy nggak pernah nyaranin
 atau ngitungin "dosis wajar" -- dosis yang diisi user itu yang sudah
-ditentukan dokternya. Daftar apotek di bawah data contoh untuk demo.
+ditentukan dokternya. Pencarian apotek nunjuk ke Google Maps + partner
+daring asli (`ONLINE_PHARMACY_PARTNERS`) -- BUKAN daftar lokasi karangan.
+Kalau butuh "apotek terdekat beneran", itu tugas Maps API, bukan data
+statis yang bisa basi/salah alamat.
 """
 from __future__ import annotations
 
@@ -29,14 +32,6 @@ from app import clock
 # Lead time sengaja panjang: user butuh ruang buat nyari apotek / nebus resep
 # tanpa mepet. Riset medication reminder app nyaranin 5-7 hari, bukan 3.
 REMINDER_THRESHOLD_DAYS = 7
-
-SAMPLE_PHARMACIES = [
-    {"name": "Apotek Kimia Farma - Sudirman", "lat": -6.2088, "lon": 106.8228, "bersertifikat": True},
-    {"name": "Apotek Century - Thamrin", "lat": -6.1944, "lon": 106.8229, "bersertifikat": True},
-    {"name": "Apotek Guardian - Menteng", "lat": -6.1957, "lon": 106.8347, "bersertifikat": True},
-    {"name": "Apotek K24 - Cikini", "lat": -6.1928, "lon": 106.8391, "bersertifikat": True},
-    {"name": "Apotek Viva Generik - Kuningan", "lat": -6.2241, "lon": 106.8300, "bersertifikat": True},
-]
 
 # Partner apotek daring -- titik komisi afiliasi.
 #
@@ -199,19 +194,8 @@ def maps_search_url(query: str = "apotek terdekat") -> str:
     return f"https://www.google.com/maps/search/?api=1&query={quote_plus(query)}"
 
 
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    r = 6371.0
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-    return 2 * r * math.asin(math.sqrt(a))
-
-
-def find_nearby_pharmacies(user_lat: float, user_lon: float, limit: int = 3) -> list[dict]:
-    results = [
-        {**p, "jarak_km": round(_haversine_km(user_lat, user_lon, p["lat"], p["lon"]), 1)}
-        for p in SAMPLE_PHARMACIES
-    ]
-    results.sort(key=lambda p: p["jarak_km"])
-    return results[:limit]
+# CATATAN: dulu ada `find_nearby_pharmacies()` + `_haversine_km()` di sini,
+# ngitung jarak ke `SAMPLE_PHARMACIES` (5 apotek Jakarta yang DIKARANG lat/
+# lon-nya buat demo). Nggak pernah dipanggil di mana pun, dan kalaupun
+# kepasang bakal nampilin lokasi apotek palsu seolah nyata -- persis yang
+# diperingatin di docstring `maps_search_url()` di atas. Dihapus.

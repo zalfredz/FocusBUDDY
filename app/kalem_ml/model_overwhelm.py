@@ -31,7 +31,7 @@ naikin opsi jeda, nggak nyodorin tugas berat.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
@@ -134,18 +134,21 @@ def reset_model() -> None:
     _terlatih_dari = ""
 
 
-def _latih() -> bool:
+def _latih(day: Any = None) -> bool:
     """Latih dari riwayat user. Return False kalau datanya belum cukup."""
     global _model, _scaler, _n_latih, _terlatih_dari
 
-    X, meta = riwayat.baris_harian()
+    X, meta = riwayat.baris_harian(day=day)
     if len(X) < MIN_HARI:
         return False
     y = np.array([1 if m["ada_sos"] else 0 for m in meta])
     if y.sum() < MIN_PER_KELAS or (len(y) - y.sum()) < MIN_PER_KELAS:
         return False
 
-    tanda = f"{len(X)}:{int(y.sum())}"
+    # Kunci cache dari ISI data, bukan (jumlah baris + jumlah SOS) -- lihat
+    # `riwayat.sidik_jari()`. Versi lama nganggep dua user beda yang kebetulan
+    # punya statistik ringkas yang sama sebagai dataset identik.
+    tanda = riwayat.sidik_jari(X, meta)
     if _model is not None and _terlatih_dari == tanda:
         return True
 
@@ -198,7 +201,9 @@ def nilai(f: Optional[F.Fitur] = None) -> Risiko:
     f = f or F.bangun_fitur()
     skor_prior, alasan = _prior(f)
 
-    if not _latih():
+    # DayState asal snapshot ini diteruskan ke pelatihan -- biar modelnya
+    # belajar dari data yang dioper, bukan storage yang lagi aktif.
+    if not _latih(f.catatan.get("day")):
         return Risiko(
             skor=skor_prior,
             tingkat=_tingkat(skor_prior),

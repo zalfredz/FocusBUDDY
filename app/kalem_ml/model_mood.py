@@ -23,7 +23,7 @@ Dua peran yang beda, sengaja nggak digabung.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
@@ -84,13 +84,16 @@ def reset_model() -> None:
     _tanda = ""
 
 
-def _latih() -> bool:
+def _latih(day: Any = None) -> bool:
     global _model, _n_latih, _tanda
-    X, meta = riwayat.baris_harian()
+    X, meta = riwayat.baris_harian(day=day)
     if len(X) < MIN_MODEL:
         return False
 
-    tanda = f"{len(X)}"
+    # Kunci cache dari ISI data, bukan jumlah barisnya -- lihat penjelasan
+    # panjang di `riwayat.sidik_jari()`. Versi lama (`f"{len(X)}"`) bikin dua
+    # user beda yang sama-sama punya N catatan dianggap identik.
+    tanda = riwayat.sidik_jari(X, meta)
     if _model is not None and _tanda == tanda:
         return True
 
@@ -104,8 +107,14 @@ def _latih() -> bool:
     if len(Xa) < MIN_MODEL - 1:
         return False
 
+    # 100 pohon, TANPA n_jobs=-1 -- diukur: predict() 1 baris kena overhead
+    # spin-up joblib parallel yang lebih mahal dari kerjaannya sendiri buat
+    # kerjaan sekecil ini (48ms -> 23ms cuma dari buang n_jobs, -> 12ms lagi
+    # dari 200 ke 100 pohon, hasil prediksi nggak berubah di data uji).
+    # `decide()`/`build_morning_brief()` motong bagian ini tiap kali halaman
+    # dibuka, jadi latensi predict-nya kerasa langsung ke user.
     _model = RandomForestRegressor(
-        200, max_depth=6, min_samples_leaf=2, random_state=42, n_jobs=-1
+        100, max_depth=6, min_samples_leaf=2, random_state=42
     ).fit(np.array(Xa, dtype=float), np.array(y, dtype=float))
     _n_latih = len(Xa)
     _tanda = tanda
@@ -114,7 +123,11 @@ def _latih() -> bool:
 
 def ramal(f: Optional[F.Fitur] = None) -> RamalanMood:
     f = f or F.bangun_fitur()
-    logs = [l for l in storage.get_mood_logs() if l.get("score") is not None]
+    # Catatan diambil dari snapshot yang dioper, BUKAN baca storage lagi.
+    # Kalau baca ulang, `f` yang dibangun dari DayState buatan bakal
+    # diam-diam dicampur data storage yang lagi aktif.
+    logs = f.catatan.get("logs") or []
+    day = f.catatan.get("day")
     n = len(logs)
 
     if n < MIN_POLA:
@@ -124,7 +137,7 @@ def ramal(f: Optional[F.Fitur] = None) -> RamalanMood:
     rata = rata_per_hari(logs)
     dasar = rata.get(hari_ini)
 
-    if not _latih() or dasar is None:
+    if not _latih(day) or dasar is None:
         if dasar is None:
             # Belum pernah check-in di hari ini -> pakai rata-rata semua.
             dasar = sum(l["score"] for l in logs) / n

@@ -5,11 +5,20 @@ Semua halaman baca dari fungsi yang sama, cuma pakai bagian output yang beda:
 
     Home    -> pesan prioritas + next-action card + ekspresi Kalem
     Tracker -> durasi default sesi fokus (dari level energi)
-    Reset   -> urutan opsi calming (via reset_preferences)
+    Reset   -> urutan opsi calming (via kalem_ml.model_penenang)
     Mood    -> ekspresi default Kalem sebelum user check-in
 
-Sengaja rule-based, bukan ML: urutan prioritasnya harus bisa dijelasin ke
-juri dalam satu kalimat, dan nggak butuh data latih.
+URUTAN PRIORITASNYA rule-based (harus bisa dijelasin ke juri dalam satu
+kalimat), tapi ISI SETIAP KEPUTUSAN sekarang lewat `kalem_ml` dulu, baru
+dirender jadi kalimat:
+
+    "pola berat kebaca?"    -> kalem_ml.model_overwhelm  (dulu 2-syarat rule)
+    "beban kerja hari ini?" -> kalem_ml.model_energi      (dulu predict_workload langsung)
+    "mood hari ini gimana?" -> kalem_ml.model_mood        (dulu rata-rata mentah)
+
+Ketiganya sendiri punya prior rule-based buat hari pertama (belum ada data
+buat dipelajari) dan pelan-pelan ganti ke versi yang belajar dari histori
+user begitu datanya cukup -- lihat docstring masing-masing modul.
 
 Modul ini nggak impor flet -- biar gampang dites tanpa bikin UI.
 """
@@ -21,14 +30,6 @@ from typing import Optional
 
 from app import clock
 from app.core.medication_model import check_status, missed_streak
-
-# --- Ambang deteksi "soft escalation" ---
-# Sengaja LEBIH LONGGAR dari eskalasi keras di halaman Reset (3x/7 hari +
-# mood <= 2.0). Di sini cuma buat Kalem nyapa duluan dengan lembut, bukan
-# nyodorin rujukan profesional. Akses ke halaman Reset tetap selalu terbuka.
-PRE_ESCALATION_WINDOW_DAYS = 3
-PRE_ESCALATION_SOS_COUNT = 2
-PRE_ESCALATION_MOOD = 3.0
 
 # Jam paling awal Kalem boleh nanya soal obat.
 MED_NUDGE_HOUR = 7
@@ -72,13 +73,29 @@ class KalemDecision:
 
 @dataclass
 class DayState:
-    """Snapshot data harian yang dibaca engine."""
+    """Snapshot SEMUA data yang dibaca engine -- termasuk lapisan ML.
+
+    Sengaja lengkap: `decide()` dan `build_morning_brief()` harus jadi fungsi
+    murni dari `(profile, day)`. Dulu nggak gitu -- lapisan ML-nya (lewat
+    `kalem_ml.fitur.bangun_fitur()`) diam-diam baca `storage` lagi, jadi
+    ngasih `day` buatan (pola yang jelas didukung dataclass ini) nggak
+    ngefek ke separuh keputusannya. Yang kelihatan pure padahal nggak itu
+    jebakan paling gampang bikin test bohong.
+
+    Empat field terakhir ditambahin buat nutup celah itu: `bangun_fitur()`
+    butuh gambaran yang lebih luas dari sekadar "hari ini".
+    """
 
     tasks_today: list[dict] = field(default_factory=list)
     mood_logs: list[dict] = field(default_factory=list)
     reset_events: list[dict] = field(default_factory=list)
     medication: Optional[dict] = None
     energy_level: Optional[int] = None
+    # --- dipakai lapisan fitur (kalem_ml), bukan sama rule di modul ini ---
+    all_tasks: list[dict] = field(default_factory=list)   # buat rasio selesai & umur tugas
+    favorites: dict = field(default_factory=dict)
+    focus_records: list[dict] = field(default_factory=list)
+    inbox_count: int = 0
 
 
 # --------------------------------------------------------------- helpers
@@ -220,9 +237,20 @@ def decide(
                 focus_minutes=minutes,
             )
 
-    # --- 2. Pola SOS berulang + mood rendah (pre-escalation yang lembut) ---
-    pre = detect_pre_escalation(day.reset_events, day.mood_logs)
-    if pre:
+    # --- 2. Pola berat kebaca (pre-escalation yang lembut) ---
+    # Dulu rule 2-syarat (SOS>=2/3hari DAN mood<=3.0) yang ditulis di sini
+    # langsung. Sekarang lewat `model_overwhelm`: sama-sama mulai dari prior
+    # rule-based (malah lebih kaya -- ikut mempertimbangkan tidur, obat, beban
+    # tugas), dan begitu ada >=10 hari ber-label dia beralih ke model yang
+    # belajar dari pola SOS user sendiri. Threshold-nya SENGAJA lebih longgar
+    # dari eskalasi keras di halaman Reset (yang itu 3x/7hari + mood<=2.0) --
+    # di sini cuma buat Kalem nyapa duluan dengan lembut, bukan nyodorin
+    # rujukan profesional. Akses ke halaman Reset tetap selalu terbuka.
+    from app.kalem_ml import fitur as kfitur
+    from app.kalem_ml import model_overwhelm
+
+    risiko = model_overwhelm.nilai(kfitur.bangun_fitur(now, day=day, profil=profile))
+    if risiko.perlu_diringankan:
         return KalemDecision(
             kind="pre_escalate",
             message="Beberapa hari ini kelihatannya berat ya.",
@@ -268,27 +296,6 @@ def decide(
     )
 
 
-def detect_pre_escalation(reset_events: list[dict], mood_logs: list[dict]) -> bool:
-    """Sinyal lembut: SOS berulang + mood rendah dalam 3 hari terakhir.
-
-    Bukan buat nge-gate tombol apa pun -- cuma bikin Kalem nyapa duluan.
-    Eskalasi yang beneran ngarahin ke profesional ada di halaman Reset
-    dengan ambang yang lebih ketat.
-    """
-    recent_sos = _recent(reset_events, PRE_ESCALATION_WINDOW_DAYS)
-    if len(recent_sos) < PRE_ESCALATION_SOS_COUNT:
-        return False
-
-    scores = [
-        log["score"]
-        for log in _recent(mood_logs, PRE_ESCALATION_WINDOW_DAYS)
-        if log.get("score") is not None
-    ]
-    if not scores:
-        return False
-    return sum(scores) / len(scores) <= PRE_ESCALATION_MOOD
-
-
 def _energy_from_logs(mood_logs: list[dict]) -> int:
     today_iso = clock.today().isoformat()
     for log in mood_logs:
@@ -303,6 +310,8 @@ def snapshot() -> tuple[dict, DayState]:
     """Ambil profil + DayState terkini dari storage.
 
     Dipakai halaman-halaman biar nggak masing-masing nyusun state sendiri.
+    INI SATU-SATUNYA tempat engine nyentuh storage -- sesudah ini semuanya
+    jalan dari `day` yang dioper, termasuk lapisan ML-nya.
     """
     from app import storage
 
@@ -312,6 +321,10 @@ def snapshot() -> tuple[dict, DayState]:
         mood_logs=storage.get_mood_logs(),
         reset_events=storage.get_reset_events(),
         medication=storage.get_medication(),
+        all_tasks=storage.get_tasks(),
+        favorites=storage.get_favorites(),
+        focus_records=storage.get_focus_records(),
+        inbox_count=len(storage.get_inbox()),
         # Level energi hari ini kalau udah dikunci (dari Morning Brief atau
         # koreksi manual di Tracker). None = biar engine nebak dari mood log.
         energy_level=storage.today_energy(),
@@ -319,22 +332,15 @@ def snapshot() -> tuple[dict, DayState]:
     return profile, day
 
 
-def decide_now() -> KalemDecision:
-    """Jalan pintas: snapshot + decide dalam satu panggilan."""
-    profile, day = snapshot()
-    return decide(profile, day)
-
-
 # ------------------------------------------------------- morning brief
 # Membalik arah interaksi: Kalem nyapa duluan tiap pagi dengan ramalan
-# konkret, sebelum user check-in apa pun. Dua mesin prediksi yang dipakai
-# (_predict_today & predict_workload) UDAH ADA -- yang berubah cuma kapan
-# hasilnya keluar dan bentuknya: dari kalimat info pasif jadi aksi default
-# yang langsung nyetel energi & durasi sesi hari itu.
-
-
-# Beban kerja yang diramal -> level energi default yang disaranin.
-WORKLOAD_TO_ENERGY = {"rendah": 2, "sedang": 4, "tinggi": 5}
+# konkret, sebelum user check-in apa pun. Mesin prediksinya dari
+# `kalem_ml.model_mood` + `kalem_ml.model_energi` -- yang berubah dari versi
+# lama cuma kapan hasilnya keluar dan bentuknya: dari kalimat info pasif
+# jadi aksi default yang langsung nyetel energi & durasi sesi hari itu.
+#
+# (Peta beban->energi dulu ada duplikatnya di sini -- `WORKLOAD_TO_ENERGY`,
+# sama persis kayak `model_energi.BEBAN_KE_ENERGI`. Dihapus, satu sumber aja.)
 
 
 @dataclass
@@ -362,29 +368,25 @@ def build_morning_brief(
 ) -> MorningBrief:
     """Susun ramalan pagi dari pola user sendiri.
 
-    Jujur soal ketidaktahuan: kalau catatan mood masih di bawah
-    MIN_LOGS_FOR_PATTERN, `ready=False` dan pesannya ngaku belum bisa
+    Jujur soal ketidaktahuan: kalau catatan mood masih di bawah ambang
+    `model_mood.MIN_POLA`, `ready=False` dan pesannya ngaku belum bisa
     meramal -- konsisten sama mood_model.analyse() yang nggak pernah
     ngarang pola dari data yang belum cukup.
+
+    Ramalannya sendiri sekarang lewat kalem_ml: `model_mood.ramal()` buat
+    skor mood hari ini, `model_energi.nilai()` buat beban kerja + level
+    energi (dia yang sekarang ngurus koreksi burnout & jam-capek, bukan
+    fungsi ini lagi -- lihat catatan di bawah).
     """
     from app import storage
-    from app.core.energy_predictor import (
-        MISSED_MED_THRESHOLD,
-        predict_workload,
-        sleep_hours_for,
-    )
-    from app.core.mood_model import (
-        MIN_LOGS_FOR_PATTERN,
-        _predict_today,
-        checkin_streak,
-        neglect_streak,
-    )
+    from app.core.energy_predictor import MISSED_MED_THRESHOLD
+    from app.kalem_ml import fitur as kfitur
+    from app.kalem_ml import model_energi, model_mood
 
     now = now or clock.now()
     name = profile.get("name") or "kamu"
     logs = [log for log in day.mood_logs if log.get("score") is not None]
-    favorites = storage.get_favorites()
-    encouragement = favorites.get("penyemangat", "").strip()
+    encouragement = day.favorites.get("penyemangat", "").strip()
 
     hour = now.hour
     if hour < 11:
@@ -398,14 +400,17 @@ def build_morning_brief(
 
     task_count = len([t for t in day.tasks_today if not _task_done(t)])
 
+    f = kfitur.bangun_fitur(now, day=day, profil=profile)
+    ramalan = model_mood.ramal(f)
+
     # --- Data belum cukup: tetap nyapa, tapi ngaku belum bisa meramal ---
-    if len(logs) < MIN_LOGS_FOR_PATTERN:
+    if not ramalan.siap:
         return MorningBrief(
             ready=False,
             greeting=greeting,
             forecast=(
                 f"Kalem belum cukup data buat meramal hari kamu "
-                f"({len(logs)}/{MIN_LOGS_FOR_PATTERN} catatan)."
+                f"({ramalan.n_data}/{model_mood.MIN_POLA} catatan)."
             ),
             plan=(
                 "Cerita dikit di check-in hari ini biar makin kebaca ke depannya. "
@@ -419,64 +424,43 @@ def build_morning_brief(
             encouragement=encouragement,
         )
 
-    # --- Ramalan beneran ---
-    predicted_score = _predict_today(logs)
-    sleep_hours = sleep_hours_for(profile.get("sleep_condition", ""))
-    neglect_days = neglect_streak(day.mood_logs)
-    recent_energy = logs[0].get("energy") or 3
+    # --- Ramalan beneran: model dulu, baru dirender jadi kalimat ---
+    predicted_score = ramalan.skor
+    saran = model_energi.nilai(f, skor_mood=predicted_score)
 
-    prediction = predict_workload(
-        sleep_hours=sleep_hours,
-        mood_score=int(round(predicted_score)) if predicted_score else 3,
-        energy_level=recent_energy,
-        # Pakai streak yang SAMA kayak halaman Mood. Dulu di sini nggak
-        # dikirim sama sekali (default 0) sementara Mood ngirim angka lain,
-        # jadi dua halaman bisa ngasih vonis beban beda di hari yang sama.
-        streak=checkin_streak(day.mood_logs),
-        neglect_days=neglect_days,
-        # Nggak absen = dianggap nggak minum. Ini yang bikin "belakangan
-        # kok berat ya" punya penjelasan, bukan misteri.
-        missed_med_days=missed_streak(day.medication),
-    )
-
-    energy_level = WORKLOAD_TO_ENERGY.get(prediction.workload_label, 3)
-    # Burnout ngalahin ramalan beban kerja: kalau kebaca burnout, jangan
-    # nyaranin hari yang padat walaupun modelnya bilang "tinggi".
-    if prediction.burnout_risk:
-        energy_level = min(energy_level, 2)
-
-    # Kalau brief-nya kebuka pas jam yang user sendiri bilang paling capek,
-    # ekspektasinya diturunin satu tingkat -- ini beda dari "jam produktif"
-    # di onboarding (itu titik tertinggi, ini titik terendah).
-    tired_now = storage.in_tired_window(now)
-    if tired_now:
-        energy_level = max(1, energy_level - 1)
+    # `saran.level_energi` UDAH final -- model_energi sendiri yang nurunin
+    # buat burnout & jam-capek (pakai `f["di_jam_capek"]`, sinyal yang sama
+    # kayak `tired_now` di bawah). Jangan dikoreksi ulang di sini, nanti
+    # ke-double.
+    energy_level = saran.level_energi
+    tired_now = bool(f["di_jam_capek"])
 
     # --- Alasan: kenapa Kalem mikir gitu (transparan, bukan kotak hitam) ---
+    # Arah spesifik ("berat"/"lumayan buat kamu") butuh perbandingan ke hari
+    # ini, jadi tetap dirakit di sini -- tapi angkanya semua dari `f`
+    # (lapisan fitur bersama), bukan dihitung ulang lewat jalur lain.
     reasons: list[str] = []
-    if predicted_score is not None:
-        weekday_name = _WEEKDAY_NAMES[clock.today().weekday()]
-        if predicted_score <= 2.5:
-            reasons.append(f"{weekday_name} biasanya berat buat kamu")
-        elif predicted_score >= 4:
-            reasons.append(f"{weekday_name} biasanya lumayan buat kamu")
-    if sleep_hours < 5.5:
+    weekday_name = _WEEKDAY_NAMES[clock.today().weekday()]
+    if predicted_score <= 2.5:
+        reasons.append(f"{weekday_name} biasanya berat buat kamu")
+    elif predicted_score >= 4:
+        reasons.append(f"{weekday_name} biasanya lumayan buat kamu")
+    if f["tidur_jam"] < 5.5:
         reasons.append("pola tidur kamu lagi berantakan")
-    if neglect_days >= 2:
-        reasons.append(f"{neglect_days} hari terakhir makan/istirahat kelewat")
-    if recent_energy <= 2:
+    if f["streak_abai"] >= 2:
+        reasons.append(f"{int(f['streak_abai'])} hari terakhir makan/istirahat kelewat")
+    if f["energi_terakhir"] <= 2:
         reasons.append("energi terakhir kamu rendah")
     if tired_now:
         reasons.append("ini jam yang kamu bilang biasanya paling capek")
-    missed_med = missed_streak(day.medication)
-    if missed_med >= MISSED_MED_THRESHOLD:
+    if f["obat_kelewat"] >= MISSED_MED_THRESHOLD:
         # Ditulis netral: fakta yang Kalem tau, bukan tuduhan.
-        reasons.append(f"obat kamu belum keabsen {missed_med} hari terakhir")
+        reasons.append(f"obat kamu belum keabsen {int(f['obat_kelewat'])} hari terakhir")
 
-    if prediction.workload_label == "rendah" or prediction.burnout_risk:
+    if saran.label == "rendah" or saran.burnout:
         forecast = "Hari ini kemungkinan bakal berat."
         mood = "lelah"
-    elif prediction.workload_label == "tinggi":
+    elif saran.label == "tinggi":
         forecast = "Hari ini kemungkinan lagi enak-enaknya."
         mood = "semangat"
     else:
@@ -508,7 +492,7 @@ def build_morning_brief(
         focus_minutes=minutes,
         reasons=reasons,
         task_count=task_count,
-        burnout_risk=prediction.burnout_risk,
+        burnout_risk=saran.burnout,
         encouragement=encouragement,
         # Premium: narasi lintas minggu. Free tier tetap dapat ramalan
         # harian penuh di atas -- yang dikunci kedalamannya, bukan fungsinya.

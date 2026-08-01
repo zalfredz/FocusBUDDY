@@ -1,7 +1,8 @@
 # FocusBuddy
 
 Micro-planning app buat orang dengan kecenderungan ADHD/executive dysfunction.
-Ditemenin **Kalem**, karakter buddy yang ekspresinya ngikutin mood kamu.
+Ditemenin **Kalem**, karakter buddy yang ekspresinya ngikutin mood kamu dan
+makin lama makin kenal kebiasaan kamu.
 
 Dibangun 100% **Python** lewat [Flet](https://flet.dev) -- UI dirender Flutter,
 jadi bisa jalan sebagai app Android/iOS beneran (`flet build`) atau langsung di
@@ -21,30 +22,47 @@ app/
   storage.py                 # persistensi lokal (~/.focusbuddy/data.json)
   clock.py                   # sumber tunggal "hari ini" (buat tombol next-day)
   focus_session.py           # sesi fokus global, hidup di luar halaman mana pun
-  ui_helpers.py
+  ui_helpers.py               # komponen UI berulang + ProgresAI (bar progres Gemini)
   core/
     kalem_engine.py          # ★ decision engine: satu otak buat semua halaman
-    decomposer_logic.py      # pecah tugas HARI INI -> slot waktu (Gemini + fallback)
-    energy_predictor.py      # Decision Tree (data sintetis), skala energi 1-6
-    mood_model.py            # pola mood + tag cepat + kata kunci diary
-    reset_preferences.py     # personalisasi opsi penenang + deteksi distress
+    decomposer_logic.py      # pecah tugas HARI INI -> slot waktu (model_durasi + Gemini)
+    energy_predictor.py      # Decision Tree (data sintetis) -- prior model_energi
+    mood_model.py            # checkin_streak/neglect_streak (canonical), diary, tag
+    reset_preferences.py     # opsi jeda + deteksi distress (rule-based, safety-critical)
     medication_model.py      # proyeksi stok obat + dosis kelewat + link apotek
     bpom.py                  # validasi nama obat dari registri BPOM (offline)
-    duration_predictor.py    # RandomForest + rata-rata personal -> perkiraan menit
     recommendations.py       # kartu rekomendasi musik/resep dari Favorit
+    ai_client.py             # konfigurasi Gemini bersama + pengukur latensi
+  kalem_ml/
+    fitur.py                 # ★ lapisan fitur bersama -- satu definisi, semua model baca dari sini
+    riwayat.py                # rekonstruksi fitur per HARI LAMPAU (buat melatih) + sidik_jari()
+    model_durasi.py          # judul tugas -> rentang menit (TFIDF + RandomForest)
+    model_mood.py            # ramalan skor mood harian (RandomForest, data user)
+    model_energi.py          # beban kerja + burnout (prior sintetis + kalibrasi personal)
+    model_overwhelm.py       # risiko hari berat (LogisticRegression, belajar dari SOS)
+    model_penenang.py        # opsi jeda mana yang beneran nolong (dari perubahan mood)
   data/
     bpom_index.json          # 8.960 obat, hasil olahan CSV BPOM (dibuat tools/)
+    model_durasi.joblib      # model durasi pra-latih (opsional, dibuat tools/)
   views/
     onboarding.py            # 6 pertanyaan singkat (nama & umur wajib)
     morning_brief.py         # ★ Kalem nyapa duluan sekali sehari
     inbox.py                 # isi quick capture -> dirapikan jadi tugas
-    home.py                  # Page 1 -- satu next-action, bukan dashboard
-    tracker.py               # Page 2 -- halaman kerja
-    mood.py                  # Page 3
+    home.py                  # Page 1 -- satu next-action + sesi fokus, bukan dashboard
+    tracker.py                # Page 2 -- kalender, Eisenhower, Pecah Tugas
+    mood.py                  # Page 3 -- check-in + insight + grafik bulan
+    mood_chart.py             # kalender bulan buat halaman Mood
     diary.py                 # Cerita ke Kalem (dari Page 3)
     favorites.py             # menu Favorite (dari Page 3)
     reset.py                 # Page 4 (dari tombol "Lagi kewalahan?")
-    med_setup.py             # setup obat sekali di awal
+    med_setup.py             # setup obat sekali di awal + validasi BPOM
+    settings.py               # profil, kartu status model, hapus data
+DATASET/
+  APP - Master Produk Komoditi Obat-<tanggal>.csv   # registri BPOM (23.437 baris)
+  task_duration_dataset_id_lengkap.csv              # 549 tugas + durasi asli
+tools/
+  build_bpom_index.py        # CSV BPOM -> app/data/bpom_index.json
+  latih_model_durasi.py      # CSV durasi -> app/data/model_durasi.joblib
 ```
 
 ## Arsitektur: "Kalem sebagai satu otak"
@@ -52,23 +70,58 @@ app/
 Kelima fitur baca/tulis ke satu struktur data bersama, bukan nyimpen sendiri-sendiri:
 
 - **Profil statis** (`storage.profile` + `favorites`) -- hasil onboarding & menu Favorite.
-- **DayState harian** (`kalem_engine.DayState`) -- energi, mood, tugas, absen obat, riwayat SOS.
+- **DayState harian** (`kalem_engine.DayState`) -- energi, mood, tugas, absen obat, riwayat SOS,
+  favorit, sesi fokus, inbox. **Snapshot LENGKAP**, bukan cuma "hari ini".
 
 `kalem_engine.decide()` jalanin satu urutan prioritas, dan tiap halaman pakai
 bagian output yang beda:
 
-| Urutan cek | Kondisi | Dipakai di |
+| Urutan cek | Kondisi | Sumber keputusan |
 |---|---|---|
-| 0. Morning Brief | sekali per hari, sebelum Home tampil | halaman `morning_brief` |
-| 1. Nudge obat | ada jadwal & belum diabsen hari ini | pesan + tombol di Home |
-| 2. Pre-escalation | SOS >= 2x dalam 3 hari **dan** mood rata-rata <= 3 | Kalem nyapa duluan di Home |
-| 3. Next action | ada tugas belum selesai | kartu utama Home |
-| 4. Pesan tenang | nggak ada tugas | Home |
+| 0. Morning Brief | sekali per hari, sebelum Home tampil | `model_mood` + `model_energi` |
+| 1. Nudge obat | ada jadwal & belum diabsen hari ini | rule-based (fakta, bukan prediksi) |
+| 2. Pola berat | risiko kewalahan hari ini kebaca | `model_overwhelm` |
+| 3. Next action | ada tugas belum selesai | rule-based (kuadran Eisenhower + kesulitan) |
+| 4. Pesan tenang | nggak ada tugas | rule-based |
 
 Output yang sama juga nyetir **durasi sesi fokus** di Tracker
-(`focus_minutes_for`), **urutan opsi calming** di Reset, dan **ekspresi default
-Kalem** di Mood. Semuanya rule-based -- urutannya harus bisa dijelasin dalam
-satu kalimat, dan nggak butuh data latih.
+(`focus_minutes_for`), **urutan opsi jeda** di Reset (`model_penenang`), dan
+**ekspresi default Kalem** di Mood.
+
+**Kenapa ada campuran rule-based + ML, bukan salah satu doang:** urutan
+prioritas & pemilihan tugas next-action harus bisa dijelasin ke user dalam
+satu kalimat dan nggak boleh probabilistik (terutama nudge obat & rujukan
+krisis -- itu keputusan yang harus deterministik). Tapi "beban kerja hari ini
+segimana", "mood bakal gimana", dan "risiko kewalahan segimana" itu justru
+pas buat model yang belajar dari pola user -- rule tetap 2 syarat nggak bakal
+pernah setajam itu. `kalem_engine.py` yang nentuin URUTAN & KAPAN masing-masing
+dipanggil; `kalem_ml/` yang ngisi ANGKANYA.
+
+### `decide()`/`build_morning_brief()` adalah fungsi murni
+
+Ini yang bikin dua fungsi itu gampang dites: semua input datang dari
+`(profile, day)` yang dioper, TIDAK ADA yang diam-diam baca `storage` lagi di
+tengah jalan. `kalem_ml.fitur.bangun_fitur(now, day=day, profil=profile)`
+menerima `day` yang sama itu dan meneruskannya ke semua model (`model_mood`,
+`model_overwhelm`, `riwayat.baris_harian`) -- jadi ngasih `DayState` buatan ke
+`decide()` beneran ngubah hasilnya, bukan diabaikan diam-diam.
+
+`kalem_engine.snapshot()` adalah **satu-satunya** tempat engine ini nyentuh
+`storage` langsung. Semua fungsi lain di bawahnya murni dari argumen.
+
+### Cache model per-user, bukan per-proses
+
+`model_mood` dan `model_overwhelm` nge-cache model yang udah dilatih di
+variabel module-level (biar nggak retrain tiap render halaman). Kunci
+cache-nya **sidik jari isi data** (`riwayat.sidik_jari()` -- hash SHA-256 dari
+tanggal+skor+label tiap hari), BUKAN cuma jumlah baris.
+
+Ini penting kalau app-nya di-host bareng buat beberapa orang (satu proses
+server, storage per-session): kunci berbasis count doang bikin dua user yang
+kebetulan punya jumlah catatan sama dianggap "data identik", dan user kedua
+bisa dapet prediksi dari model yang dilatih pakai data user pertama.
+Diverifikasi lewat tes: sebelum fix, user dengan mood 1/5 terus-terusan dapet
+skor 2.69 (bocoran dari user lain yang mood-nya 5/5); sesudah fix, dapet 1.00.
 
 ## Model bisnis: free vs premium
 
@@ -84,14 +137,12 @@ user cabut ke ChatGPT gratis.
 | Insight mood | 1 temuan | semua temuan |
 | Grafik mood | bulan berjalan | telusur bulan-bulan sebelumnya |
 | Kartu rekomendasi | 1/minggu | tanpa batas |
-| **Pengingat obat & cari apotek** | **penuh** | **penuh** |
+| **Pengingat obat, validasi BPOM & cari apotek** | **penuh** | **penuh** |
 | Riwayat kepatuhan obat | — | persentase, streak, ringkasan buat dokter |
 
-**Kenapa pengingat obat TETAP gratis** (beda dari draf awal yang ngunci penuh):
-nggak kehabisan obat resep itu fungsi dasar, bukan kenyamanan -- ngunci itu
-bakal ngelanggar aturan main di atas. Yang dijual lapisan analisisnya. Ini juga
-jawaban yang lebih kuat kalau juri nanya soal etika: *"kami nggak masang
-paywall di keselamatan."*
+**Kenapa pengingat obat TETAP gratis:** nggak kehabisan obat resep itu fungsi
+dasar, bukan kenyamanan -- ngunci itu bakal ngelanggar aturan main di atas.
+Yang dijual lapisan analisisnya.
 
 Yang dibayar justru yang paling susah ditiru: Task breakdown bisa disaingi
 ChatGPT (makanya tetap ada di free tier), tapi "Kalem yang inget pola kamu 2
@@ -99,8 +150,8 @@ bulan terakhir" butuh histori yang cuma numpuk kalau user stay.
 
 > Harga rencana ~Rp19.000-29.000/bulan. Payment gateway beneran (Midtrans/
 > Xendit) belum dibangun -- di build ini status premium di-toggle manual buat
-> demo. Custom soundscape yang ada di rencana awal juga belum: app ini belum
-> punya audio sama sekali.
+> demo. App ini belum punya audio player sama sekali (musik = deep link ke
+> Spotify/YouTube Music, bukan pemutar sendiri).
 
 ## Setup
 
@@ -110,10 +161,18 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### (Opsional) Aktifkan AI buat "Pecah Tugas"
+> **Catatan iCloud Drive / OneDrive:** kalau project ini disimpan di folder
+> yang disinkron cloud, virtualenv (`.venv/`, ribuan file kecil) bisa
+> di-*evict* ke cloud kalau nggak diakses beberapa hari, dan proses Python
+> berikutnya jadi lambat banget (bahkan bisa keliatan macet) karena harus
+> download ulang satu-satu. Solusinya bikin venv di luar folder yang disinkron,
+> mis. `python3 -m venv ~/.venvs/focusbuddy`, dan jalanin app pakai
+> `~/.venvs/focusbuddy/bin/python`.
 
-Fitur ini jalan **tanpa** API key -- otomatis fallback ke template rule-based.
-Buat versi AI-nya, ambil key gratis di
+### (Opsional) Aktifkan AI buat "Pecah Tugas" & kartu rekomendasi
+
+Dua fitur ini jalan **tanpa** API key -- otomatis fallback ke template
+rule-based. Buat versi AI-nya, ambil key gratis di
 [Google AI Studio](https://aistudio.google.com/apikey):
 
 ```bash
@@ -124,16 +183,20 @@ cp .env.example .env
 `.env` sudah masuk `.gitignore`. Bisa juga di-`export` manual lewat shell --
 kalau ada, environment variable menang atas isi `.env`.
 
+**Jangan pernah commit API key ke `.env.example`** -- file itu memang
+di-commit ke repo (buat orang lain lihat formatnya), jadi harus selalu kosong.
+
 Model default `gemini-flash-lite-latest` -- tier PALING RENDAH yang tersedia,
 dan (diukur) juga yang paling cepat: 1,21 dtk vs 1,71 dtk buat `3.1-flash-lite`.
 Di-set satu tempat di `app/core/ai_client.py`, dipakai bareng sama DUA fitur:
-Pecah Tugas dan kartu rekomendasi.
+Pecah Tugas dan kartu rekomendasi. **Fitur obat sengaja NGGAK pakai AI sama
+sekali** -- lihat bagian Data Obat di bawah.
 
 ### Model kita dulu, baru Gemini
 
 Data yang masuk ke API udah diolah model sendiri, bukan mentah. Dulu Gemini
-disuruh nebak durasi tiap langkah; sekarang `model_durasi` yang ngitung, dan
-Gemini cuma nulis teks langkahnya. Diukur di 3 tugas:
+disuruh nebak durasi tiap langkah; sekarang `kalem_ml.model_durasi` yang
+ngitung, dan Gemini cuma nulis teks langkahnya. Diukur di 3 tugas:
 
 | | token output | total token | waktu |
 |---|---|---|---|
@@ -142,9 +205,14 @@ Gemini cuma nulis teks langkahnya. Diukur di 3 tugas:
 | | **-62%** | -49% | -30% |
 
 Bonus yang lebih penting dari hemat token: angkanya jadi KONSISTEN. Perkiraan
-di kartu tugas dan di rencana sekarang datang dari sumber yang sama. Fitur obat sengaja NGGAK pakai AI sama sekali -- lihat
-bagian Data Obat di bawah. Output JSON-nya dipaksa lewat
-`response_schema` Gemini (structured output), bukan cuma diminta lewat prompt.
+di kartu tugas dan di rencana sekarang datang dari sumber yang sama. Output
+JSON-nya dipaksa lewat `response_schema` Gemini (structured output), bukan
+cuma diminta lewat prompt.
+
+**Progres yang jujur, bukan spinner kosong.** `ui_helpers.ProgresAI` nampilin
+bar progres yang panjangnya dari MEDIAN LATENSI PANGGILAN SEBELUMNYA
+(`ai_client.perkiraan_lama()`), dan nggak pernah nyentuh 100% sebelum
+jawabannya beneran nyampe.
 
 ### Kenapa `-lite`, bukan `gemini-flash-latest`
 
@@ -161,9 +229,6 @@ kerasa sempit itu bukan pemakaian user (free tier app ini cuma 3 Pecah Tugas
 per hari), tapi sesi ngoprek -- sekali testing bisa abis, terus semua fitur AI
 diem-diem jatuh ke rule-based dan keliatan kayak "API-nya belum nyala".
 
-Kualitas Pecah Tugas versi lite udah dites setara buat kerjaan ini: langkah
-konkret, langkah pertama di bawah 5 menit, dan nurut sama level energi.
-
 ## Menjalankan
 
 ```bash
@@ -175,8 +240,13 @@ flet run --android app/main.py  # HP, lewat app Flet + scan QR
 Build jadi APK/IPA (butuh Flutter SDK, lihat [docs Flet](https://flet.dev/docs/publish)):
 
 ```bash
-flet build apk
+flet build apk app --module-name main
 ```
+
+> `flet build` cari `main.py` di ROOT `python_app_path` yang dioper, bukan
+> otomatis nyari ke dalam `app/`. Karena entry point project ini ada di
+> `app/main.py`, harus dipanggil persis kayak di atas (`apk app`, bukan
+> `apk`), plus `--module-name main`.
 
 ## Halaman
 
@@ -197,21 +267,22 @@ nyesuain. Tombol "Aku ngerasa beda" nggak ngunci apa-apa; user yang nentuin.
 
 Alasannya selalu ditulis ("kenapa Kalem mikir gitu") -- bukan kotak hitam.
 Kalau catatan mood masih di bawah 5, brief-nya **ngaku belum bisa meramal**
-dan pakai setelan tengah, konsisten sama `mood_model.analyse()` yang nggak
-pernah ngarang pola dari data yang belum cukup.
+dan pakai setelan tengah.
 
-Nggak ada model baru: ramalannya dari `mood_model._predict_today()` +
-`energy_predictor.predict_workload()` yang udah ada. Yang berubah cuma
-**kapan** hasilnya keluar dan **bentuknya**.
+Ramalannya lewat `kalem_ml.model_mood.ramal()` (skor mood hari ini) +
+`kalem_ml.model_energi.nilai()` (beban kerja & burnout, dikalibrasi rasio
+penyelesaian tugas & sesi fokus user). Keduanya punya prior yang dicampur
+pelan sama model yang belajar begitu datanya cukup -- nggak langsung ganti
+total begitu ada 1 data baru.
 
 > Push notification OS-level (biar muncul walau app ditutup) belum dibangun --
-> brief-nya jalan berbasis "cek tanggal begitu app dibuka", sama seperti
-> keputusan di Medication Companion.
+> brief-nya jalan berbasis "cek tanggal begitu app dibuka".
 
 ### Onboarding
 6 pertanyaan singkat (di bawah semenit). Tiap jawaban nyetir minimal satu
-fitur -- nggak ada data yang cuma nganggur. Ada pintu keluar **"Aku lagi nggak
-pengen jawab-jawab"**: cukup nama, sisanya pakai default netral.
+fitur -- nggak ada data yang cuma nganggur. Nama & umur wajib; sisanya boleh
+di-skip, dan skip **langsung** membawa ke Beranda (bukan lompat ke pertanyaan
+berikutnya).
 
 Sengaja **nggak** nanya diagnosis ADHD formal (biar user yang belum/nggak
 sempat diagnosis tetap kepakai) dan nggak pakai skala klinis panjang (ASRS dsb).
@@ -221,6 +292,13 @@ Jawaban satu pertanyaan: **"sekarang ngapain?"** -- bukan dashboard status.
 Isinya cuma sapaan, **Kalem besar di tengah**, satu **kartu next-action**
 (tugas prioritas + satu langkah pertama + tombol FOKUS), quick capture, dan
 satu baris tenang ke halaman jeda.
+
+**Sesi fokus jalan DI SINI**, bukan pindah halaman. Nyalain timer nggak
+sekadar "titip niat" ke Tracker terus mental ke halaman lain -- sesinya hidup
+di `app/focus_session.py` (state module-level, bukan punya satu halaman), jadi
+tetap jalan walau user keliling ke Tracker/Mood terus balik lagi. Timer-nya
+lingkaran yang **menyusut** (bukan bar + digit), plus progress bar linear di
+bawahnya.
 
 Grid 4 kuadran Eisenhower **dipindah ke Tracker**: nampilin 4 kategori
 keputusan sekaligus (apalagi pas angkanya masih 0) bikin overwhelm duluan
@@ -234,42 +312,51 @@ yang bikin halaman ini kerasa darurat terus.
 masuk antrian mentah tanpa harus langsung dirapikan jadi tugas. Badge
 "n tersimpan" di kartunya buka **halaman Inbox** -- di situ tiap catatan bisa
 di-"Jadiin tugas" (langkahnya dipecah otomatis pakai Task Decomposer yang
-sama) atau dihapus kalau udah nggak relevan.
+sama, dengan kuota Pecah Tugas yang sama -- jalur ini juga dicek, bukan celah
+buat nembus limit 3x/hari) atau dihapus kalau udah nggak relevan.
 
 ### Page 2 -- Tracker
 Halaman kerja. Default kalendernya **strip 7 hari**; bulan penuh baru muncul
 kalau ditekan "Lihat bulan".
 
-- **Add Task** dengan penanda mendesak/penting (Eisenhower) + estimasi
-  "seberat apa buat dimulai" (gampang/sedang/berat).
+- **Add Task** dengan penanda mendesak/penting (Eisenhower), estimasi
+  "seberat apa buat dimulai" (gampang/sedang/berat), dan opsional kategori +
+  jumlah unit (buat perkiraan durasi personal).
+- **Perkiraan durasi langsung dari judul tugas** -- `kalem_ml.model_durasi`
+  baca TEKS judulnya (TFIDF n-gram huruf + RandomForest), nggak wajib pilih
+  kategori dulu. Nampilin RENTANG ("15-40 menit"), bukan satu angka -- galat
+  khasnya diukur ~faktor 2x, jadi angka pasti itu bohong yang keliatan presisi.
 - **Grid 4 kuadran Eisenhower** ada di sini, bukan di Home.
 - **Mini-timeline** "urutan yang disaranin": blok warna proporsional sesuai
   kuadran & tingkat kesulitan.
-- **Pecah Tugas** (opsional) -- menata ulang tugas **hari ini** jadi slot waktu
-  berurutan lengkap dengan jeda.
+- **Pecah Tugas** (opsional, bisa pilih tugas mana aja) -- menata ulang tugas
+  **hari ini** jadi slot waktu berurutan. Durasinya dari `model_durasi` dulu,
+  Gemini cuma nulis kalimat langkahnya (lihat "Model kita dulu, baru Gemini"
+  di atas). Kalau satu tugas dihapus, rencana disusun ulang otomatis --
+  sisanya digeser, bukan ninggalin jam bolong.
 - **Level energi 1-6** (sengaja bukan 1-5 supaya nggak ada "angka tengah
-  aman"). Ini **beneran nyetir durasi sesi fokus**: energi 1 -> 5 menit,
-  energi 6 -> 30 menit, dan alasannya ditulis di bawah timer.
-- **Sesi fokus pakai lingkaran yang menyusut**, bukan bar lurus + digit --
-  riset time blindness ADHD nunjukin visual "disk mengecil" (ala Time Timer)
-  jauh lebih kebaca daripada angka.
+  aman"). Ini **beneran nyetir durasi sesi fokus** (energi 1 -> 5 menit,
+  energi 6 -> 30 menit) DAN jadi konteks buat perkiraan durasi tugas
+  (`model_durasi` mengkalibrasi per pita energi dari sesi fokus user sendiri
+  -- lihat bagian "Hubungan energi-kecepatan" di bawah).
 
-Tombol FOKUS di Home langsung nyalain timer di sini dengan durasi yang udah
-disesuaikan.
+Tombol FOKUS di sini langsung mulai sesi yang tampil balik di Home.
 
 ### Page 3 -- Mood
 Check-in mood lewat Kalem, plus insight dari **model yang belajar pola kamu
 sendiri**: hari apa mood cenderung bagus/berat, beda weekday vs weekend, dan
 tema yang sering muncul di cerita kamu. Model ini jujur bilang "masih belajar"
-sebelum datanya cukup (minimal 5 catatan), dan baru pakai Decision Tree
+sebelum datanya cukup (minimal 5 catatan), dan baru pakai RandomForest
 setelah 10 catatan.
 
+Setelah check-in tersimpan, Kalem **otomatis nawarin nulis diary** -- momen
+paling wajar buat nanya "kenapa harinya gitu", karena user baru aja mikirin
+harinya.
+
 **Tag cepat:** sebelum (atau tanpa) nulis cerita, user bisa pencet 0-3 tag
-(kuliah, kerja kelompok, keluarga, sendirian, dll) dalam hitungan detik. Ini
-bikin data tetap masuk di hari-hari user males ngetik. Ada juga chip
-**"+ Lainnya"** buat ngetik tag sendiri (mis. "sidang proposal") lewat input
-inline -- tag custom tetap kehitung ke batas maks 3, jadi nggak balik jadi
-checklist panjang.
+(kuliah, kerja kelompok, keluarga, sendirian, dll) dalam hitungan detik. Ada
+juga chip **"+ Lainnya"** buat ngetik tag sendiri lewat input inline -- tag
+custom tetap kehitung ke batas maks 3.
 
 **Diary** (halaman terpisah): tombol "Cerita tentang hari ini?" -- user cerita
 ke Kalem. Kata kuncinya dicocokin ke **kamus tertutup** (capek, deadline,
@@ -282,14 +369,14 @@ nambah kalau ada fitur yang beneran makainya** -- nggak ada data nganggur.
 
 | Favorit | Dipakai di |
 |---|---|
-| Musik | opsi "dengerin musik" di Reset |
-| Comfort food | afirmasi Kalem |
-| Hobi | saran micro-task 60 detik |
-| Tempat nyaman | saran pindah suasana |
+| Musik | opsi "dengerin musik" di Reset (deep link Spotify/YouTube Music) |
+| Comfort food | kartu "ambil dulu?" di Reset pas kewalahan |
+| Hobi | kartu rekomendasi resep (kalau hobinya masak) |
+| Tempat nyaman | saran pindah suasana di Reset (opsi gerak) |
 | Kalimat penyemangat (tulisan sendiri) | dikutip balik di Reset & Morning Brief pas hari berat |
 | Warna favorit | aksen di kartu Kalem punya user |
 | Orang tempat cerita (nama panggilan) | ditawarin pas pola SOS berulang kedeteksi |
-| Gerak ringan favorit | saran micro-task versi gerak badan |
+| Gerak ringan favorit | opsi "Gerak 60 detik" di Reset |
 | Jam paling capek | Kalem nurunin ekspektasi + input Morning Brief |
 
 Dua yang terakhir sengaja bukan teks bebas: warna butuh hex yang valid buat
@@ -298,62 +385,107 @@ sekarang.
 
 **Soal privasi:** "orang tempat cerita" cuma nama panggilan -- app nggak
 nyimpen kontak dan **nggak pernah ngehubungin siapa pun otomatis**. Kartunya
-muncul di *samping* rujukan profesional, bukan gantiin: orang terdekat dan
-tenaga terlatih beda peran. Kalimat penyemangat sengaja diminta pakai kalimat
-user sendiri, bukan kutipan orang lain (aman dari isu hak cipta).
+muncul di *samping* rujukan profesional, bukan gantiin.
 
-### Page 4 -- Reset (dari tombol OVERWHELMED)
-Semua daftar tugas disembunyiin. Ditawarin opsi penenang: **musik**,
-**latihan napas 4-7-8** (dipandu, ada hitungan mundur), atau **satu tugas 60
-detik**. Pilihan user dicatat (hitung frekuensi, bukan ML) supaya opsi yang
-paling ngebantu naik ke atas.
+### Page 4 -- Reset (dari tombol "Lagi kewalahan?")
+Semua daftar tugas disembunyiin. **Nggak ada satu pun opsi yang nyentuh
+daftar tugas** -- versi lama sempat punya "satu tugas 60 detik" yang narik
+langkah dari tugas beneran, dan itu ngerusak janji halaman ini sendiri
+("semua tugas lagi disembunyiin"), jadi dibuang.
 
-Ada juga **rujukan telehealth** (deep link ke Halodoc/Riliv/Into The Light) --
-bukan bangun sistem sesi psikolog sendiri, karena berat secara regulasi dan
-cuma nge-duplikasi yang sudah ada. Ini sekaligus titik komisi rujukan.
+Empat opsi: **napas 4-7-8** (lingkaran yang beneran mengembang/menyusut ikut
+hitungan, bukan cuma angka mundur), **grounding 5-4-3-2-1** (teknik standar
+buat cemas -- sebut hal yang dilihat/disentuh/didengar), **musik** (deep link
+ke pencarian musik favorit user, atau lo-fi kalau belum diisi), dan **gerak 60
+detik**.
 
-**Deteksi pola distress:** app bedain overwhelm harian biasa dari pola yang
-lebih serius. Kalau SOS ditekan >= 3x dalam 7 hari **dan** rata-rata mood <= 2/5,
-halaman ini berhenti nawarin musik duluan dan naikin rujukan profesional ke
-paling atas.
+Urutannya dari `kalem_ml.model_penenang` -- BUKAN sekadar hitung opsi mana
+yang paling sering dipencet. Yang diukur: **mood user berubah gimana
+SESUDAH** pakai opsi itu (dibanding sebelum). Opsi yang diulang-ulang belum
+tentu yang nolong; bisa jadi justru yang nggak mempan, makanya diulang.
+Sebelum ada histori pemakaian, urutan awal dari trigger overwhelm yang
+disebut waktu onboarding.
+
+Kalau user udah isi comfort food di Favorite, ada kartu tambahan "ambil
+[comfort food] dulu?" -- aksi paling murah, nol usaha kognitif.
+
+**Hotline TELEPON, bukan cuma tautan.** Nomor **119 ext. 8** (SEJIWA,
+Kemenkes, gratis 24 jam) ditulis besar dan langsung bisa dipencet. Alasannya
+praktis: tautan web bisa mati (dan pernah), butuh sinyal data, dan orang di
+titik terburuk nggak sanggup navigasiin website dulu. Di bawahnya ada rujukan
+telehealth (deep link ke Halodoc/Riliv/Into The Light).
+
+**Deteksi pola distress** (rule-based, sengaja BUKAN ML): app bedain
+overwhelm harian biasa dari pola yang lebih serius. Kalau SOS ditekan >= 3x
+dalam 7 hari **dan** rata-rata mood <= 2/5, hotline naik ke paling atas dan
+rujukan profesional lebih ditekankan. Keputusan yang ngarah ke rujukan krisis
+harus deterministik & bisa dijelasin satu kalimat, jadi ini satu-satunya
+bagian sinyal "berat" yang sengaja TIDAK lewat model belajar -- beda dari
+`model_overwhelm` yang menentukan pesan lembut Kalem di Home (ambangnya lebih
+longgar, dan itu bukan keputusan safety-critical).
+
+Satu event SOS cuma dicatat SEKALI per pembukaan aktivitas (bukan tiap
+render layar) -- biar mencet "kasih ide lain" berkali-kali nggak
+diam-diam nge-trigger eskalasi.
 
 ### Medication Companion -- di belakang layar
 Bukan halaman harian. User setup **sekali** (nama obat, stok, dosis harian).
 Sesudah itu formnya nggak diisi lagi: **stok berkurang otomatis** tiap user
-mencet "Udah minum" di Home (`stok -= dosis_harian`, idempotent per hari).
-**7 hari** sebelum diprediksi habis, banner muncul di Home yang nawarin
-**deep link ke Google Maps** "apotek terdekat" atau tebus ke partner apotek
-daring (titik komisi afiliasi).
+mencet "Udah minum" di Home. **7 hari** sebelum diprediksi habis, banner
+muncul di Home yang nawarin **deep link ke Google Maps** "apotek terdekat"
+atau tebus ke partner apotek daring.
+
+**Nama obat divalidasi ke registri BPOM saat diketik** -- offline, instan
+(~10ms), dari 8.960 nama obat resmi. Salah ketik disarankan ("Maksudnya
+CONCERTA?"), nama zat aktif dikenali ("metilfenidat" -> merek yang
+mengandungnya), dan golongan (Bebas/Terbatas/Keras/Psikotropika/Narkotika)
+dibaca langsung dari struktur NIE-nya -- bukan tebakan. Nama yang nggak
+ketemu (racikan apotek, jamu/suplemen yang memang di daftar BPOM lain) TETAP
+BOLEH disimpan; nolak nyimpen bakal ngunci pengingat dari orang yang paling
+butuh. Lihat "Data Obat (BPOM)" di bawah.
+
+**Tidak diabsen = dianggap tidak diminum.** Kalau >=2 hari berturut-turut
+nggak ada absen, Morning Brief menurunkan ekspektasi hari itu dan bilang
+alasannya terang-terangan: *"obat kamu belum keabsen 4 hari terakhir"*.
+Bukan menyuruh minum obat, bukan menyebut ini penyebabnya -- kalimatnya
+eksplisit ngarahin ke dokter kalau ada yang mau didiskusikan.
 
 Kenapa stok cuma turun saat diabsen, bukan dihitung dari tanggal setup:
 nebak dari kalender bakal salah tiap kali user skip dosis, dan angka stok yang
-bohong lebih bahaya daripada angka yang ketinggalan. Kalau user belum absen
-hari ini, Kalem yang nanya duluan.
+bohong lebih bahaya daripada angka yang ketinggalan.
 
-**Yang sengaja nggak ada: rekomendasi dosis.** Angka yang diisi user itu yang
-sudah ditentukan dokternya. FocusBuddy nggak pernah nyaranin atau ngitungin
-"dosis wajar" -- di luar kapasitas app, dan berisiko buat obat psikotropika
-terkontrol seperti metilfenidat.
+**Yang sengaja nggak ada: rekomendasi dosis, dan info obat dari AI.** Angka
+dosis yang diisi user itu yang sudah ditentukan dokternya. Sempat ada fitur
+"Kalem jelasin obatnya buat apa" lewat Gemini, dan itu **dibuang** -- urusan
+obat itu tempat paling nggak pantas buat jawaban yang "kedengeran meyakinkan
+tapi bisa keliru". Registri resmi (BPOM) yang dipakai sekarang, bukan LLM.
 
-**Privasi:** data obat local-only, dan notifikasi pengingat ditulis netral
-("Waktunya check-in ya") -- nama obat nggak muncul di banner, biar aman kalau
-HP kepegang orang lain.
+**Privasi:** data obat local-only, dan notifikasi pengingat ditulis netral.
 
 > Push notification beneran (Firebase dkk) belum dibangun -- untuk sekarang
-> pengingatnya muncul saat app dibuka. Itu rencana produksi, bukan bagian demo.
+> pengingatnya muncul saat app dibuka.
 
 ## Limitasi yang Wajib Didisclose
 
-- **Pecah Tugas bergantung API Gemini pihak ketiga.** Ada fallback rule-based,
-  tapi ini bukan solusi 100% mandiri.
-- **Energy Predictor dilatih dari data SINTETIS** (`generate_synthetic_data`),
-  karena app belum punya histori pengguna riil.
-- **Mood model** belajar dari data user asli, tapi butuh waktu -- di bawah 5
-  catatan dia sengaja nggak ngeklaim pola apa pun.
-- **Deteksi distress rule-based, bukan diagnosis.** Cuma trigger rujukan.
+- **Pecah Tugas & kartu rekomendasi bergantung API Gemini pihak ketiga.** Ada
+  fallback rule-based buat Pecah Tugas, tapi ini bukan solusi 100% mandiri.
+- **`model_energi` punya prior dari data SINTETIS** (`generate_synthetic_data`
+  di `energy_predictor.py`), karena app belum punya histori pengguna riil
+  buat semua kondisi. Dikalibrasi ke data user asli begitu ada histori
+  (rasio penyelesaian tugas, rasio sesi fokus yang kelar).
+- **`model_mood` & `model_overwhelm` belajar dari data user asli**, tapi
+  butuh waktu -- di bawah ambangnya (5 & 10 hari) mereka jujur ngaku belum
+  bisa/pakai prior rule-based yang jelas ditandai.
+- **`model_durasi` dilatih dari 549 tugas contoh** (bukan tugas user sendiri)
+  + kecepatan personal user begitu ada minimal 2 sesi di kategori yang sama.
+  Galat khas diukur ~faktor 2x, makanya ditampilin rentang, bukan angka pasti.
+- **Deteksi distress di halaman Reset rule-based, bukan diagnosis.** Cuma
+  trigger rujukan, sengaja nggak pakai model belajar untuk keputusan ini.
 - **Medication Companion bukan alat diagnosis / pengganti dokter**, dan nggak
-  pernah nyaranin dosis. Pencarian apotek diserahin ke Google Maps -- app ini
-  sengaja nggak bikin data "stok apotek real-time" sendiri yang isinya karangan.
+  pernah nyaranin dosis. Validasi nama obat dari registri BPOM bisa aja nggak
+  nemu obat yang beneran ada (racikan, obat baru yang belum masuk data).
+  Pencarian apotek diserahin ke Google Maps -- app ini sengaja nggak bikin
+  data "lokasi apotek" sendiri yang isinya karangan.
 - **Stok obat cuma seakurat absen user.** Kalau user nggak pernah mencet "udah
   minum", angkanya nggak gerak (dan Kalem bakal nanya terus).
 - FocusBuddy **bukan layanan krisis** dan nggak menggantikan diagnosis ADHD formal.
@@ -362,7 +494,10 @@ HP kepegang orang lain.
 
 Semua data (profil, tugas, mood, diary, favorit, obat) disimpan **lokal** di
 `~/.focusbuddy/data.json` (schema v3, migrasi otomatis dari v1/v2).
-Nggak ada server eksternal di build ini.
+Nggak ada server eksternal di build ini -- **satu file storage, satu user**.
+Kalau nanti di-hosting buat banyak orang sekaligus, storage-nya perlu
+dipisah per-session (di luar scope build ini); lapisan model (`kalem_ml/`)
+sendiri sudah aman dipakai lintas-user (lihat "Cache model per-user" di atas).
 
 ### Auto Feel — data demo instan
 
@@ -372,8 +507,10 @@ di folder utama: isi skenario di situ, lalu pilih lewat ikon tongkat sihir
 di Beranda (atau `python SettingDemo.py <skenario>` dari terminal).
 
 Skenario bawaan: `baru` (0 histori), `stabil` (14 catatan), `burnout`
-(SOS berulang + stok obat menipis), `premium` (30 catatan + SUBS ON).
-Tambah sendiri sesuka kamu -- file itu isinya data doang, nggak ada logika.
+(SOS berulang + stok obat menipis + obat kelewat beberapa hari), `premium`
+(30 catatan + SUBS ON). Tambah sendiri sesuka kamu -- file itu isinya data
+doang, nggak ada logika, dan otomatis reset cache model (`kalem_ml.reset_semua()`)
+tiap ganti skenario biar nggak nyampur sama model skenario sebelumnya.
 
 Tombol **SUBS** (ikon medali) nyalain/matiin status premium seketika buat
 nunjukin gating ke juri tanpa flow pembayaran.
@@ -402,13 +539,17 @@ kalau foldernya di tempat lain, semua SVG Kalem bakal 404.
 Buat CTA full-width pakai `ui_helpers.wide_button()` (yang mbungkus tombolnya
 di `Row`), bukan `primary_button(expand=True)`.
 
+**`python3` di macOS butuh sertifikat CA.** Kalau `pip`/`flet build` gagal
+dengan `SSLCertVerificationError`, jalanin `/Applications/Python 3.x/Install
+Certificates.command` -- Python dari installer resmi nggak otomatis makai
+sertifikat sistem.
 
-## Data obat (BPOM)
+## Data Obat (BPOM)
 
 Validasi nama obat jalan **offline** dari registri resmi BPOM, bukan dari AI.
 
 ```
-APP - Master Produk Komoditi Obat-<tanggal>.csv   # sumber, 23.437 baris, 4,8 MB
+DATASET/APP - Master Produk Komoditi Obat-<tanggal>.csv   # sumber, 23.437 baris, 4,8 MB
         |
         |  python tools/build_bpom_index.py
         v
@@ -420,6 +561,12 @@ bentuk sediaan, masa berlaku. Huruf ke-2 NIE nentuin golongan -- `B`ebas,
 bebas `T`erbatas, `K`eras, `P`sikotropika, `N`arkotika -- jadi app bisa bilang
 "ini wajib resep dokter" sebagai fakta registri, bukan tebakan.
 
+Empat lapis pencocokan (`app/core/bpom.py`), dari yang paling ketat: (1) nama
+persis, (2) nama tanpa angka kekuatan sediaan ("Concerta 18mg" -> "CONCERTA"),
+(3) nama zat aktif (ejaan Indonesia & internasional diseragamkan otomatis:
+"metilfenidat" = "methylphenidate"), (4) tebakan salah ketik (ambang kemiripan
+diukur lewat uji, bukan ditebak).
+
 Bikin ulang indeksnya cuma perlu kalau CSV-nya di-update:
 
 ```bash
@@ -430,37 +577,28 @@ python tools/build_bpom_index.py
 di daftar terpisah (nomor TR/SD/POM). Jadi "Tolak Angin" bakal balik "nggak
 ketemu" -- itu bener, bukan bug.
 
-## Dataset prediksi durasi (opsional)
-
-`duration_predictor.py` sekarang jalan pakai data sintetis. Buat pakai data
-asli, taruh CSV di `app/data/durasi_tugas.csv`:
-
-```csv
-kategori,jumlah_unit,satuan,energi_saat_itu,durasi_menit
-soal,10,soal,3,35
-nulis,500,kata,4,45
-baca,20,halaman,2,40
-```
-
-Kategori yang dikenal ada di `duration_predictor.CATEGORIES`. Minimal 20 baris
-sebelum dipakai -- di bawah itu Random Forest cuma bakal ngapalin, jadi
-otomatis balik ke kurva sintetis.
-
 ## Model Kalem (`app/kalem_ml/`)
 
-Satu file per model, satu lapisan fitur bersama.
+Satu file per model, satu lapisan fitur bersama (`fitur.py`) -- semua model
+baca angka dari sana, bukan hitung ulang sendiri-sendiri.
 
 | File | Belajar apa | Sumber | Ambang mulai belajar |
 |---|---|---|---|
-| `fitur.py` | — (lapisan fitur, ~40 sinyal) | storage | — |
-| `riwayat.py` | — (rekonstruksi fitur per hari lampau) | storage | — |
-| `model_durasi.py` | Judul tugas → rentang menit | `DATASET/task_duration_dataset_id_lengkap.csv` (499) + sesi user | 2 sesi/kategori |
-| `model_mood.py` | Ramalan skor mood harian | catatan user | 5 catatan (pola), 10 (model) |
+| `fitur.py` | — (lapisan fitur, ~45 sinyal) | `DayState` / storage | — |
+| `riwayat.py` | — (rekonstruksi fitur per hari lampau) | `DayState` / storage | — |
+| `model_durasi.py` | Judul tugas → rentang menit | `DATASET/task_duration_dataset_id_lengkap.csv` (549) + sesi user | 2 sesi/kategori |
+| `model_mood.py` | Ramalan skor mood harian | catatan user | 5 catatan (pola), 10 (RandomForest) |
 | `model_energi.py` | Beban kerja + burnout | 500 baris sintetis + kalibrasi user | jalan dari hari-1 |
 | `model_overwhelm.py` | Risiko hari berat | hari user mencet SOS | 10 hari ber-label |
 | `model_penenang.py` | Opsi jeda yang beneran nolong | perubahan mood sesudah pakai | 4x pemakaian |
 
-**Empat aturan yang dipegang semua model:**
+Semua **sudah tersambung ke `kalem_engine.py`** (bukan cuma dilaporkan lewat
+kartu status di Settings) -- `model_overwhelm` nentuin pesan "pola berat" di
+Home, `model_mood`+`model_energi` nyusun Morning Brief, `model_penenang`
+ngurutin opsi jeda, `model_durasi` ngisi perkiraan waktu di Tracker & Pecah
+Tugas.
+
+**Lima aturan yang dipegang semua model:**
 
 1. **Jujur soal tahap.** Di bawah ambang, model ngaku "belum kebaca" atau
    pakai prior yang ditandai jelas. Nggak ada yang ngarang pola dari 3 hari.
@@ -470,6 +608,10 @@ Satu file per model, satu lapisan fitur bersama.
    kecil; salah nyaranin terlalu berat bikin hari gagal.
 4. **Angka mentah nggak dipajang.** Skor risiko & probabilitas dipakai buat
    ngatur nada, bukan ditunjukin sebagai nilai rapor.
+5. **Fungsi murni dari argumen.** `nilai()`/`ramal()` terima `Fitur` (bisa
+   dibangun dari `DayState` buatan buat testing), model TIDAK baca `storage`
+   diam-diam di tengah jalan. Cache-nya dikunci dari isi data (sidik jari),
+   bukan cuma jumlah baris -- lihat "Cache model per-user" di atas.
 
 ### Melatih ulang
 
@@ -483,7 +625,7 @@ sendiri saat pertama dipakai, ~1,6 detik).
 
 ### Hubungan energi-kecepatan: dipelajari, bukan dikarang
 
-Dataset durasi SENGAJA nggak punya kolom `energi_saat_itu`, dan itu keputusan
+Dataset durasi SENGAJA nggak punya kolom "energi saat itu", dan itu keputusan
 sadar. Dataset isinya tugas orang lain -- nambahin kolom energi ke situ artinya
 ngarang angka (energi siapa, diukur kapan?). Lebih parah lagi: seberapa jauh
 energi rendah ngelambatin orang itu BEDA-BEDA per orang, jadi koefisien
@@ -506,7 +648,7 @@ sesi per-pita selalu lebih sedikit, jadi lebih berisik.
 
 ### Kejujuran akurasi model durasi
 
-Diukur 5-fold CV di 499 baris:
+Diukur 5-fold CV di 549 baris:
 
 ```
 baseline (selalu tebak median 30 mnt)   MAE_log 0.952
@@ -515,3 +657,17 @@ TFIDF huruf + RandomForest, 300 fitur   MAE_log 0.755   <- dipakai
 
 Galat khasnya **faktor ~2x**. Makanya yang ditampilin RENTANG, bukan satu
 angka — dan pita 25–75% itu terkalibrasi (50% data asli jatuh di dalamnya).
+
+### Latensi predict, diukur & dioptimasi
+
+`model_mood` sempat makan ~50ms per panggilan gara-gara `n_jobs=-1` di
+`RandomForestRegressor` -- buat predict SATU baris, overhead spin-up
+parallel backend-nya lebih mahal dari kerjaannya sendiri. Dibuang +
+jumlah pohon diturunin dari 200 ke 100 (hasil prediksi diverifikasi
+IDENTIK di data uji): jadi ~12ms.
+
+`model_durasi` masih ~70ms per panggilan (dipakai live pas ngetik judul tugas
+di dialog Tambah Tugas) -- itu dari loop manual 300 pohon buat ngitung pita
+kuantil (bukan `n_jobs`), desain yang sengaja dipilih dan udah divalidasi
+lewat 5-fold CV. Belum disentuh di optimasi ini karena ubah jumlah pohon di
+situ butuh re-validasi akurasi, bukan cuma ukur kecepatan.

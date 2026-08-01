@@ -26,35 +26,32 @@ Dikelompokin biar kebaca, tapi keluarnya satu dict datar:
     konteks   hari apa, weekend, jam berapa, inbox numpuk
 
 Semua fitur AMAN kalau datanya kosong -- user baru dapet nilai netral, bukan
-error dan bukan nol yang menyesatkan. `siap_belajar()` yang mutusin kapan
-sebuah model boleh mulai percaya sama data user.
+error dan bukan nol yang menyesatkan.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any, Optional
 
 from app import clock, storage
+from app.core.energy_predictor import sleep_hours_for
 from app.core.medication_model import check_status, missed_streak
+from app.core.mood_model import checkin_streak, neglect_streak
 
 # Umur dipetakan ke satu angka biar bisa dipakai model. Urutannya bermakna
 # (makin besar makin tua), jadi nggak perlu one-hot.
 UMUR_IDX = {"<18": 0, "18-24": 1, "25-34": 2, "35+": 3}
 
-# Jam tidur estimasi -- satu sumber, dipakai semua model.
-TIDUR_JAM = {"cukup": 7.0, "begadang": 5.0, "susah_tidur": 4.5, "berantakan": 4.0}
-TIDUR_DEFAULT = 6.5
+# Jam tidur estimasi: dulu ada peta duplikat di sini (`TIDUR_JAM`, default
+# 6.5) yang isinya sama kayak `energy_predictor.SLEEP_CONDITION_HOURS`
+# (default 7.0) di 4 kunci eksplisitnya, tapi FALLBACK-nya beda diam-diam.
+# Sekarang satu sumber: `sleep_hours_for()`.
 
-# Ambang minimal sebelum sebuah model boleh belajar dari data user sendiri.
-# Angkanya beda-beda karena sinyalnya beda kepadatan: mood diisi harian,
-# SOS jarang, sesi fokus di tengah-tengah.
-MIN_DATA = {
-    "mood": 5,        # sama kayak MIN_LOGS_FOR_PATTERN yang udah dipakai
-    "overwhelm": 10,  # butuh cukup hari BER-label (ada SOS / nggak)
-    "durasi": 3,      # 3 sesi di satu kategori udah lumayan
-    "penenang": 4,    # 4 kali pakai opsi jeda
-}
+# Ambang "cukup data" masing-masing model ada di modulnya sendiri
+# (model_mood.MIN_POLA, model_overwhelm.MIN_HARI, dst) -- bukan di sini.
+# Nyimpennya di modul yang beneran makai lebih gampang dilacak daripada
+# satu peta terpusat yang gampang basi begitu ambangnya diubah.
 
 
 @dataclass
@@ -106,38 +103,14 @@ def _log_dalam(logs: list[dict], hari: int, hari_ini: date) -> list[dict]:
     return out
 
 
-def streak_checkin(logs: list[dict], hari_ini: Optional[date] = None) -> int:
-    """Berapa hari berturut-turut user check-in. Momentum, 0-10.
-
-    Boleh mulai dari hari ini ATAU kemarin -- jam 9 pagi user belum sempat
-    check-in, dan streak-nya nggak pantes dianggap putus gara-gara itu.
-    """
-    hari_ini = hari_ini or clock.today()
-    ada = {d for d in (_aman_tanggal(l.get("date", "")) for l in logs) if d}
-    if not ada:
-        return 0
-    kursor = hari_ini if hari_ini in ada else hari_ini - timedelta(days=1)
-    n = 0
-    while kursor in ada and n < 10:
-        n += 1
-        kursor -= timedelta(days=1)
-    return n
-
-
-def streak_abai(logs: list[dict]) -> int:
-    """Berapa check-in terakhir berturut-turut user bilang belum makan /
-    kurang istirahat. Hari yang nggak dijawab (None, None) dilewatin --
-    nggak mutusin streak, karena jawabnya emang opsional."""
-    n = 0
-    for log in logs:
-        makan, istirahat = log.get("ate_today"), log.get("rested_enough")
-        if makan is None and istirahat is None:
-            continue
-        if makan is False or istirahat is False:
-            n += 1
-        else:
-            break
-    return n
+# `streak_checkin` (momentum check-in) dan `streak_abai` (hari makan/istirahat
+# kelewat) SENGAJA nggak didefinisiin di sini lagi. Dulu ada dua salinan --
+# satu di `core/mood_model.py` (dipakai views/mood.py & kalem_engine.py sejak
+# lama), satu lagi ditulis ulang persis sama di sini pas kalem_ml dibikin.
+# Definisi yang sama disalin dua kali itu bug laten: sekali salah satu
+# diedit tanpa yang lain, dua halaman bisa ngasih vonis beda lagi -- persis
+# insiden yang udah pernah diperbaiki (lihat docstring `mood_model.checkin_streak`).
+# Sekarang tinggal satu sumber: diimpor dari `mood_model` di atas.
 
 
 # Pita energi buat kalibrasi. Dikelompokin 3, bukan 6 level: dengan 6 level
@@ -209,33 +182,51 @@ def kalibrasi_waktu(records: list[dict], energi: Optional[int] = None) -> float:
     return max(0.4, min(global_f, 3.0))
 
 
-def kalibrasi_per_pita(records: list[dict]) -> dict[str, tuple[float, int]]:
-    """{pita: (faktor, jumlah sesi)} -- buat ditampilin & dites."""
-    hasil: dict[str, tuple[float, int]] = {}
-    for pita in ("rendah", "sedang", "tinggi"):
-        r = _rasio_kalibrasi(records, pita)
-        if r:
-            hasil[pita] = (round(max(0.4, min(_median(r), 3.0)), 2), len(r))
-    return hasil
-
-
 # ------------------------------------------------------------ pembangun
 
 
-def bangun_fitur(now: Optional[datetime] = None) -> Fitur:
-    """Susun seluruh sinyal user jadi satu snapshot."""
+def bangun_fitur(
+    now: Optional[datetime] = None,
+    day: Any = None,
+    profil: Optional[dict] = None,
+) -> Fitur:
+    """Susun seluruh sinyal user jadi satu snapshot.
+
+    `day` (kalau dioper) itu `kalem_engine.DayState` -- SEMUA sinyal harian
+    diambil dari situ, nggak nyentuh storage sama sekali. Ini yang bikin
+    `decide()` & `build_morning_brief()` jadi fungsi murni dari argumennya:
+    dulu mereka nerima `day` tapi lapisan ini diam-diam baca storage lagi,
+    jadi `day` buatan (buat test) cuma ngefek separuh keputusan.
+
+    Kalau `day` None, jatuh balik ke storage kayak biasa -- dipakai
+    pemanggil yang emang nggak punya DayState (mis. halaman Tracker).
+    """
     now = now or clock.now()
     hari_ini = clock.today()
     iso = hari_ini.isoformat()
 
-    profil = storage.get_profile()
-    favorit = storage.get_favorites()
-    logs = [l for l in storage.get_mood_logs() if l.get("score") is not None]
-    tugas_semua = storage.get_tasks()
-    tugas_hari_ini = [t for t in tugas_semua if t.get("deadline") == iso]
-    sos = storage.get_reset_events()
-    obat = storage.get_medication()
-    records = storage.get_focus_records()
+    profil = profil if profil is not None else storage.get_profile()
+
+    if day is not None:
+        favorit = day.favorites
+        semua_log = day.mood_logs
+        tugas_semua = day.all_tasks
+        tugas_hari_ini = day.tasks_today
+        sos = day.reset_events
+        obat = day.medication
+        records = day.focus_records
+        n_inbox = day.inbox_count
+    else:
+        favorit = storage.get_favorites()
+        semua_log = storage.get_mood_logs()
+        tugas_semua = storage.get_tasks()
+        tugas_hari_ini = [t for t in tugas_semua if t.get("deadline") == iso]
+        sos = storage.get_reset_events()
+        obat = storage.get_medication()
+        records = storage.get_focus_records()
+        n_inbox = len(storage.get_inbox())
+
+    logs = [l for l in semua_log if l.get("score") is not None]
 
     log7 = _log_dalam(logs, 7, hari_ini)
     log3 = _log_dalam(logs, 3, hari_ini)
@@ -267,7 +258,12 @@ def bangun_fitur(now: Optional[datetime] = None) -> Fitur:
         if (d := _aman_tanggal(t.get("deadline", ""))) and 0 <= (hari_ini - d).days < 7
     ]
     selesai7 = [t for t in tugas7 if storage.task_is_done(t)]
+    # 0.5 dipakai sebagai nilai netral kalau BELUM ADA tugas minggu ini --
+    # tapi 0.5 juga rasio yang sah (1 dari 2 tugas kelar). Makanya ada flag
+    # terpisah; jangan pernah pakai `rasio == 0.5` buat nebak "ada data apa
+    # nggak", itu nutupin kasus 50%-beneran.
     rasio_selesai = len(selesai7) / len(tugas7) if tugas7 else 0.5
+    ada_data_tugas = bool(tugas7)
 
     # Umur tugas tertua yang belum kelar -- ukuran penundaan yang paling polos.
     umur_tertua = 0
@@ -288,14 +284,19 @@ def bangun_fitur(now: Optional[datetime] = None) -> Fitur:
     rasio_sesi = len(kelar) / len(rec7) if rec7 else 0.5
 
     # --- waktu ---
+    # `in_productive_hours` & `all_triggers` nerima profil sebagai argumen,
+    # jadi mereka murni. `in_tired_window()` NGGAK -- dia baca favorit dari
+    # storage sendiri, jadi logikanya disalin ke sini pakai `favorit` yang
+    # udah kita punya. Kalau nggak, `day` buatan tetap kebocoran storage.
     di_jam_produktif = storage.in_productive_hours(profil, now.hour)
-    di_jam_capek = storage.in_tired_window(now)
+    _jam_capek = storage.FAVORITE_TIRED_HOURS.get(favorit.get("jam_capek", ""))
+    di_jam_capek = bool(_jam_capek) and _jam_capek[1][0] <= now.hour < _jam_capek[1][1]
 
     nilai: dict[str, float] = {
         # profil
         "umur_idx": float(UMUR_IDX.get(profil.get("age_range", ""), 1)),
         "n_status": float(len(profil.get("status") or [])),
-        "tidur_jam": TIDUR_JAM.get(profil.get("sleep_condition", ""), TIDUR_DEFAULT),
+        "tidur_jam": sleep_hours_for(profil.get("sleep_condition", "")),
         "punya_jam_produktif": 1.0 if profil.get("productive_hours") else 0.0,
         "di_jam_produktif": 1.0 if di_jam_produktif else 0.0,
         "jam_produktif_diketahui": 0.0 if di_jam_produktif is None else 1.0,
@@ -308,11 +309,11 @@ def bangun_fitur(now: Optional[datetime] = None) -> Fitur:
         "skor_14h": _rata(skor14, 3.0),
         "tren_mood": _rata(skor3, 3.0) - _rata(skor14, 3.0),
         "energi_terakhir": float(logs[0].get("energy") or 3) if logs else 3.0,
-        "streak_checkin": float(streak_checkin(logs, hari_ini)),
+        "streak_checkin": float(checkin_streak(logs, hari_ini)),
         "n_catatan": float(len(logs)),
         "n_diary": float(sum(1 for l in logs if (l.get("diary") or "").strip())),
         # rawat diri
-        "streak_abai": float(streak_abai(logs)),
+        "streak_abai": float(neglect_streak(logs)),
         "obat_aktif": 1.0 if status_obat.active else 0.0,
         "obat_kelewat": float(obat_kelewat),
         "obat_hari_sisa": float(status_obat.days_left if status_obat.active else 99),
@@ -322,8 +323,9 @@ def bangun_fitur(now: Optional[datetime] = None) -> Fitur:
         "n_mendesak": float(len(mendesak)),
         "beban_menit": float(beban_menit),
         "rasio_selesai_7h": float(rasio_selesai),
+        "ada_data_tugas_7h": 1.0 if ada_data_tugas else 0.0,
         "umur_tugas_tertua": float(min(umur_tertua, 60)),
-        "n_inbox": float(len(storage.get_inbox())),
+        "n_inbox": float(n_inbox),
         # jeda / SOS
         "n_sos_7h": float(len(sos7)),
         "n_sos_3h": float(len(sos3)),
@@ -333,7 +335,7 @@ def bangun_fitur(now: Optional[datetime] = None) -> Fitur:
         "rasio_sesi_kelar": float(rasio_sesi),
         "kalibrasi_waktu": kalibrasi_waktu(records),
         # favorit
-        "n_favorit": float(storage.favorites_filled()),
+        "n_favorit": float(sum(1 for v in favorit.values() if v)),
         "punya_penyemangat": 1.0 if (favorit.get("penyemangat") or "").strip() else 0.0,
         "punya_orang": 1.0 if (favorit.get("orang") or "").strip() else 0.0,
         "punya_gerak": 1.0 if (favorit.get("gerak") or "").strip() else 0.0,
@@ -351,27 +353,13 @@ def bangun_fitur(now: Optional[datetime] = None) -> Fitur:
         "status_obat": status_obat,
         "log_hari_ini": hari_ini_log,
         "tugas_belum": belum,
+        # Catatan mood mentah + DayState asalnya: dibawa biar model nggak
+        # perlu baca storage LAGI padahal snapshot-nya udah dioper ke dia.
+        # `day` None artinya snapshot ini emang dibangun dari storage.
+        "logs": logs,
+        "day": day,
     }
     return Fitur(nilai=nilai, tanggal=iso, catatan=catatan)
-
-
-def siap_belajar(nama_model: str, fitur: Optional[Fitur] = None) -> bool:
-    """Apa data user udah cukup buat model ini berhenti nebak pakai prior?
-
-    Dipisah dari modelnya sendiri supaya aturan "jangan ngarang kalau data
-    belum cukup" kelihatan di satu tempat, bukan kesebar jadi angka ajaib.
-    """
-    fitur = fitur or bangun_fitur()
-    batas = MIN_DATA.get(nama_model, 5)
-    if nama_model == "mood":
-        return fitur["n_catatan"] >= batas
-    if nama_model == "overwhelm":
-        return fitur["n_catatan"] >= batas
-    if nama_model == "penenang":
-        return len(storage.get_reset_events()) >= batas
-    if nama_model == "durasi":
-        return fitur["n_sesi_7h"] >= 1 or len(storage.get_focus_records()) >= batas
-    return fitur["n_catatan"] >= batas
 
 
 def ringkas_untuk_ui(fitur: Optional[Fitur] = None) -> dict[str, Any]:
