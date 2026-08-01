@@ -340,14 +340,18 @@ def apply_scenario(key: str) -> str:
     storage.save_state(state)
 
     # --- tugas ---
+    # `urgent` di skenario sekarang diterjemahin jadi JAM DEADLINE, bukan
+    # dioper langsung: mendesak/nggaknya dihitung sistem dari deadline
+    # (lihat storage.is_urgent). Yang ditandai mendesak dikasih jam pagi
+    # hari ini biar beneran kehitung mendesak pas demo.
     for task in scenario.get("tasks") or []:
         storage.add_task(
             task["title"],
             today.isoformat(),
-            task.get("urgent", False),
             task.get("important", True),
             steps=[{"text": s, "done": False} for s in (task.get("steps") or [task["title"]])],
             difficulty_est=int(task.get("difficulty", 2)),
+            deadline_time="09:00" if task.get("urgent") else "",
         )
 
     # --- inbox ---

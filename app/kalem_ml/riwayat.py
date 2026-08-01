@@ -26,7 +26,7 @@ buat melatih -- karena nilai historisnya emang nggak ada.
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Optional
 
 from app import clock, storage
@@ -150,7 +150,11 @@ def baris_harian(
 
         iso = d.isoformat()
         tugas_hari = [t for t in tugas if t.get("deadline") == iso]
-        mendesak = [t for t in tugas_hari if t.get("urgent")]
+        # Mendesak dihitung dari deadline, bukan baca flag beku -- lihat
+        # `storage.is_urgent()`. Buat baris riwayat, patokannya AKHIR hari
+        # itu (bukan sekarang), biar rekonstruksinya sesuai konteks hari itu.
+        akhir_hari = datetime(d.year, d.month, d.day, 23, 59)
+        mendesak = [t for t in tugas_hari if storage.is_urgent(t, akhir_hari)]
 
         X.append([
             float(log["score"]),

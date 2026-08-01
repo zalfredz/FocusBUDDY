@@ -403,6 +403,35 @@ def build_morning_brief(
     f = kfitur.bangun_fitur(now, day=day, profil=profile)
     ramalan = model_mood.ramal(f)
 
+    # --- Lama nggak muncul: SAPA, jangan ramal dari data basi ---
+    #
+    # Ini yang njaga "capek jangan tervalidasi terus-terusan". Kalau catatan
+    # terakhir user isinya berat lalu dia menghilang seminggu, meramal dari
+    # situ artinya nyuruh dia pelan-pelan berdasarkan perasaan minggu lalu --
+    # dan itu bisa bikin makin nggak jalan.
+    #
+    # Absen NGGAK dianggap sinyal buruk maupun baik. Bisa lupa, bisa lagi
+    # berat beneran, dan dua-duanya nggak pantes ditebak-tebak. Jadi Kalem
+    # berhenti meramal, nyapa apa adanya, dan minta satu check-in baru.
+    if f["data_mood_basi"]:
+        jarak = int(f["hari_sejak_checkin"])
+        return MorningBrief(
+            ready=False,
+            greeting=greeting,
+            forecast=f"Udah {jarak} hari nggak ketemu. Seneng kamu balik lagi.",
+            plan=(
+                "Aku sengaja nggak nebak-nebak hari kamu dari catatan lama — "
+                "itu udah lewat. Check-in bentar yuk, biar aku mulai dari "
+                "kondisi kamu yang sekarang."
+            ),
+            mood="tenang",
+            energy_level=3,
+            focus_minutes=focus_minutes_for(3),
+            reasons=[],
+            task_count=task_count,
+            encouragement=encouragement,
+        )
+
     # --- Data belum cukup: tetap nyapa, tapi ngaku belum bisa meramal ---
     if not ramalan.siap:
         return MorningBrief(

@@ -45,7 +45,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def to_task(note: dict):
         """Ubah catatan mentah jadi tugas + langkah kecil."""
         title_field = ft.TextField(label="Jadiin tugas apa?", value=note["text"], multiline=True, max_lines=3)
-        urgent_check = ft.Checkbox(label="Mendesak (deadline dekat)", value=False)
+        # Jam deadline, bukan centang "mendesak" -- mendesaknya dihitung
+        # sistem dari tanggal+jam (lihat storage.is_urgent).
+        time_field = ft.TextField(
+            label="Jam deadline (opsional)",
+            hint_text="mis. 17:00",
+            helper_text="Dikosongin = sampai akhir hari",
+        )
         important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
         can_split = storage.can_use("decompose")
         split_check = ft.Checkbox(
@@ -72,10 +78,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
             task = storage.add_task(
                 name,
                 clock.today().isoformat(),
-                urgent_check.value,
                 important_check.value,
                 steps=[{"text": name, "done": False}],
                 difficulty_est=2,
+                deadline_time=(time_field.value or "").strip(),
             )
 
             # Kuota Pecah Tugas dicek DI SINI juga. Dulu jalur ini manggil
@@ -106,7 +112,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 modal=True,
                 title=ft.Text("Rapikan jadi tugas", size=16),
                 content=ft.Column(
-                    [title_field, urgent_check, important_check, split_check, note_text],
+                    [title_field, time_field, important_check, split_check, note_text],
                     spacing=8,
                     tight=True,
                 ),

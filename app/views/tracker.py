@@ -27,7 +27,7 @@ from app.core import kalem_engine
 from app.kalem_ml import fitur as kfitur
 from app.kalem_ml import model_durasi
 from app.core.decomposer_logic import lay_out, plan_today
-from app.core.energy_predictor import ENERGY_HINTS, energy_to_mood_default
+from app.core.energy_predictor import energy_to_mood_default
 
 MONTH_NAMES = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -76,9 +76,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     day_tasks_column = ft.Column(spacing=8)
     eisenhower_column = ft.Column(spacing=8)
     timeline_column = ft.Column(spacing=8)
-    energy_row = ft.Row(spacing=6)
-    energy_hint = ft.Text(size=12, color=theme.MUTED)
-    energy_effect = ft.Column(spacing=4)
     plan_column = ft.Column(spacing=8, visible=False)
 
     # ---------------------------------------------------------- kalender
@@ -290,8 +287,19 @@ def build(page: ft.Page, navigate) -> ft.Control:
     # ------------------------------------------------------ daftar tugas
 
     def toggle_step(task_id: str, index: int, value: bool):
+        # Cek SEBELUM & SESUDAH: rayaannya cuma buat momen tugas beneran
+        # BERUBAH jadi kelar, bukan tiap centang langkah. Kalau tiap langkah
+        # dirayain, rayaannya kehilangan arti.
+        sebelum = any(
+            storage.task_is_done(t) for t in storage.get_tasks() if t["id"] == task_id
+        )
         storage.set_step_done(task_id, index, value)
+        sesudah = any(
+            storage.task_is_done(t) for t in storage.get_tasks() if t["id"] == task_id
+        )
         refresh_all()
+        if sesudah and not sebelum:
+            ui_helpers.reward_overlay(page)
 
     def reopen_task(task_id: str):
         """Buka lagi tugas yang udah dilipat -- semua centangnya dilepas."""
@@ -507,7 +515,17 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def open_add_task(e):
         title_field = ft.TextField(label="Nama tugas", hint_text="mis. Bikin Skripsi Bab 1")
-        urgent_check = ft.Checkbox(label="Mendesak (deadline dekat)", value=False)
+        # Jam deadline GANTIIN centang "Mendesak". Dulu user disuruh nilai
+        # sendiri mendesak atau nggak -- padahal itu hal yang app-nya udah
+        # tau dari tanggal, dan centangnya jadi bohong begitu harinya lewat.
+        # Sekarang user cuma ngasih tau KAPAN; mendesaknya dihitung sistem
+        # tiap kali dibaca (storage.is_urgent).
+        time_field = ft.TextField(
+            label="Jam deadline (opsional)",
+            hint_text="mis. 17:00",
+            helper_text="Dikosongin = dianggap sampai akhir hari",
+            on_change=lambda ev: render_estimate(),
+        )
         important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
         difficulty = ft.RadioGroup(
             value="2",
@@ -592,7 +610,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
             except ValueError:
                 tempo = 0
             penting = 8 if important_check.value else 4
-            if urgent_check.value:
+            # Deadline hari ini/besok = lebih mendesak. Diturunin dari tanggal,
+            # bukan dari centang user (lihat catatan di `time_field`).
+            if tempo <= 1:
                 penting = min(10, penting + 2)
 
             est = model_durasi.perkirakan(
@@ -634,7 +654,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             page.update()
 
         title_field.on_change = lambda ev: render_estimate()
-        urgent_check.on_change = lambda ev: render_estimate()
         important_check.on_change = lambda ev: render_estimate()
 
         render_kategori()
@@ -649,8 +668,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
             storage.add_task(
                 name,
                 state["selected"],
-                urgent_check.value,
                 important_check.value,
+                deadline_time=(time_field.value or "").strip(),
                 steps=[{"text": name, "done": False}],
                 difficulty_est=int(difficulty.value or 2),
                 kategori=picked["kategori"],
@@ -667,7 +686,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 content=ft.Column(
                     [
                         title_field,
-                        urgent_check,
+                        time_field,
                         important_check,
                         ft.Text("Seberat apa buat dimulai?", size=11, color=theme.MUTED),
                         difficulty,
@@ -687,92 +706,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
-    # ----------------------------------------------------------- energi
-
-    def render_energy():
-        chips: list[ft.Control] = []
-        for level in range(1, 7):
-            active = level == state["energy"]
-            chips.append(
-                ft.Container(
-                    content=ft.Text(
-                        str(level),
-                        size=14,
-                        weight=ft.FontWeight.BOLD,
-                        color="#FFFFFF" if active else theme.ON_BACKGROUND,
-                        text_align=ft.TextAlign.CENTER,
-                    ),
-                    height=42,
-                    expand=True,
-                    bgcolor=theme.PRIMARY if active else theme.SURFACE,
-                    border=ft.Border.all(1, theme.PRIMARY if active else theme.BORDER),
-                    border_radius=12,
-                    alignment=ft.Alignment.CENTER,
-                    on_click=lambda e, lv=level: set_energy(lv),
-                    ink=True,
-                )
-            )
-        energy_row.controls = chips
-        energy_hint.value = ENERGY_HINTS[state["energy"]]
-
-        # Level energi kelihatan cuma "ngubah timer" kalau efeknya nggak
-        # ditulis. Padahal dia nyetir tiga hal sekaligus -- ditampilin biar
-        # kerasa kepakai, bukan angka pajangan.
-        level = state["energy"]
-        minutes = kalem_engine.focus_minutes_for(level)
-        rest = kalem_engine.break_minutes_for(level)
-        effects = [
-            (ft.Icons.TIMER_OUTLINED, f"Sesi fokus jadi {minutes} menit, istirahat {rest} menit"),
-            (ft.Icons.AUTO_AWESOME, "Ukuran langkah pas 'Pecah Tugas' ikut nyesuain"),
-            (ft.Icons.INSIGHTS, "Jadi dasar saran beban kerja Kalem hari ini"),
-        ]
-        energy_effect.controls = [
-            ft.Row(
-                [
-                    ft.Icon(icon, size=14, color=theme.SECONDARY),
-                    ft.Text(text, size=11.5, color=theme.MUTED, expand=True),
-                ],
-                spacing=8,
-            )
-            for icon, text in effects
-        ] + [
-            ft.Row(
-                [
-                    ui_helpers.primary_button(
-                        f"Mulai fokus {minutes} menit",
-                        start_focus_here,
-                        icon=ft.Icons.PLAY_ARROW,
-                        expand=True,
-                    )
-                ],
-                spacing=0,
-            )
-        ]
-
-    def set_energy(level: int):
-        """Ganti energi = ganti durasi sesi fokus. Inilah sambungannya."""
-        state["energy"] = level
-        # Dikunci buat hari ini juga, biar koreksi user nggak ilang pas
-        # pindah halaman -- dan biar Beranda ikut pakai angka yang sama.
-        storage.set_today_energy(level)
-        render_energy()
-        page.update()
-
-    def start_focus_here(e):
-        """Mulai sesi, terus pindah ke Beranda tempat timernya tinggal.
-
-        Sesinya sendiri disimpan di `focus_session` (global), jadi dia tetap
-        jalan walau user keliling halaman.
-        """
-        found = kalem_engine.pick_next_action(storage.tasks_today())
-        label, title = ("", "")
-        if found:
-            task, _, step_text = found
-            label, title = step_text, task["title"]
-        focus_session.start(
-            kalem_engine.focus_minutes_for(state["energy"]), label=label, task_title=title
-        )
-        navigate("home")
+    # Kartu level energi DIPINDAH ke halaman Mood. Alasannya: di sini dia
+    # ketimbun daftar tugas dan jarang kelihatan, padahal dia yang nyetel
+    # skala hari itu. Di Mood dia nyatu sama check-in -- satu tempat, satu
+    # momen, dan datanya langsung kepakai.
+    #
+    # Tracker tetap PAKAI `state["energy"]` (buat durasi sesi & Pecah Tugas),
+    # cuma nggak ngasih UI buat ngubahnya lagi.
 
     # ------------------------------------------------------- pecah tugas
 
@@ -1020,29 +960,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
     render_day_tasks()
     render_eisenhower()
     render_timeline()
-    render_energy()
 
     calendar_card = ui_helpers.card(
         ft.Column([calendar_nav, calendar_grid], spacing=8), padding=14
-    )
-
-    energy_card = ui_helpers.card(
-        ft.Column(
-            [
-                ui_helpers.section_header("Level energi sekarang (1-6)"),
-                energy_row,
-                energy_hint,
-                ft.Divider(color=theme.BORDER, height=1),
-                ui_helpers.section_header("Yang ikut berubah"),
-                energy_effect,
-                ui_helpers.disclaimer(
-                    "Skalanya 1-6 biar nggak ada 'angka tengah aman' -- kamu harus milih "
-                    "condong ke mana."
-                ),
-            ],
-            spacing=10,
-        ),
-        padding=16,
     )
 
     return ft.Column(
@@ -1066,7 +986,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             eisenhower_column,
             timeline_column,
             day_tasks_column,
-            energy_card,
         ],
         spacing=14,
         scroll=ft.ScrollMode.AUTO,

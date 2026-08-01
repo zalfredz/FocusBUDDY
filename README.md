@@ -63,6 +63,8 @@ DATASET/
 tools/
   build_bpom_index.py        # CSV BPOM -> app/data/bpom_index.json
   latih_model_durasi.py      # CSV durasi -> app/data/model_durasi.joblib
+tests/
+  test_regresi.py            # regresi -- `python tests/test_regresi.py`
 ```
 
 ## Arsitektur: "Kalem sebagai satu otak"
@@ -293,6 +295,12 @@ Isinya cuma sapaan, **Kalem besar di tengah**, satu **kartu next-action**
 (tugas prioritas + satu langkah pertama + tombol FOKUS), quick capture, dan
 satu baris tenang ke halaman jeda.
 
+**Mode fokus ngunci halaman lain.** Selama sesi jalan, pindah ke Tracker/
+Mood/Settings bakal dicegat dialog: *"Kamu lagi ngerjain X — sisa 12:34.
+Yuk selesaiin itu dulu."* User tetap bisa maksa pindah (sesinya dijeda dulu,
+biar nggak keitung putus). **Halaman jeda SELALU boleh dibuka** -- ngunci
+jalan keluar orang yang lagi kewalahan itu kebalikan dari tujuan app ini.
+
 **Sesi fokus jalan DI SINI**, bukan pindah halaman. Nyalain timer nggak
 sekadar "titip niat" ke Tracker terus mental ke halaman lain -- sesinya hidup
 di `app/focus_session.py` (state module-level, bukan punya satu halaman), jadi
@@ -334,15 +342,43 @@ kalau ditekan "Lihat bulan".
   Gemini cuma nulis kalimat langkahnya (lihat "Model kita dulu, baru Gemini"
   di atas). Kalau satu tugas dihapus, rencana disusun ulang otomatis --
   sisanya digeser, bukan ninggalin jam bolong.
-- **Level energi 1-6** (sengaja bukan 1-5 supaya nggak ada "angka tengah
-  aman"). Ini **beneran nyetir durasi sesi fokus** (energi 1 -> 5 menit,
-  energi 6 -> 30 menit) DAN jadi konteks buat perkiraan durasi tugas
-  (`model_durasi` mengkalibrasi per pita energi dari sesi fokus user sendiri
-  -- lihat bagian "Hubungan energi-kecepatan" di bawah).
+- **Mendesak DIHITUNG dari deadline**, bukan ditanya ke user. Yang diisi
+  cuma tanggal + jam (opsional); `storage.is_urgent()` ngitung ulang tiap
+  kali dibaca. Versi lama pakai centang "Mendesak" -- dan centang itu beku:
+  tugas yang dicentang "nggak mendesak" minggu lalu tetap ngaku gitu walau
+  deadline-nya besok.
+- **Level energi PINDAH ke halaman Mood.** Di sini dia ketimbun daftar tugas
+  dan jarang kelihatan, padahal dia yang nyetel skala hari itu. Tracker
+  tetap PAKAI angkanya (durasi sesi & ukuran langkah Pecah Tugas), cuma
+  nggak nyediain UI buat ngubahnya lagi.
+- **Rayaan kecil pas tugas kelar** -- overlay sedetik yang muncul & ilang
+  sendiri. Cuma pas tugas BERUBAH jadi selesai, bukan tiap centang langkah:
+  kalau tiap langkah dirayain, rayaannya kehilangan arti.
 
 Tombol FOKUS di sini langsung mulai sesi yang tampil balik di Home.
 
 ### Page 3 -- Mood
+**Level energi (1-6) ada di sini**, bukan di Tracker lagi. Alasannya: di
+Tracker dia ketimbun daftar tugas dan jarang kelihatan, padahal dia yang
+nyetel skala hari itu. Di sini dia nyatu sama check-in -- satu tempat, satu
+momen, dan datanya langsung kepakai. Skalanya 1-6 (bukan 1-5) supaya nggak
+ada "angka tengah aman".
+
+**Popup check-in pas buka app.** Sekali sehari, mood + energi ditanya lewat
+dialog dua-tap di Beranda. Mood & energi itu yang nyetel skala hari itu;
+kalau nunggu user inisiatif buka halaman ini, data yang paling nentuin
+justru yang paling sering kosong. Tombol "Nanti aja" SENGAJA nggak nyimpen
+apa-apa -- hari tanpa check-in harus beneran kosong, bukan diisi tebakan.
+
+**Mood dan energi dua sumbu yang beda.** Energi awalnya ditebak dari mood,
+tapi begitu user nyentuh slidernya sendiri, tebakan berhenti nimpa -- orang
+bisa sedih tapi masih ada tenaga, atau senang tapi drop.
+
+Urutan chip mood NAIK dari kiri (paling berat) ke kanan (paling enak), kayak
+skala rating pada umumnya. Versi lama urutannya nggak monoton (5,4,2,1,2) --
+"lelah" nangkring di ujung setelah "sedih", kebaca kayak lelah lebih parah
+dari sedih padahal skornya justru lebih tinggi.
+
 Check-in mood lewat Kalem, plus insight dari **model yang belajar pola kamu
 sendiri**: hari apa mood cenderung bagus/berat, beda weekday vs weekend, dan
 tema yang sering muncul di cerita kamu. Model ini jujur bilang "masih belajar"
@@ -464,6 +500,44 @@ tapi bisa keliru". Registri resmi (BPOM) yang dipakai sekarang, bukan LLM.
 
 > Push notification beneran (Firebase dkk) belum dibangun -- untuk sekarang
 > pengingatnya muncul saat app dibuka.
+
+### Hari tanpa check-in = kosong, bukan hari buruk
+
+Masalah yang ditutup: catatan mood TERAKHIR dulu dipakai tanpa batas waktu.
+Jadi kalau catatan terakhir user isinya "capek banget" lalu dia menghilang
+seminggu, pas balik lagi Kalem MASIH nyaranin beban ringan berdasarkan
+perasaan seminggu lalu -- capeknya divalidasi terus-terusan, dan justru bikin
+makin nggak jalan.
+
+Tiga hal yang sekarang dipegang:
+
+1. **Ada batas kedaluwarsa** (`storage.STALE_AFTER_DAYS = 3`). Lewat itu,
+   `energi_terakhir` balik ke netral dan `streak_abai` di-nol-in -- bukan
+   diwarisin dari catatan lama. "Nggak tau" itu jawaban yang lebih jujur
+   daripada nganggep user masih kelaparan seminggu kemudian.
+2. **Hari bolong nggak diisi tebakan.** `riwayat.baris_harian()` cuma bikin
+   baris latih dari hari yang BENERAN ada check-in-nya. Nggak ada
+   interpolasi, nggak ada "kemungkinan hari itu buruk".
+3. **Kalem nyapa, bukan meramal.** Morning Brief ganti jadi *"Udah 10 hari
+   nggak ketemu. Seneng kamu balik lagi. Aku sengaja nggak nebak-nebak hari
+   kamu dari catatan lama — itu udah lewat."*
+
+Absen NGGAK diperlakukan sebagai sinyal buruk maupun baik. Bisa lupa, bisa
+lagi berat beneran, dan dua-duanya nggak pantes ditebak-tebak. Fitur
+`hari_sejak_checkin` tetap masuk ke model sebagai konteks, tapi nggak pernah
+jadi dasar buat nge-judge.
+
+## Menjalankan tes
+
+```bash
+python tests/test_regresi.py
+```
+
+Nggak butuh pytest. Tiap tes bikin storage sendiri di folder temp, jadi data
+asli di `~/.focusbuddy` nggak pernah kesentuh. Yang dicakup: mendesak dari
+deadline, data basi, hari kosong, urutan mood, isolasi model antar-user,
+kemurnian `decide()`, komponen UI baru, kunci mode fokus, dan semua halaman
+kebangun.
 
 ## Limitasi yang Wajib Didisclose
 

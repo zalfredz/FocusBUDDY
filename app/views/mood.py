@@ -7,7 +7,12 @@ import flet as ft
 
 from app import buddy, storage, theme, ui_helpers
 from app.core import recommendations
-from app.core.energy_predictor import predict_workload, sleep_hours_for
+from app.core import kalem_engine
+from app.core.energy_predictor import (
+    ENERGY_HINTS,
+    predict_workload,
+    sleep_hours_for,
+)
 from app.core.medication_model import missed_streak
 from app.core.mood_model import (
     DAY_NAMES,
@@ -40,6 +45,22 @@ def build(page: ft.Page, navigate) -> ft.Control:
             "ate_today": today_log.get("ate_today") if today_log else None,
             "rested_enough": today_log.get("rested_enough") if today_log else None,
         },
+        # Level energi PINDAH KE SINI dari Tracker. Di sana dia ketimbun
+        # daftar tugas dan jarang kelihatan, padahal dia yang nyetel skala
+        # hari itu. Di sini dia nyatu sama check-in: satu tempat, satu momen.
+        #
+        # Defaultnya dari catatan hari ini kalau ada, kalau nggak dari skor
+        # mood -- tapi user bisa nimpa, karena capek dan sedih itu dua hal
+        # yang beda (bisa sedih tapi masih ada tenaga, bisa senang tapi drop).
+        "energy": (
+            today_log.get("energy")
+            if today_log and today_log.get("energy")
+            else storage.today_energy()
+            or _energy_from_score(buddy.score_for(latest["mood"] if latest else buddy.DEFAULT_MOOD))
+        ),
+        # True kalau user udah nyentuh slider energi -- biar nggak ketimpa
+        # tebakan dari mood tiap kali dia ganti ekspresi.
+        "energy_touched": bool(today_log and today_log.get("energy")),
     }
 
     kalem_face = buddy.face(state["mood"], 130)
@@ -57,6 +78,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         autofocus=True,
         on_submit=lambda e: add_custom_tag(e),
     )
+    energy_holder = ft.Container()
     care_holder = ft.Container()
     result_holder = ft.Container(visible=False)
 
@@ -64,11 +86,72 @@ def build(page: ft.Page, navigate) -> ft.Control:
         state["mood"] = mood
         kalem_face.src = buddy.asset_for(mood)
         kalem_words.value = buddy.greeting_for(mood)
+        # Energi ikut nebak dari mood SELAMA user belum nyentuh slidernya
+        # sendiri. Begitu disentuh, tebakan berhenti nimpa -- capek dan
+        # sedih itu dua sumbu yang beda.
+        if not state["energy_touched"]:
+            state["energy"] = _energy_from_score(buddy.score_for(mood))
+            render_energy()
         render_picker()
         page.update()
 
     def render_picker():
         picker_holder.content = buddy.mood_picker(state["mood"], pick_mood)
+
+    # --- Level energi: pindahan dari Tracker ---
+
+    def pick_energy(level: int):
+        state["energy"] = level
+        state["energy_touched"] = True
+        render_energy()
+        page.update()
+
+    def render_energy():
+        chips: list[ft.Control] = []
+        for level in range(1, 7):
+            active = level == state["energy"]
+            chips.append(
+                ft.Container(
+                    content=ft.Text(
+                        str(level),
+                        size=14,
+                        weight=ft.FontWeight.BOLD,
+                        color="#FFFFFF" if active else theme.ON_BACKGROUND,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    height=40,
+                    expand=True,
+                    bgcolor=theme.PRIMARY if active else theme.SURFACE,
+                    border=ft.Border.all(1, theme.PRIMARY if active else theme.BORDER),
+                    border_radius=12,
+                    alignment=ft.Alignment.CENTER,
+                    on_click=lambda e, lv=level: pick_energy(lv),
+                    ink=True,
+                )
+            )
+        menit = kalem_engine.focus_minutes_for(state["energy"])
+        energy_holder.content = ft.Column(
+            [
+                ui_helpers.subtitle("Tenaga kamu sekarang gimana? (1-6)"),
+                ft.Row(chips, spacing=6),
+                ft.Text(ENERGY_HINTS[state["energy"]], size=12, color=theme.MUTED),
+                # Efeknya ditulis biar kerasa kepakai, bukan angka pajangan.
+                ft.Row(
+                    [
+                        ft.Icon(ft.Icons.TIMER_OUTLINED, size=14, color=theme.SECONDARY),
+                        ft.Text(
+                            f"Sesi fokus jadi {menit} menit, dan ukuran langkah "
+                            "pas 'Pecah Tugas' ikut nyesuain.",
+                            size=11.5,
+                            color=theme.MUTED,
+                            expand=True,
+                        ),
+                    ],
+                    spacing=8,
+                ),
+            ],
+            spacing=8,
+        )
 
     # --- Tag cepat: dipencet dalam hitungan detik, tanpa harus nulis ---
 
@@ -218,7 +301,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def save_checkin(e):
         mood = state["mood"]
         score = buddy.score_for(mood)
-        energy = _energy_from_score(score)
+        # Energi dari pilihan user sendiri (slider di halaman ini), bukan
+        # diturunkan dari skor mood -- lihat catatan di `state["energy"]`.
+        energy = int(state["energy"])
         existing = storage.today_mood()
         storage.add_mood_log(
             mood=mood,
@@ -231,6 +316,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ate_today=state["care"]["ate_today"],
             rested_enough=state["care"]["rested_enough"],
         )
+        # Dikunci buat hari ini juga, biar Tracker & tombol FOKUS di Beranda
+        # langsung ikut angka yang sama.
+        storage.set_today_energy(energy)
 
         sleep_condition = storage.get_profile().get("sleep_condition", "")
         # Dihitung SETELAH nyimpen, biar jawaban hari ini ikut kehitung.
@@ -336,6 +424,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
     render_picker()
+    render_energy()
     render_tags()
     render_care()
 
@@ -455,8 +544,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def render_insight():
         insight = analyse(storage.get_mood_logs())
+        # Badge PREMIUM nempel di judul kalau user masih di free tier --
+        # biar kelihatan ada kedalaman yang belum kebuka, tanpa ngunci
+        # temuan pertamanya (itu tetap gratis).
         children: list[ft.Control] = [
-            ui_helpers.section_header("Yang Kalem pelajari tentang kamu"),
+            ui_helpers.premium_header(
+                "Yang Kalem pelajari tentang kamu", not storage.is_premium()
+            ),
             ft.Text(insight.headline, size=13, weight=ft.FontWeight.BOLD,
                     color=theme.ON_BACKGROUND),
         ]
@@ -637,6 +731,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ft.Divider(color=theme.BORDER, height=1),
                         ui_helpers.subtitle("Hari ini kamu ngerasa gimana?"),
                         picker_holder,
+                        energy_holder,
                         tags_holder,
                         care_holder,
                         ui_helpers.wide_button("Simpan check-in", save_checkin),

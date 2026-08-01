@@ -247,9 +247,15 @@ def bangun_fitur(
     )
     hari_sejak_sos = (hari_ini - tanggal_sos[0]).days if tanggal_sos else 99
 
+    # --- jarak dari check-in terakhir ---
+    # Hari tanpa check-in itu BENAR-BENAR KOSONG, bukan hari buruk. Lihat
+    # catatan panjang di `storage.hari_sejak_checkin()`.
+    jarak_checkin = storage.hari_sejak_checkin(semua_log)
+    data_basi = jarak_checkin is not None and jarak_checkin > storage.STALE_AFTER_DAYS
+
     # --- tugas ---
     belum = [t for t in tugas_hari_ini if not storage.task_is_done(t)]
-    mendesak = [t for t in belum if t.get("urgent")]
+    mendesak = [t for t in belum if storage.is_urgent(t, now)]
     beban_menit = sum(float(t.get("menit_est") or 0) for t in belum)
 
     # Rasio selesai 7 hari: dari tugas yang deadline-nya dalam rentang itu.
@@ -308,12 +314,25 @@ def bangun_fitur(
         "skor_7h": _rata(skor7, 3.0),
         "skor_14h": _rata(skor14, 3.0),
         "tren_mood": _rata(skor3, 3.0) - _rata(skor14, 3.0),
-        "energi_terakhir": float(logs[0].get("energy") or 3) if logs else 3.0,
+        # Energi terakhir SENGAJA dibatasi jendela waktu. Versi lama pakai
+        # `logs[0]` tanpa syarat -- kalau catatan terakhir 2 minggu lalu
+        # isinya energi 1, saran hari ini masih ikut angka itu, dan capek
+        # user divalidasi terus-terusan. Kalau udah basi, balik ke netral (3)
+        # dan biar `hari_sejak_checkin` yang ngomong.
+        "energi_terakhir": 3.0 if (data_basi or not log7) else float(log7[0].get("energy") or 3),
+        # None (belum pernah check-in) diwakili 99 -- sama polanya kayak
+        # `hari_sejak_sos`, biar modelnya nggak kebingungan sama nilai kosong.
+        "hari_sejak_checkin": float(99 if jarak_checkin is None else min(jarak_checkin, 99)),
+        "data_mood_basi": 1.0 if data_basi else 0.0,
         "streak_checkin": float(checkin_streak(logs, hari_ini)),
         "n_catatan": float(len(logs)),
         "n_diary": float(sum(1 for l in logs if (l.get("diary") or "").strip())),
         # rawat diri
-        "streak_abai": float(neglect_streak(logs)),
+        # Sama alasannya kayak `energi_terakhir`: streak "belum makan/
+        # istirahat" dari catatan 2 minggu lalu bukan kondisi HARI INI.
+        # Kalau udah basi, nol -- kita beneran nggak tau, dan nggak tau itu
+        # jawaban yang lebih jujur daripada nganggep masih kelaparan.
+        "streak_abai": 0.0 if data_basi else float(neglect_streak(logs)),
         "obat_aktif": 1.0 if status_obat.active else 0.0,
         "obat_kelewat": float(obat_kelewat),
         "obat_hari_sisa": float(status_obat.days_left if status_obat.active else 99),

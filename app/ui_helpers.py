@@ -213,6 +213,106 @@ def upgrade_hint(text: str, on_click=None) -> ft.Container:
     )
 
 
+def premium_badge(size: float = 9) -> ft.Container:
+    """Label PREMIUM kecil buat nempel di judul fitur berbayar.
+
+    Dipasang di fitur premium yang KELIHATAN tapi belum kebuka -- jadi user
+    tau apa yang dia dapet kalau upgrade, tanpa harus baca halaman harga.
+    Sengaja kecil & tenang: ini penanda, bukan iklan yang ngalangin.
+    """
+    return ft.Container(
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.WORKSPACE_PREMIUM, size=size + 2, color="#FFFFFF"),
+                ft.Text("PREMIUM", size=size, weight=ft.FontWeight.BOLD, color="#FFFFFF"),
+            ],
+            spacing=3,
+            tight=True,
+        ),
+        bgcolor=theme.TERTIARY,
+        border_radius=8,
+        padding=ft.Padding.symmetric(vertical=2, horizontal=6),
+    )
+
+
+def premium_header(judul: str, terkunci: bool) -> ft.Control:
+    """Judul section + badge PREMIUM kalau fiturnya belum kebuka."""
+    baris: list[ft.Control] = [section_header(judul)]
+    if terkunci:
+        baris.append(premium_badge())
+    return ft.Row(baris, spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER)
+
+
+# Kalimat rayaan pas tugas kelar. Diacak biar nggak kerasa robot yang
+# ngulang kalimat yang sama tiap kali.
+REWARD_LINES = [
+    "Satu kelar! 🎉",
+    "Mantap, jalan terus 🌱",
+    "Nice. Itu barusan progress ✨",
+    "Kelar satu. Nggak harus semua kok 💚",
+    "Yes! Kamu barusan mulai DAN selesai 🙌",
+]
+
+
+def reward_overlay(page: ft.Page, pesan: str = "") -> None:
+    """Rayaan kecil pas tugas selesai -- muncul sebentar terus ilang sendiri.
+
+    KENAPA INI ADA
+    --------------
+    Otak ADHD kurang sensitif ke reward yang jauh & abstrak ("nanti nilai
+    kamu bagus"), tapi responsif ke umpan balik yang LANGSUNG. Nyentang
+    tugas tanpa apa-apa yang terjadi itu momen kosong; satu detik rayaan
+    bikin selesai kerasa selesai.
+
+    Sengaja NGGAK pakai dialog: dialog butuh di-dismiss, dan itu malah
+    nambah kerjaan. Ini muncul-sendiri, ilang-sendiri.
+    """
+    import asyncio
+    import random
+
+    teks = pesan or random.choice(REWARD_LINES)
+    kartu = ft.Container(
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.CELEBRATION, color="#FFFFFF", size=20),
+                ft.Text(teks, size=13.5, weight=ft.FontWeight.BOLD, color="#FFFFFF"),
+            ],
+            spacing=8,
+            tight=True,
+        ),
+        bgcolor=theme.SUCCESS,
+        border_radius=16,
+        padding=ft.Padding.symmetric(vertical=12, horizontal=18),
+        # Mulai kecil & transparan, lalu mengembang -- gerakannya yang bikin
+        # kerasa "muncul", bukan sekadar teks yang tiba-tiba ada.
+        scale=0.7,
+        opacity=0.0,
+        animate_scale=ft.Animation(220, ft.AnimationCurve.EASE_OUT_BACK),
+        animate_opacity=ft.Animation(220, ft.AnimationCurve.EASE_OUT),
+    )
+    lapisan = ft.Container(
+        content=kartu,
+        alignment=ft.Alignment.CENTER,
+        expand=True,
+    )
+
+    async def main():
+        page.overlay.append(lapisan)
+        page.update()
+        await asyncio.sleep(0.02)          # biar state awal sempat kerender
+        kartu.scale, kartu.opacity = 1.0, 1.0
+        page.update()
+        await asyncio.sleep(1.1)
+        kartu.opacity = 0.0
+        page.update()
+        await asyncio.sleep(0.25)
+        if lapisan in page.overlay:
+            page.overlay.remove(lapisan)
+            page.update()
+
+    page.run_task(main)
+
+
 class ProgresAI:
     """Bar progres buat panggilan Gemini -- BERDASAR waktu asli, bukan hiasan.
 

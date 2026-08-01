@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
@@ -175,6 +175,9 @@ def _default_state() -> dict[str, Any]:
         # personal di kalem_ml/model_durasi. {kategori, jumlah_unit, menit,
         # energi, date}
         "focus_records": [],
+        # Tanggal terakhir app dibuka. Dipakai buat ngitung berapa hari user
+        # menghilang -- lihat `hari_sejak_checkin()`.
+        "last_open_date": "",
         # Khusus testing: geseran hari buat tombol "next day" di Home.
         # Di pemakaian normal nilainya selalu 0.
         "dev": {"day_offset": 0},
@@ -206,7 +209,11 @@ def _migrate(state: dict[str, Any]) -> dict[str, Any]:
                 "id": old_task.get("id", str(uuid.uuid4())),
                 "title": old_task.get("title", "Tugas"),
                 "deadline": old_task.get("deadline", clock.today().isoformat()),
-                "urgent": old_task.get("urgent", False),
+                # `urgent` lama sengaja NGGAK dibawa: sekarang dihitung dari
+                # deadline lewat is_urgent(). Jam deadline diisi kosong buat
+                # tugas lama -- artinya "akhir hari", perilaku yang paling
+                # deket sama maksud aslinya.
+                "deadline_time": old_task.get("deadline_time", ""),
                 "important": old_task.get("important", True),
                 "difficulty_est": old_task.get("difficulty_est", 2),
                 "steps": old_task.get("steps", []),
@@ -449,6 +456,75 @@ def set_last_brief_date() -> None:
     save_state(state)
 
 
+# ------------------------------------------------- hari tanpa check-in
+#
+# KENAPA INI ADA
+# --------------
+# Tanpa ini, catatan mood TERAKHIR dipakai terus tanpa batas waktu. Jadi
+# kalau catatan terakhir user isinya "capek banget" lalu dia menghilang
+# seminggu, pas balik lagi Kalem MASIH nyaranin beban ringan berdasarkan
+# perasaan seminggu lalu -- capeknya divalidasi terus-terusan, dan justru
+# bikin makin nggak jalan.
+#
+# Aturan yang dipegang:
+#   1. Hari tanpa check-in itu BENAR-BENAR KOSONG. Bukan "hari buruk",
+#      bukan "hari baik" -- nggak ada yang dipelajari dari situ.
+#   2. Makin lama absen, makin Kalem berhenti nebak dan ganti jadi nyapa.
+#   3. Nggak pernah nuduh. Absen bisa berarti lupa, bisa berarti lagi
+#      berat beneran -- dua-duanya nggak pantes disalahin.
+
+# Di atas ini, catatan mood terakhir dianggap kedaluwarsa buat nebak
+# kondisi HARI INI. 3 hari: cukup lama buat bukan sekadar skip sehari,
+# cukup pendek buat nggak kelamaan pakai data basi.
+STALE_AFTER_DAYS = 3
+
+
+def touch_last_open() -> int:
+    """Catat app dibuka hari ini. Return berapa hari sejak dibuka terakhir.
+
+    Dipanggil sekali di router pas app start. Return 0 kalau ini pembukaan
+    pertama (belum ada data) atau udah dibuka hari ini juga.
+    """
+    state = load_state()
+    hari_ini = clock.today()
+    terakhir = state.get("last_open_date") or ""
+    state["last_open_date"] = hari_ini.isoformat()
+    save_state(state)
+
+    try:
+        return max(0, (hari_ini - date.fromisoformat(terakhir)).days)
+    except (TypeError, ValueError):
+        return 0
+
+
+def hari_sejak_checkin(logs: Optional[list[dict]] = None) -> Optional[int]:
+    """Berapa hari sejak catatan mood TERAKHIR. None kalau belum pernah.
+
+    Beda dari `touch_last_open()`: yang itu ngukur "buka app", yang ini
+    ngukur "ngasih data". User bisa buka app tiap hari tanpa check-in --
+    dan buat model, yang kedua itu yang penting.
+    """
+    logs = get_mood_logs() if logs is None else logs
+    hari_ini = clock.today()
+    tanggal = []
+    for log in logs:
+        try:
+            d = date.fromisoformat(log.get("date", ""))
+        except (TypeError, ValueError):
+            continue
+        if d <= hari_ini:
+            tanggal.append(d)
+    if not tanggal:
+        return None
+    return (hari_ini - max(tanggal)).days
+
+
+def data_mood_basi(logs: Optional[list[dict]] = None) -> bool:
+    """True kalau catatan terakhir udah kelewat lama buat nebak hari ini."""
+    jarak = hari_sejak_checkin(logs)
+    return jarak is not None and jarak > STALE_AFTER_DAYS
+
+
 # ---------------------------------------------------------- subscription
 # Batas free tier. Angkanya sengaja di sini (bukan kesebar di view) biar
 # gampang diubah pas nyari titik yang pas antara "kerasa cukup" dan
@@ -664,23 +740,64 @@ def in_tired_window(now: Optional[Any] = None) -> bool:
 # ------------------------------------------------------------------ tasks
 
 
+# --- Mendesak dihitung sistem, bukan ditanya ke user ---
+#
+# Dulu user disuruh nyentang "Mendesak (deadline dekat)" sendiri. Dua
+# masalahnya: (1) itu nanyain hal yang app-nya SUDAH TAU dari tanggal
+# deadline, dan (2) "mendesak" itu berubah tiap hari -- centang yang diisi
+# minggu lalu jadi bohong hari ini, tapi nggak ada yang ngupdate.
+#
+# Sekarang user cuma ngisi KAPAN (tanggal + jam opsional), dan mendesak/
+# nggaknya dihitung ulang tiap kali dibaca. Selalu akurat, nol usaha user.
+URGENT_WITHIN_HOURS = 24
+
+
+def is_urgent(task: dict, now: Optional[Any] = None) -> bool:
+    """Mendesak = deadline tinggal <= 24 jam lagi (atau udah lewat).
+
+    Kalau jam deadline nggak diisi, dianggap akhir hari (23:59) -- biar
+    tugas "hari ini" tanpa jam nggak langsung kehitung lewat pas pagi.
+    """
+    now = now or clock.now()
+    try:
+        d = date.fromisoformat(task.get("deadline", ""))
+    except (TypeError, ValueError):
+        return False
+
+    jam = (task.get("deadline_time") or "").strip()
+    if jam:
+        try:
+            h, m = (int(x) for x in jam.split(":")[:2])
+        except (ValueError, TypeError):
+            h, m = 23, 59
+    else:
+        h, m = 23, 59
+
+    batas = datetime(d.year, d.month, d.day, min(h, 23), min(m, 59))
+    sisa_jam = (batas - now).total_seconds() / 3600
+    return sisa_jam <= URGENT_WITHIN_HOURS
+
+
 def add_task(
     title: str,
     deadline: str,
-    urgent: bool,
-    important: bool,
+    important: bool = True,
     steps: Optional[list[dict]] = None,
     difficulty_est: int = 2,
     kategori: str = "",
     jumlah_unit: float = 0,
     menit_est: int = 0,
+    deadline_time: str = "",
 ) -> dict:
     state = load_state()
     task = {
         "id": str(uuid.uuid4()),
         "title": title,
         "deadline": deadline,
-        "urgent": urgent,
+        # Jam deadline, format "HH:MM". Kosong = nggak ditentuin jamnya.
+        # `urgent` SENGAJA nggak disimpan -- dihitung ulang lewat is_urgent()
+        # biar nggak pernah basi.
+        "deadline_time": deadline_time,
         "important": important,
         # 1 = gampang, 2 = sedang, 3 = berat. Dipakai engine buat milih
         # next-action yang paling gampang dimulai.
@@ -753,12 +870,20 @@ def task_is_done(task: dict) -> bool:
 
 
 def quadrant_of(task: dict) -> str:
-    """Kuadran Eisenhower."""
-    if task["urgent"] and task["important"]:
+    """Kuadran Eisenhower. Sumbu "mendesak" DIHITUNG dari deadline.
+
+    Dulu ini baca `task["urgent"]` -- centang yang diisi user waktu bikin
+    tugas. Masalahnya centang itu beku: tugas yang dibikin minggu lalu dan
+    dicentang "nggak mendesak" tetap ngaku nggak mendesak walau deadline-nya
+    besok. Sekarang dihitung ulang tiap dibaca, jadi selalu jujur.
+    """
+    urgent = is_urgent(task)
+    penting = task.get("important", True)
+    if urgent and penting:
         return "lakukan"      # penting + mendesak
-    if not task["urgent"] and task["important"]:
+    if not urgent and penting:
         return "jadwalkan"    # penting, nggak mendesak
-    if task["urgent"] and not task["important"]:
+    if urgent and not penting:
         return "delegasikan"  # mendesak, nggak penting
     return "nanti"            # nggak dua-duanya
 

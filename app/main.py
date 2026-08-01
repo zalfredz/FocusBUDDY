@@ -11,7 +11,7 @@ from pathlib import Path
 
 import flet as ft
 
-from app import storage, theme
+from app import focus_session, storage, theme, ui_helpers
 from app.views import (
     diary,
     favorites,
@@ -57,6 +57,11 @@ ROUTES = {
 # nggak bisa kabur di tengah onboarding / brief pagi.
 FULLSCREEN_ROUTES = {"onboarding", "morning_brief"}
 
+# Rute yang tetap boleh dibuka walau sesi fokus lagi jalan. Halaman jeda
+# WAJIB ada di sini -- ngunci jalan keluar orang yang lagi kewalahan itu
+# kebalikan dari tujuan app ini.
+FOKUS_BOLEH = {"home", "reset"}
+
 NAV_INDEX = {name: i for i, (name, _, _) in enumerate(NAV_ROUTES)}
 
 
@@ -72,6 +77,65 @@ def main(page: ft.Page) -> None:
 
     content = ft.Container(expand=True, padding=20)
 
+    # Dicatat sekali per pembukaan app. Return-nya (berapa hari absen) nggak
+    # dipakai di sini -- yang butuh baca sendiri lewat storage. Ditaruh di
+    # router karena ini satu-satunya titik yang PASTI kelewatan sekali.
+    storage.touch_last_open()
+
+    def _tolak_keluar_fokus(tujuan: str) -> bool:
+        """True kalau navigasi ditahan karena sesi fokus lagi jalan.
+
+        Mode fokus artinya SATU layar. Kalau nggak ditahan, halaman lain
+        tinggal sekali tap -- dan buat orang yang emang gampang kesenggol
+        pindah konteks, itu pintu keluar yang kebuka terus. Jeda tetap
+        boleh (itu kebutuhan, bukan distraksi), dan sesinya selalu bisa
+        disudahi dari kartunya sendiri.
+        """
+        if not focus_session.is_running() or tujuan in FOKUS_BOLEH:
+            return False
+
+        s = focus_session.snapshot()
+        apa = s["label"] or s["task_title"] or "satu hal"
+
+        def lanjut(e):
+            page.pop_dialog()
+
+        def tetap_pindah(e):
+            page.pop_dialog()
+            focus_session.pause()
+            navigate(tujuan)
+
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Lagi fokus, nih 🌿", size=16),
+                content=ft.Column(
+                    [
+                        ft.Text(
+                            f"Kamu lagi ngerjain \"{apa}\" — sisa {s['clock']}.",
+                            size=13,
+                        ),
+                        ft.Text(
+                            "Yuk selesaiin itu dulu. Kalau emang perlu pindah, "
+                            "sesinya aku jeda dulu ya biar nggak keitung putus.",
+                            size=11.5,
+                            color=theme.MUTED,
+                        ),
+                    ],
+                    spacing=8,
+                    tight=True,
+                ),
+                actions=[
+                    ft.TextButton(
+                        content=ft.Text("Pindah aja", color=theme.MUTED),
+                        on_click=tetap_pindah,
+                    ),
+                    ui_helpers.primary_button("Lanjut fokus", lanjut, icon=ft.Icons.BOLT),
+                ],
+            )
+        )
+        return True
+
     def navigate(route: str) -> None:
         # Selama onboarding belum kelar, semua rute dibelokin ke sini.
         # Pengecekannya HARUS di router, bukan di dalam build() halaman:
@@ -80,10 +144,20 @@ def main(page: ft.Page) -> None:
         if route != "onboarding" and not storage.get_profile().get("onboarded"):
             route = "onboarding"
 
+        # Sesi fokus ngunci halaman lain -- lihat _tolak_keluar_fokus().
+        if _tolak_keluar_fokus(route):
+            # Tab nav-nya dibalikin ke Home biar highlight-nya nggak bohong
+            # (user masih di Home, cuma dialognya yang kebuka).
+            nav_bar.selected_index = NAV_INDEX.get("home", 0)
+            page.update()
+            return
+
         # Sekali sehari, Kalem nyapa duluan sebelum Home biasa tampil.
         # Cuma dicegat di jalur "home" -- tab lain tetap bisa dibuka
         # langsung, biar brief-nya kerasa sapaan, bukan tembok.
-        elif route == "home" and storage.needs_morning_brief():
+        # (`if` berdiri sendiri, bukan `elif`: blok di atasnya udah `return`,
+        # dan nyantolin ini ke sana bikin alurnya susah dibaca.)
+        if route == "home" and storage.needs_morning_brief():
             route = "morning_brief"
 
         builder = ROUTES.get(route, home.build)

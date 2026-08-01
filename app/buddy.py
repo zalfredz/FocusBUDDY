@@ -28,7 +28,12 @@ MOOD_LABELS = {
     "lelah": "Lelah",
 }
 
-MOOD_ORDER = ["semangat", "tenang", "cemas", "sedih", "lelah"]
+# Urutan chip di picker: NAIK dari kiri (paling berat) ke kanan (paling
+# enak), kayak skala rating pada umumnya. Versi lama urutannya
+# semangat->tenang->cemas->sedih->lelah, jadi skalanya turun terus naik
+# lagi di ujung (5,4,2,1,2) -- kebaca kayak "lelah lebih parah dari sedih",
+# padahal skornya justru lebih tinggi.
+MOOD_ORDER = ["sedih", "lelah", "cemas", "tenang", "semangat"]
 
 DEFAULT_MOOD = "tenang"
 

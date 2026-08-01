@@ -31,9 +31,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
     if not config.DEMO_MODE:
         return []
 
-    def confirm_reset(e):
-        ui_helpers.show_reset_confirm(page, lambda: (storage.reset_all_data(), navigate("home")))
-
     def next_day(e):
         storage.advance_day(1)
         navigate("home")
@@ -112,18 +109,11 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             )
         )
 
-    def back_to_real_day(e):
-        storage.clear_day_offset()
-        navigate("home")
-
+    # Tombol "reset data" DIPINDAH ke Pengaturan. Dulu ada di sini juga,
+    # padahal Pengaturan udah punya "Hapus semua data" -- dua pintu ke aksi
+    # yang sama, dan yang di header ini justru yang paling gampang kepencet
+    # nggak sengaja. Header sekarang tinggal 3 tombol, lebih lega.
     return [
-        ft.IconButton(
-            icon=ft.Icons.RESTART_ALT,
-            icon_color=theme.MUTED,
-            icon_size=20,
-            tooltip="Reset data (testing)",
-            on_click=confirm_reset,
-        ),
         ft.IconButton(
             icon=ft.Icons.SKIP_NEXT,
             icon_color=theme.TERTIARY if clock.is_simulated() else theme.MUTED,
@@ -146,6 +136,112 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             on_click=open_auto_feel,
         ),
     ]
+
+
+def _popup_checkin(page: ft.Page, navigate) -> None:
+    """Tanya mood + energi sekali sehari, langsung pas buka app.
+
+    KENAPA POPUP, BUKAN NUNGGU USER KE HALAMAN MOOD
+    -----------------------------------------------
+    Mood & energi itu yang nyetel SKALA hari itu -- durasi sesi fokus,
+    ukuran langkah pas mecah tugas, sampai nada pesan Kalem. Kalau nunggu
+    user inisiatif buka halaman Mood, data yang paling nentuin justru yang
+    paling sering kosong.
+
+    Dua chip, sekali tap masing-masing, terus kelar. Sengaja NGGAK ada tag,
+    diary, atau toggle makan/istirahat di sini -- itu semua tetap di halaman
+    Mood. Popup yang panjang bakal di-dismiss, dan popup yang di-dismiss
+    nggak ngasih data apa pun.
+    """
+    pilih = {"mood": buddy.DEFAULT_MOOD, "energi": 0}
+    isi = ft.Column(spacing=14, tight=True)
+
+    def gambar():
+        chip_mood = buddy.mood_picker(pilih["mood"], pick_mood)
+        chip_energi = ft.Row(
+            [
+                ft.Container(
+                    content=ft.Text(
+                        str(lv),
+                        size=13,
+                        weight=ft.FontWeight.BOLD,
+                        color="#FFFFFF" if lv == pilih["energi"] else theme.ON_BACKGROUND,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    height=38,
+                    expand=True,
+                    bgcolor=theme.PRIMARY if lv == pilih["energi"] else theme.SURFACE,
+                    border=ft.Border.all(
+                        1, theme.PRIMARY if lv == pilih["energi"] else theme.BORDER
+                    ),
+                    border_radius=10,
+                    alignment=ft.Alignment.CENTER,
+                    on_click=lambda e, v=lv: pick_energi(v),
+                    ink=True,
+                )
+                for lv in range(1, 7)
+            ],
+            spacing=5,
+        )
+        isi.controls = [
+            ft.Text("Hari ini kamu ngerasa gimana?", size=12.5, color=theme.ON_BACKGROUND),
+            chip_mood,
+            ft.Text("Tenaga kamu sekarang? (1-6)", size=12.5, color=theme.ON_BACKGROUND),
+            chip_energi,
+            ft.Text(
+                "Dua tap aja. Ini yang nentuin seberat apa Kalem naruh target "
+                "buat kamu hari ini.",
+                size=10.5,
+                color=theme.MUTED,
+            ),
+        ]
+        page.update()
+
+    def pick_mood(m: str):
+        pilih["mood"] = m
+        gambar()
+
+    def pick_energi(v: int):
+        pilih["energi"] = v
+        gambar()
+
+    def simpan(e):
+        skor = buddy.score_for(pilih["mood"])
+        energi = pilih["energi"] or _energi_dari_skor(skor)
+        storage.add_mood_log(
+            mood=pilih["mood"],
+            score=skor,
+            energy=energi,
+            diary="",
+            quick_tags=[],
+        )
+        storage.set_today_energy(energi)
+        page.pop_dialog()
+        navigate("home")
+
+    def nanti(e):
+        # Sengaja NGGAK nyimpen apa pun. Hari tanpa check-in itu harus
+        # BENERAN kosong -- nebak-nebak di sini malah bikin data bohong,
+        # dan model lebih baik tau "nggak ada data" daripada dikasih tebakan.
+        page.pop_dialog()
+
+    gambar()
+    page.show_dialog(
+        ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Sebentar aja ya 🌿", size=16),
+            content=isi,
+            actions=[
+                ft.TextButton(content=ft.Text("Nanti aja", color=theme.MUTED), on_click=nanti),
+                ui_helpers.primary_button("Simpan", simpan, icon=ft.Icons.CHECK),
+            ],
+        )
+    )
+
+
+def _energi_dari_skor(score: int) -> int:
+    """Skor mood (1-5) -> tebakan energi awal (1-6)."""
+    return {1: 1, 2: 2, 3: 3, 4: 5, 5: 6}.get(score, 3)
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
@@ -604,6 +700,19 @@ def build(page: ft.Page, navigate) -> ft.Control:
             border_radius=10,
             padding=ft.Padding.symmetric(vertical=4, horizontal=2),
         ),
+        # Tombol "+" SELALU kelihatan, nggak peduli inbox kosong atau penuh.
+        # Sebelumnya afordansi nambahnya cuma teks yang bisa diklik -- nggak
+        # kebaca sebagai tombol, padahal ini justru fitur yang harus bisa
+        # dipencet tanpa mikir pas ide lagi lewat.
+        ft.Container(
+            content=ft.Icon(ft.Icons.ADD, color="#FFFFFF", size=18),
+            bgcolor=theme.SECONDARY,
+            border_radius=10,
+            padding=6,
+            tooltip="Tulis cepat",
+            on_click=open_capture,
+            ink=True,
+        ),
     ]
     if inbox_count:
         capture_children.append(
@@ -685,5 +794,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     if session_active:
         page.run_task(ticker)
+
+    # Check-in mood+energi ditawarin sekali sehari, pas Beranda pertama
+    # kebuka. Nggak muncul kalau: udah check-in hari ini, atau lagi ada sesi
+    # fokus jalan (jangan motong orang yang lagi ngerjain sesuatu).
+    if storage.today_mood() is None and not session_active:
+        _popup_checkin(page, navigate)
 
     return layout
