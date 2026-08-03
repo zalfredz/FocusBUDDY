@@ -18,7 +18,12 @@ MOOD_ASSETS = {
 }
 
 # Skor inilah yang jadi fitur input Decision Tree / mood model.
-MOOD_SCORE = {"semangat": 5, "tenang": 4, "cemas": 2, "sedih": 1, "lelah": 2}
+#
+# Cemas dianggap paling berat -- lebih dari sedih atau lelah -- karena itu
+# state yang paling ngambil alih (kepala muter, susah berhenti mikir),
+# sementara sedih/lelah masih ninggalin ruang buat diem sebentar. Urutan ini
+# keputusan eksplisit, bukan patokan klinis universal.
+MOOD_SCORE = {"cemas": 1, "sedih": 2, "lelah": 3, "tenang": 4, "semangat": 5}
 
 MOOD_LABELS = {
     "semangat": "Semangat",
@@ -29,11 +34,9 @@ MOOD_LABELS = {
 }
 
 # Urutan chip di picker: NAIK dari kiri (paling berat) ke kanan (paling
-# enak), kayak skala rating pada umumnya. Versi lama urutannya
-# semangat->tenang->cemas->sedih->lelah, jadi skalanya turun terus naik
-# lagi di ujung (5,4,2,1,2) -- kebaca kayak "lelah lebih parah dari sedih",
-# padahal skornya justru lebih tinggi.
-MOOD_ORDER = ["sedih", "lelah", "cemas", "tenang", "semangat"]
+# enak), kayak skala rating pada umumnya -- HARUS selalu sinkron sama
+# MOOD_SCORE di atas (dites di tests/test_regresi.py::tes_urutan_mood).
+MOOD_ORDER = ["cemas", "sedih", "lelah", "tenang", "semangat"]
 
 DEFAULT_MOOD = "tenang"
 

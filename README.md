@@ -11,6 +11,7 @@ browser buat demo. Nggak perlu nulis Dart/JS.
 ## Struktur
 
 ```
+SettingDemo.py                # 10 skenario demo siap pakai (lihat "Auto Feel" di bawah)
 app/
   assets/                    # 5 ekspresi Kalem (SVG) -- harus sejajar main.py,
     kalem_semangat.svg       #   itu yang dicari `flet run` (FLET_ASSETS_DIR)
@@ -20,7 +21,7 @@ app/
   theme.py                   # palet + font Lexend/Quicksand
   buddy.py                   # Kalem: MOOD_ASSETS, MOOD_SCORE, komponen UI
   storage.py                 # persistensi lokal (~/.focusbuddy/data.json)
-  clock.py                   # sumber tunggal "hari ini" (buat tombol next-day)
+  clock.py                   # sumber tunggal "sekarang" -- offset hari & jam buat testing
   focus_session.py           # sesi fokus global, hidup di luar halaman mana pun
   ui_helpers.py               # komponen UI berulang + ProgresAI (bar progres Gemini)
   core/
@@ -362,13 +363,28 @@ Tombol FOKUS di sini langsung mulai sesi yang tampil balik di Home.
 Tracker dia ketimbun daftar tugas dan jarang kelihatan, padahal dia yang
 nyetel skala hari itu. Di sini dia nyatu sama check-in -- satu tempat, satu
 momen, dan datanya langsung kepakai. Skalanya 1-6 (bukan 1-5) supaya nggak
-ada "angka tengah aman".
+ada "angka tengah aman". Cuma judul + chip angka -- keterangan efek di
+bawahnya (durasi sesi fokus, ukuran langkah Pecah Tugas) sengaja nggak
+ditulis di sini lagi, karena isinya ganti tiap chip dipencet dan bikin
+bloknya goyang persis pas user lagi milih.
 
 **Popup check-in pas buka app.** Sekali sehari, mood + energi ditanya lewat
 dialog dua-tap di Beranda. Mood & energi itu yang nyetel skala hari itu;
 kalau nunggu user inisiatif buka halaman ini, data yang paling nentuin
 justru yang paling sering kosong. Tombol "Nanti aja" SENGAJA nggak nyimpen
 apa-apa -- hari tanpa check-in harus beneran kosong, bukan diisi tebakan.
+
+**Popup "udah makan hari ini?" -- cuma lewat jam 18.** Ditanya jam 9 pagi,
+"belum" itu jawaban normal yang nggak berarti apa-apa. Ditanya jam 7 malam,
+"belum" itu sinyal beneran, dan itu yang dipakai `neglect_streak()` buat
+naikin `burnout_risk` (3 hari berturut-turut "belum makan/istirahat" ->
+burnout kebaca, lepas dari mood). Popup ini nyusul OTOMATIS di Beranda
+sesudah popup check-in (kalau belum check-in) atau langsung (kalau udah
+check-in) -- dua tombol doang, "Udah"/"Belum", nggak ada "nanti" karena
+dua-duanya jawaban yang sah. Di halaman Mood sendiri, baris "Udah makan hari
+ini?" juga cuma nongol lewat jam 18, di atas "Istirahat cukup semalam?" yang
+tetap kelihatan kapan pun (itu pertanyaan soal malam KEMARIN, jadi selalu
+sah). Gerbangnya `storage.waktunya_tanya_makan()` / `perlu_tanya_makan()`.
 
 **Mood dan energi dua sumbu yang beda.** Energi awalnya ditebak dari mood,
 tapi begitu user nyentuh slidernya sendiri, tebakan berhenti nimpa -- orang
@@ -379,26 +395,39 @@ skala rating pada umumnya. Versi lama urutannya nggak monoton (5,4,2,1,2) --
 "lelah" nangkring di ujung setelah "sedih", kebaca kayak lelah lebih parah
 dari sedih padahal skornya justru lebih tinggi.
 
-Check-in mood lewat Kalem, plus insight dari **model yang belajar pola kamu
-sendiri**: hari apa mood cenderung bagus/berat, beda weekday vs weekend, dan
-tema yang sering muncul di cerita kamu. Model ini jujur bilang "masih belajar"
-sebelum datanya cukup (minimal 5 catatan), dan baru pakai RandomForest
-setelah 10 catatan.
+Check-in mood lewat Kalem, plus **"Yang Kalem pelajari tentang kamu"**
+(insight) dan **rekomendasi personal** langsung di bawahnya -- dua-duanya
+jawaban atas pertanyaan yang sama, jadi kebaca sebagai satu alur: temuannya
+dulu, baru saran yang keluar dari temuan itu. Insight-nya dari **model yang
+belajar pola kamu sendiri**: hari apa mood cenderung bagus/berat, beda
+weekday vs weekend, dan tema yang sering muncul di cerita kamu. Model ini
+jujur bilang "masih belajar" sebelum datanya cukup (minimal 5 catatan), dan
+baru pakai RandomForest setelah 10 catatan. Grafik riwayat langsung ke
+**grafik bulanan** (garis + area) -- bar "7 catatan terakhir" yang dulu ada
+di atasnya dibuang, karena nampilin hal yang sama dengan grafik bulanan tapi
+seminggu doang, dan seminggu terlalu pendek buat kelihatan polanya.
+
+**"Favorit kamu"** turun pangkat jadi ikon hati kecil di pojok kanan atas
+halaman (pola yang sama kayak ikon Pengaturan di Beranda), bukan kartu
+selebar halaman lagi -- dia pintu ke halaman lain yang jarang dibuka, bukan
+bagian dari check-in harian. Hitungan "n/9 terisi" pindah ke tooltip.
 
 Setelah check-in tersimpan, Kalem **otomatis nawarin nulis diary** -- momen
 paling wajar buat nanya "kenapa harinya gitu", karena user baru aja mikirin
 harinya.
 
-**Tag cepat:** sebelum (atau tanpa) nulis cerita, user bisa pencet 0-3 tag
-(kuliah, kerja kelompok, keluarga, sendirian, dll) dalam hitungan detik. Ada
-juga chip **"+ Lainnya"** buat ngetik tag sendiri lewat input inline -- tag
-custom tetap kehitung ke batas maks 3.
-
-**Diary** (halaman terpisah): tombol "Cerita tentang hari ini?" -- user cerita
-ke Kalem. Kata kuncinya dicocokin ke **kamus tertutup** (capek, deadline,
-cemas, senang, ...) -- sengaja bukan sentiment analysis penuh, biar hasilnya
-bisa dijelasin. Kalau satu tag berulang bareng mood rendah, Kalem **nanya soal
+**Diary, alias "Cerita Kamu"** (halaman terpisah): bukan cuma buat hari ini
+-- cerita lama tetap tersimpan & bisa dibaca lagi di bawah form. Kata
+kuncinya dicocokin ke **kamus tertutup** (capek, deadline, cemas, senang,
+...) -- sengaja bukan sentiment analysis penuh, biar hasilnya bisa
+dijelasin. Kalau satu tag berulang bareng mood rendah, Kalem **nanya soal
 tag itu spesifik** di check-in berikutnya, bukan pertanyaan generik.
+
+> Picker tag cepat ("Hari ini isinya apa? kuliah/kerja kelompok/dll") yang
+> dulu ada di check-in Mood udah **dibuang** -- nggak satu pun model di
+> `kalem_ml/` baca `quick_tags`, cuma dipakai buat milih prompt diary
+> (`recurring_tag_prompt`). Tag lama yang udah kesimpen tetap ditulis balik
+> apa adanya tiap nyimpen check-in, cuma UI buat milihnya udah nggak ada.
 
 **Menu Favorite** (opsional, 9 kolom). Aturan mainnya: **field cuma boleh
 nambah kalau ada fitur yang beneran makainya** -- nggak ada data nganggur.
@@ -536,7 +565,9 @@ python tests/test_regresi.py
 Nggak butuh pytest. Tiap tes bikin storage sendiri di folder temp, jadi data
 asli di `~/.focusbuddy` nggak pernah kesentuh. Yang dicakup: mendesak dari
 deadline, data basi, hari kosong, urutan mood, isolasi model antar-user,
-kemurnian `decide()`, komponen UI baru, kunci mode fokus, dan semua halaman
+kemurnian `decide()`, komponen UI baru, kunci mode fokus, gerbang jam
+pertanyaan "udah makan?" (termasuk geseran jam yang nyebrang tengah malam),
+dan semua halaman
 kebangun.
 
 ## Limitasi yang Wajib Didisclose
@@ -576,26 +607,61 @@ sendiri sudah aman dipakai lintas-user (lihat "Cache model per-user" di atas).
 ### Auto Feel — data demo instan
 
 Model mood/energi baru kelihatan pinter kalau udah ada histori. Daripada
-check-in manual 14x sambil mencet "Maju 1 hari", pakai **`SettingDemo.py`**
-di folder utama: isi skenario di situ, lalu pilih lewat ikon tongkat sihir
-di Beranda (atau `python SettingDemo.py <skenario>` dari terminal).
+check-in manual berkali-kali sambil mencet "Maju 1 hari", pakai
+**`SettingDemo.py`** di folder utama: isi/tambah skenario di situ, lalu
+pilih lewat ikon tongkat sihir di Beranda (atau `python SettingDemo.py
+<skenario>` dari terminal).
 
-Skenario bawaan: `baru` (0 histori), `stabil` (14 catatan), `burnout`
-(SOS berulang + stok obat menipis + obat kelewat beberapa hari), `premium`
-(30 catatan + SUBS ON). Tambah sendiri sesuka kamu -- file itu isinya data
-doang, nggak ada logika, dan otomatis reset cache model (`kalem_ml.reset_semua()`)
-tiap ganti skenario biar nggak nyampur sama model skenario sebelumnya.
+Riwayat panjang (sampai 90 hari) di-*generate* dari seed acak yang TETAP
+(`random.Random(seed)`), bukan ditulis manual satu-satu -- nulis ratusan
+baris `mood_history` per tangan nggak kepraktisan dan gampang salah hitung
+tanggal/hari. Jadwal kuliah 1 semester (`JADWAL_KULIAH`) jadi konstanta
+bersama yang otomatis muncul jadi tugas "hari ini" di **SEMUA** skenario,
+bukan cuma yang eksplisit nyebut jadwal berat.
+
+10 skenario bawaan:
+
+| Key | Isi |
+|---|---|
+| `baru` | Belum ada histori sama sekali |
+| `kuliah_2minggu` | 14 hari, SUBS OFF, 1 dari 2 minggu berat (Kamis-Jumat numpuk quiz/deadline) |
+| `sebulan_off` | 30 hari, SUBS OFF, 2-3 dari 4 minggu berat (dipilih acak) |
+| `sebulan_on` | Sama seperti di atas, SUBS ON |
+| `3bulan_jenuh_off` | 90 hari aktif, SUBS OFF, event acak senang:jenuh = 1:2 |
+| `3bulan_senang_off` | 90 hari aktif, SUBS OFF, event acak senang:jenuh = 2:1 |
+| `3bulan_jenuh_on` | Sama seperti `3bulan_jenuh_off`, SUBS ON |
+| `3bulan_senang_on` | Sama seperti `3bulan_senang_off`, SUBS ON |
+| `krisis_sos` | 90 hari, SOS ditekan >5x, kepatuhan obat ~50%, hampir tiap minggu berat |
+| `jarang_checkin` | Cuma 15-20/30 hari ke-check-in, diary nyaris kosong, SOS malah sering (termasuk di hari TANPA check-in) |
+
+File-nya isinya data + generator kecil buat data itu doang, nggak ada logika
+app -- dan otomatis reset cache model (`kalem_ml.reset_semua()`) tiap ganti
+skenario biar nggak nyampur sama model skenario sebelumnya.
 
 Tombol **SUBS** (ikon medali) nyalain/matiin status premium seketika buat
 nunjukin gating ke juri tanpa flow pembayaran.
 
-Morning Brief paling gampang dites lewat tombol **"Maju 1 hari"** -- tiap
-ganti hari dia muncul lagi otomatis.
+Buat testing ada 5 tombol di pojok kanan atas Home:
 
-Buat testing ada 4 tombol di pojok kanan atas Home -- **reset data**,
-**maju 1 hari** (nggeser semua fitur yang bergantung tanggal lewat
-`app/clock.py`), **SUBS on/off**, dan **Auto Feel**. Hapus blok `_dev_buttons` di
-`app/views/home.py` kalau app udah mau dipakai beneran.
+- **Maju 1 hari** -- nggeser tanggal (`app/clock.py`), semua fitur yang
+  bergantung tanggal ikut.
+- **Lompat ke malam** (ikon bulan/matahari, TOGGLE) -- majuin **jam**
+  aplikasi sampai lewat jam 18 tanpa nyentuh tanggal, khusus buat nunjukin
+  fitur yang gerbangnya jam (pertanyaan "udah makan?"). "Maju 1 hari" nggak
+  nolong buat ini -- dia cuma geser tanggal, jamnya tetap jam asli. Pencet
+  lagi buat balik ke jam asli tanpa ngerusak geseran hari yang udah dipasang.
+- **Tutup & buka lagi app** (ikon logout) -- ngulang alur pembukaan app dari
+  awal (Morning Brief nyapa lagi, popup check-in/makan ikut kepancing) tanpa
+  bener-bener matiin app di depan juri. Nggak nyentuh data sama sekali --
+  cuma penanda "brief hari ini udah tampil" yang direset.
+- **SUBS on/off**.
+- **Auto Feel** -- pilih salah satu dari 10 skenario di atas.
+
+"Reset data" **NGGAK** ada di header Home -- itu udah pindah permanen ke
+Pengaturan (`ui_helpers.show_reset_confirm`), biar nggak ada dua pintu ke
+aksi yang sama-sama nggak bisa dibalikin. Kelima tombol di atas di-gate
+`config.DEMO_MODE`; ganti ke `False` sebelum rilis publik dan semua ilang
+otomatis, nggak perlu ubah `home.py`.
 
 ## Catatan teknis
 

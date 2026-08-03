@@ -769,7 +769,9 @@ def apply_scenario(key: str) -> str:
 
 
 def _mood_for_score(score: int) -> str:
-    return {1: "sedih", 2: "lelah", 3: "cemas", 4: "tenang", 5: "semangat"}.get(score, "tenang")
+    # Harus ngikutin buddy.MOOD_SCORE (cemas=1, sedih=2, lelah=3, tenang=4,
+    # semangat=5) -- ini kebalikannya.
+    return {1: "cemas", 2: "sedih", 3: "lelah", 4: "tenang", 5: "semangat"}.get(score, "tenang")
 
 
 def list_scenarios() -> list[tuple[str, str, str]]:

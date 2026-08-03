@@ -27,7 +27,7 @@ _ticker: dict = {"running": False, "refresh": None}
 
 def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
     """Tombol bantu testing. Di-gate lewat config.DEMO_MODE -- ganti flag itu
-    ke False pas mau rilis beneran, dua tombol ini ilang otomatis."""
+    ke False pas mau rilis beneran, semua tombol ini ilang otomatis."""
     if not config.DEMO_MODE:
         return []
 
@@ -145,7 +145,7 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
     # Tombol "reset data" DIPINDAH ke Pengaturan. Dulu ada di sini juga,
     # padahal Pengaturan udah punya "Hapus semua data" -- dua pintu ke aksi
     # yang sama, dan yang di header ini justru yang paling gampang kepencet
-    # nggak sengaja. Header sekarang tinggal 3 tombol, lebih lega.
+    # nggak sengaja.
     return [
         ft.IconButton(
             icon=ft.Icons.SKIP_NEXT,

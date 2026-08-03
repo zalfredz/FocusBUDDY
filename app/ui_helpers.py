@@ -417,8 +417,12 @@ async def jalankan_dengan_progres(page: ft.Page, holder: ft.Container, kerja, la
 
 
 def show_reset_confirm(page: ft.Page, on_confirmed) -> None:
-    """Dialog konfirmasi 'Hapus semua data' -- satu sumber, dipakai dev
-    button di Home (di-gate DEMO_MODE) dan tombol resmi di Settings."""
+    """Dialog konfirmasi 'Hapus semua data' -- dipanggil dari Pengaturan.
+
+    Dulu ada jalur dev kedua di Home yang manggil dialog ini juga (di-gate
+    DEMO_MODE); itu udah dibuang -- Pengaturan satu-satunya pintu sekarang,
+    biar nggak ada dua cara ke aksi yang sama-sama nggak bisa dibalikin.
+    """
 
     def do_reset(ev):
         page.pop_dialog()

@@ -187,9 +187,10 @@ def tes_urutan_mood():
     from app import buddy
 
     skor = [buddy.MOOD_SCORE[m] for m in buddy.MOOD_ORDER]
-    ok(buddy.MOOD_ORDER[0] == "sedih", f"paling kiri = sedih (dapet {buddy.MOOD_ORDER[0]})")
+    ok(buddy.MOOD_ORDER[0] == "cemas", f"paling kiri = cemas (dapet {buddy.MOOD_ORDER[0]})")
     ok(buddy.MOOD_ORDER[-1] == "semangat", f"paling kanan = semangat (dapet {buddy.MOOD_ORDER[-1]})")
     ok(skor == sorted(skor), f"skornya naik monoton: {skor}")
+    ok(len(set(skor)) == len(skor), f"nggak ada skor kembar (dapet {skor})")
     ok(len(buddy.MOOD_ORDER) == len(buddy.MOOD_ASSETS), "semua mood punya aset")
     for m in buddy.MOOD_ORDER:
         ok(m in buddy.MOOD_LABELS and m in buddy.MOOD_SCORE, f"{m}: label & skor lengkap")
@@ -329,6 +330,68 @@ def tes_fokus_ngunci():
     focus_session.stop()
 
 
+def tes_pertanyaan_makan_dan_jam():
+    bagian("Pertanyaan 'udah makan?' cuma nongol lewat jam 18, jam app bisa dilompatin buat demo")
+    from app import clock
+
+    storage_baru("makan_")  # ini juga nge-reset offset hari & jam lewat reset_all_data()
+
+    try:
+        maju = clock.hours_until(18)
+        ok(0 < maju <= 24, f"hours_until(18) selalu > 0, nggak pernah mundur (dapet {maju})")
+
+        storage.jump_to_hour(storage.MEAL_ASK_HOUR)
+        ok(clock.now().hour >= storage.MEAL_ASK_HOUR,
+           f"jump_to_hour(18) -> jam app sekarang {clock.now().hour}, harus >= 18")
+        ok(storage.waktunya_tanya_makan(), "udah lewat jam 18 -> waktunya_tanya_makan True")
+        ok(storage.hour_offset() > 0, "offset jam ikut kesimpen ke storage")
+
+        ok(storage.today_mood() is None, "belum check-in (kontrol)")
+        ok(not storage.perlu_tanya_makan(),
+           "udah malem tapi BELUM check-in -> perlu_tanya_makan tetap False")
+
+        storage.add_mood_log(mood="tenang", score=4, energy=5, diary="cerita",
+                             tags=["produktif"], quick_tags=["kuliah"])
+        ok(storage.perlu_tanya_makan(), "udah check-in + lewat jam 18 -> perlu_tanya_makan True")
+
+        log = storage.today_mood()
+        storage.add_mood_log(mood=log["mood"], score=log["score"], energy=log["energy"],
+                             diary=log["diary"], tags=log["tags"], quick_tags=log["quick_tags"],
+                             ate_today=False, rested_enough=log.get("rested_enough"))
+        after = storage.today_mood()
+        ok(after["ate_today"] is False, "jawaban 'belum makan' kesimpen jadi False, bukan None")
+        ok(after["diary"] == "cerita", "diary nggak kehapus pas jawab pertanyaan makan")
+        ok(after["quick_tags"] == ["kuliah"], "quick_tags nggak kehapus pas jawab pertanyaan makan")
+        ok(not storage.perlu_tanya_makan(), "udah dijawab -> gerbang nutup lagi")
+
+        storage.advance_day(3)
+        hari_setelah_maju = clock.today()
+        storage.clear_hour_offset()
+        ok(clock.today() == hari_setelah_maju,
+           "clear_hour_offset() nggak ngutak-atik geseran hari yang udah dipasang")
+        ok(storage.hour_offset() == 0, "clear_hour_offset() -> offset jam balik nol")
+
+        storage.clear_day_offset()
+        besok = clock.today() + timedelta(days=1)
+        for _ in range(30):  # dorong lewat tengah malam, nggak peduli jam sekarang berapa
+            clock.advance_hours(1)
+            if clock.today() == besok:
+                break
+        ok(clock.today() == besok,
+           "today() diturunin dari now() -- geseran jam yang nyebrang tengah malam ikut ganti tanggal")
+    finally:
+        clock.reset_offset()
+
+    storage_baru("bukaulang_")
+    storage.save_profile({})
+    storage.add_mood_log(mood="tenang", score=4, energy=5, ate_today=True)
+    storage.set_last_brief_date()
+    ok(not storage.needs_morning_brief(), "brief udah ditandai tampil hari ini")
+    storage.clear_last_brief_date()
+    ok(storage.needs_morning_brief(), "clear_last_brief_date() -> brief nyala lagi")
+    ok(storage.today_mood()["ate_today"] is True, "clear_last_brief_date() nggak nyentuh data mood")
+
+
 def main() -> int:
     from app import clock
     clock.reset_offset()
@@ -342,6 +405,7 @@ def main() -> int:
         tes_fungsi_murni,
         tes_komponen_baru,
         tes_fokus_ngunci,
+        tes_pertanyaan_makan_dan_jam,
         tes_halaman_kebangun,
     ):
         tes()

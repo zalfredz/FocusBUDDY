@@ -319,9 +319,9 @@ def all_triggers(profile: Optional[dict] = None) -> list[str]:
     return list(profile.get("overwhelm_triggers", [])) + list(profile.get("custom_triggers", []))
 
 
-def trigger_label(key: str) -> str:
-    """Label buat ditampilin -- preset pakai teks resminya, custom apa adanya."""
-    return TRIGGER_OPTIONS.get(key, key)
+# CATATAN: `trigger_label()` dulu ada di sini buat nerjemahin key trigger jadi
+# label tampilan. Nggak ada pemanggil -- onboarding.py & settings.py dua-duanya
+# baca `TRIGGER_OPTIONS` langsung. Dihapus.
 
 
 def in_productive_hours(profile: Optional[dict] = None, hour: Optional[int] = None) -> Optional[bool]:
@@ -749,11 +749,10 @@ def get_profile() -> dict:
     return load_state()["profile"]
 
 
-def set_user_name(name: str) -> None:
-    state = load_state()
-    state["profile"]["name"] = name.strip()
-    state["profile"]["onboarded"] = True
-    save_state(state)
+# CATATAN: `set_user_name()` dulu ada di sini -- jalan pintas buat nyimpen
+# nama doang. Nggak ada pemanggil: onboarding.py & settings.py dua-duanya
+# lewat `save_profile({"name": ...})`, yang bisa nyimpen field lain sekalian.
+# Dihapus.
 
 
 def save_profile(answers: dict[str, Any]) -> dict:
@@ -1043,8 +1042,9 @@ def get_focus_records() -> list[dict]:
     return load_state().get("focus_records", [])
 
 
-def focus_records_for(kategori: str) -> list[dict]:
-    return [r for r in get_focus_records() if r.get("kategori") == kategori]
+# CATATAN: `focus_records_for()` dulu ada di sini buat nyaring record per
+# kategori. Nggak ada pemanggil -- `kalem_ml/fitur.py` & `model_durasi.py`
+# nyaring sendiri inline dari `get_focus_records()`. Dihapus.
 
 
 # ---------------------------------------------------------- quick capture
@@ -1176,10 +1176,8 @@ def set_medication(name: str, pills_left: int, pills_per_day: float) -> dict:
         # Absen obat: stok cuma turun kalau user konfirmasi udah minum.
         "last_taken": existing.get("last_taken", ""),
         "take_log": existing.get("take_log", []),
-        # Hasil lookup info obat -- dibuang kalau obatnya ganti, biar nggak
-        # nampilin penjelasan obat lama di bawah nama obat baru.
-        "info": existing.get("info") if same_drug else None,
-        # Hasil pencocokan registri BPOM, alasan yang sama.
+        # Hasil pencocokan registri BPOM -- dibuang kalau obatnya ganti, biar
+        # nggak nampilin validasi obat lama di bawah nama obat baru.
         "bpom": existing.get("bpom") if same_drug else None,
     }
     save_state(state)
@@ -1198,30 +1196,24 @@ def set_medication_registry(entry: dict) -> None:
         save_state(state)
 
 
-def get_medication_registry() -> Optional[dict]:
-    return (get_medication() or {}).get("bpom")
-
-
-def set_medication_info(info: dict) -> None:
-    """Simpan hasil lookup info obat. Di-cache biar cuma sekali manggil API."""
-    state = load_state()
-    if state.get("medication"):
-        state["medication"]["info"] = info
-        save_state(state)
-
-
-def get_medication_info() -> Optional[dict]:
-    med = get_medication()
-    return (med or {}).get("info")
+# CATATAN: `get_medication_registry()` dulu ada di sini buat baca balik hasil
+# BPOM yang tersimpan. Nggak ada pemanggil -- med_setup.py nge-lookup ULANG
+# tiap halaman dibuka (`check_name()`, live & offline, ~10ms), jadi nilai
+# yang tersimpan nggak pernah dibaca balik. Dihapus.
+#
+# `set_medication_info()`/`get_medication_info()` juga dihapus bareng field
+# `"info"` di `set_medication()` di bawah -- itu sisa dari lapisan lookup
+# obat lewat Gemini yang UDAH DIBUANG total dan digantiin registri BPOM
+# offline (lihat docstring `core/bpom.py`). Nggak ada yang nulis atau baca
+# field itu lagi.
+#
+# `medication_taken_today()` juga dihapus -- `medication_model.check_status()`
+# ngitung `taken_today` sendiri inline dari field yang sama, jadi ini duplikat
+# yang nggak pernah dipanggil.
 
 
 def get_medication() -> Optional[dict]:
     return load_state()["medication"]
-
-
-def medication_taken_today() -> bool:
-    med = get_medication()
-    return bool(med) and med.get("last_taken") == clock.today().isoformat()
 
 
 def take_medication() -> Optional[dict]:

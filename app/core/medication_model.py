@@ -24,9 +24,6 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Optional
 
-import numpy as np
-from sklearn.linear_model import LinearRegression
-
 from app import clock
 
 # Lead time sengaja panjang: user butuh ruang buat nyari apotek / nebus resep
@@ -46,39 +43,13 @@ ONLINE_PHARMACY_PARTNERS = [
 ]
 
 
-@dataclass
-class DepletionPrediction:
-    days_left: int
-    depletion_date: date
-    daily_rate: float
-    pills_remaining: float
-
-
-def predict_depletion(
-    pills_left: int,
-    pills_per_day: float = 1.0,
-    consumption_log: Optional[list[float]] = None,
-) -> DepletionPrediction:
-    """consumption_log: kumulatif pil terpakai, terlama duluan (opsional).
-
-    Di bawah 3 titik data nggak cukup sinyal buat regresi, jadi fallback ke
-    perhitungan dosis harian sederhana.
-    """
-    daily_rate = max(pills_per_day, 0.01)
-    if consumption_log and len(consumption_log) >= 3:
-        X = np.arange(len(consumption_log)).reshape(-1, 1)
-        y = np.array(consumption_log)
-        fitted_rate = float(LinearRegression().fit(X, y).coef_[0])
-        if fitted_rate > 0:
-            daily_rate = fitted_rate
-
-    days_left = math.floor(pills_left / daily_rate)
-    return DepletionPrediction(
-        days_left=days_left,
-        depletion_date=clock.today() + timedelta(days=days_left),
-        daily_rate=daily_rate,
-        pills_remaining=float(pills_left),
-    )
+# CATATAN: `predict_depletion()` + `DepletionPrediction` dulu ada di sini --
+# versi awal yang nyoba regresi linear dari `consumption_log` (kumulatif pil
+# terpakai) buat nebak laju konsumsi. Nggak pernah dipanggil: `check_status()`
+# di bawah gantiin dengan perhitungan lebih sederhana (stok / dosis harian)
+# yang cukup buat kebutuhan reminder, dan `consumption_log` sendiri nggak
+# pernah ditulis di mana pun. Dihapus bareng import numpy/sklearn yang cuma
+# dipakai di sini.
 
 
 @dataclass

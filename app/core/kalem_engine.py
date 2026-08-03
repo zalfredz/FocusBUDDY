@@ -192,13 +192,16 @@ def predicted_mood(mood_logs: list[dict], default: str = "tenang") -> str:
     if not scores:
         return recent[0].get("mood", default)
 
+    # Ambang ini HARUS ngikutin buddy.MOOD_SCORE (cemas=1, sedih=2, lelah=3,
+    # tenang=4, semangat=5) -- dua tempat nyimpen pemetaan yang sama, jangan
+    # sampai keduanya diedit sendiri-sendiri.
     avg = sum(scores) / len(scores)
     if avg <= 1.5:
-        return "sedih"
-    if avg <= 2.5:
-        return "lelah"
-    if avg <= 3.5:
         return "cemas"
+    if avg <= 2.5:
+        return "sedih"
+    if avg <= 3.5:
+        return "lelah"
     if avg <= 4.5:
         return "tenang"
     return "semangat"
