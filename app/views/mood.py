@@ -7,16 +7,12 @@ import flet as ft
 
 from app import buddy, storage, theme, ui_helpers
 from app.core import recommendations
-from app.core import kalem_engine
 from app.core.energy_predictor import (
-    ENERGY_HINTS,
     predict_workload,
     sleep_hours_for,
 )
 from app.core.medication_model import missed_streak
 from app.core.mood_model import (
-    DAY_NAMES,
-    QUICK_TAGS,
     analyse,
     checkin_streak,
     neglect_streak,
@@ -39,8 +35,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
     today_log = storage.today_mood()
     state = {
         "mood": latest["mood"] if latest else buddy.DEFAULT_MOOD,
+        # Picker tag "Hari ini isinya apa?" DIBUANG dari check-in. Alasannya:
+        # nggak satu pun model di kalem_ml/ baca `quick_tags` -- dia cuma
+        # kepakai buat milih prompt diary. Jadi dia minta 3 keputusan lagi
+        # dari user di layar yang harusnya bisa kelar dalam dua tap.
+        #
+        # Tapi tag yang UDAH kesimpan hari ini tetap dibawa & ditulis balik
+        # pas nyimpen: buang pickernya boleh, buang datanya jangan.
         "quick_tags": list(today_log.get("quick_tags", [])) if today_log else [],
-        "custom_open": False,
         "care": {
             "ate_today": today_log.get("ate_today") if today_log else None,
             "rested_enough": today_log.get("rested_enough") if today_log else None,
@@ -68,16 +70,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         buddy.greeting_for(state["mood"]), size=13, color=theme.ON_BACKGROUND, text_align=ft.TextAlign.CENTER
     )
     picker_holder = ft.Container()
-    tags_holder = ft.Container()
-    custom_field = ft.TextField(
-        hint_text="Tulis tag sendiri, mis. sidang proposal",
-        text_size=12,
-        height=42,
-        content_padding=ft.Padding.symmetric(vertical=4, horizontal=10),
-        expand=True,
-        autofocus=True,
-        on_submit=lambda e: add_custom_tag(e),
-    )
     energy_holder = ft.Container()
     care_holder = ft.Container()
     result_holder = ft.Container(visible=False)
@@ -129,126 +121,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ink=True,
                 )
             )
-        menit = kalem_engine.focus_minutes_for(state["energy"])
+        # Cuma judul + angka. Dua baris keterangan di bawah chip (teks
+        # "lagi capek banget..." dan efek "sesi fokus jadi n menit") dibuang:
+        # dua-duanya ganti isi tiap kali angkanya dipencet, jadi bikin blok
+        # ini goyang persis pas user lagi milih. Efeknya tetap jalan, cuma
+        # nggak diceramahin di sini.
         energy_holder.content = ft.Column(
             [
                 ui_helpers.subtitle("Tenaga kamu sekarang gimana? (1-6)"),
                 ft.Row(chips, spacing=6),
-                ft.Text(ENERGY_HINTS[state["energy"]], size=12, color=theme.MUTED),
-                # Efeknya ditulis biar kerasa kepakai, bukan angka pajangan.
-                ft.Row(
-                    [
-                        ft.Icon(ft.Icons.TIMER_OUTLINED, size=14, color=theme.SECONDARY),
-                        ft.Text(
-                            f"Sesi fokus jadi {menit} menit, dan ukuran langkah "
-                            "pas 'Pecah Tugas' ikut nyesuain.",
-                            size=11.5,
-                            color=theme.MUTED,
-                            expand=True,
-                        ),
-                    ],
-                    spacing=8,
-                ),
             ],
             spacing=8,
         )
-
-    # --- Tag cepat: dipencet dalam hitungan detik, tanpa harus nulis ---
-
-    def toggle_tag(key: str):
-        if key in state["quick_tags"]:
-            state["quick_tags"].remove(key)
-        elif len(state["quick_tags"]) < 3:
-            state["quick_tags"].append(key)
-        render_tags()
-        page.update()
-
-    def _tag_chip(key: str, label: str) -> ft.Container:
-        on = key in state["quick_tags"]
-        return ft.Container(
-            content=ft.Text(label, size=11.5, color="#FFFFFF" if on else theme.ON_BACKGROUND),
-            bgcolor=theme.SECONDARY if on else theme.SURFACE,
-            border=ft.Border.all(1, theme.SECONDARY if on else theme.BORDER),
-            border_radius=12,
-            padding=ft.Padding.symmetric(vertical=7, horizontal=12),
-            on_click=lambda e, k=key: toggle_tag(k),
-            ink=True,
-        )
-
-    def add_custom_tag(e):
-        raw = (custom_field.value or "").strip().lower()
-        # Dipotong 24 karakter: ini tag, bukan tempat nulis cerita.
-        tag = raw[:24]
-        if not tag:
-            state["custom_open"] = False
-            render_tags()
-            page.update()
-            return
-        if tag not in state["quick_tags"] and len(state["quick_tags"]) < 3:
-            state["quick_tags"].append(tag)
-        custom_field.value = ""
-        state["custom_open"] = False
-        render_tags()
-        page.update()
-
-    def open_custom(e):
-        state["custom_open"] = True
-        render_tags()
-        page.update()
-
-    def render_tags():
-        chips = [_tag_chip(key, label) for key, label in QUICK_TAGS.items()]
-
-        # Tag custom yang udah kepilih ikut ditampilin sebagai chip, biar
-        # bisa dimatiin lagi persis kayak preset.
-        chips += [
-            _tag_chip(tag, tag) for tag in state["quick_tags"] if tag not in QUICK_TAGS
-        ]
-
-        full = len(state["quick_tags"]) >= 3
-        if not full:
-            chips.append(
-                ft.Container(
-                    content=ft.Row(
-                        [
-                            ft.Icon(ft.Icons.ADD, size=13, color=theme.MUTED),
-                            ft.Text("Lainnya", size=11.5, color=theme.MUTED),
-                        ],
-                        spacing=3,
-                        tight=True,
-                    ),
-                    border=ft.Border.all(1, theme.BORDER),
-                    border_radius=12,
-                    padding=ft.Padding.symmetric(vertical=7, horizontal=10),
-                    on_click=open_custom,
-                    ink=True,
-                )
-            )
-
-        children: list[ft.Control] = [
-            ui_helpers.subtitle("Hari ini isinya apa? (boleh dilewat, maks 3)", 12),
-            ft.Row(chips, spacing=6, wrap=True, run_spacing=6),
-        ]
-
-        # Input tag custom muncul INLINE -- nggak pindah halaman, biar tetap
-        # secepat mencet chip.
-        if state["custom_open"] and not full:
-            children.append(
-                ft.Row(
-                    [
-                        custom_field,
-                        ft.IconButton(
-                            icon=ft.Icons.CHECK,
-                            icon_color=theme.PRIMARY,
-                            icon_size=20,
-                            on_click=add_custom_tag,
-                        ),
-                    ],
-                    spacing=4,
-                )
-            )
-
-        tags_holder.content = ft.Column(children, spacing=8)
 
     # --- Eat & Rest Well: 2 toggle opsional, BUKAN streak yang dipajang ---
 
@@ -312,6 +196,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
             # Jangan sampai check-in mood ngehapus cerita yang udah ditulis hari ini.
             diary=existing.get("diary", "") if existing else "",
             tags=existing.get("tags", []) if existing else None,
+            # Pickernya udah nggak ada, tapi tag lama hari ini ditulis balik
+            # apa adanya -- nyimpen check-in nggak boleh ngehapus data yang
+            # user nggak minta dihapus.
             quick_tags=state["quick_tags"],
             ate_today=state["care"]["ate_today"],
             rested_enough=state["care"]["rested_enough"],
@@ -425,7 +312,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     render_picker()
     render_energy()
-    render_tags()
     render_care()
 
     # ------------------------------------- kartu rekomendasi (Weekly Insight)
@@ -596,95 +482,34 @@ def build(page: ft.Page, navigate) -> ft.Control:
     render_insight()
 
     # ------------------------------------------------------- riwayat mood
-    # Default: bar chart 7-hari (murah, cocok buat sekilas lihat minggu ini).
-    # "Lihat grafik bulanan" upgrade opsional -- garis + area per bulan.
+    # Bar "7 catatan terakhir" DIBUANG. Dia nampilin hal yang sama sama
+    # grafik bulanan tapi cuma seminggu, jadi dua-duanya rebutan tempat di
+    # halaman yang sama -- dan yang seminggu itu terlalu pendek buat
+    # kelihatan polanya. Sekarang langsung ke grafik bulanan.
     _y, _m = mood_chart.today_year_month()
-    history_state = {"view": "week", "year": _y, "month": _m}
+    history_state = {"year": _y, "month": _m}
     history_holder = ft.Container()
 
     def render_history():
-        children: list[ft.Control] = []
-        if history_state["view"] == "week":
+        children: list[ft.Control] = [
+            ui_helpers.section_header("Grafik bulanan"),
+            mood_chart.month_nav(
+                history_state["year"], history_state["month"], shift_month(-1), shift_month(1)
+            ),
+            mood_chart.build_month_chart(
+                storage.get_mood_logs(), history_state["year"], history_state["month"], SCORE_COLORS
+            ),
+        ]
+        # Bulan lampau = tren jangka panjang, itu bagian premium.
+        # Bulan berjalan tetap kebuka gratis.
+        if not storage.is_premium():
             children.append(
-                ft.Row(
-                    [
-                        ui_helpers.section_header("7 catatan terakhir"),
-                        ft.Container(expand=True),
-                        ft.TextButton(
-                            content=ft.Text("Lihat grafik bulanan", size=11.5, color=theme.PRIMARY),
-                            on_click=lambda e: switch_history("month"),
-                        ),
-                    ],
+                ui_helpers.upgrade_hint(
+                    "Bulan ini kebuka gratis. Premium bisa telusuri "
+                    "bulan-bulan sebelumnya buat lihat tren panjang."
                 )
             )
-            logs = storage.get_mood_logs()[:7]
-            if logs:
-                bars: list[ft.Control] = []
-                for log in reversed(logs):
-                    weekday = log.get("weekday")
-                    label = DAY_NAMES[weekday][:3] if weekday is not None else log["date"][-2:]
-                    bars.append(
-                        ft.Column(
-                            [
-                                ft.Container(
-                                    width=18,
-                                    height=max(8, log["score"] * 14),
-                                    bgcolor=SCORE_COLORS.get(log["score"], theme.MUTED),
-                                    border_radius=5,
-                                ),
-                                ft.Text(label, size=9, color=theme.MUTED),
-                            ],
-                            spacing=4,
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        )
-                    )
-                children.append(
-                    ft.Container(
-                        content=ft.Row(bars, spacing=10, alignment=ft.MainAxisAlignment.CENTER),
-                        alignment=ft.Alignment.BOTTOM_CENTER,
-                        height=100,
-                    )
-                )
-            else:
-                children.append(ui_helpers.empty_state("Belum ada catatan mood.", ft.Icons.MOOD))
-        else:
-            children.append(
-                ft.Row(
-                    [
-                        ui_helpers.section_header("Grafik bulanan"),
-                        ft.Container(expand=True),
-                        ft.TextButton(
-                            content=ft.Text("Lihat 7 hari", size=11.5, color=theme.PRIMARY),
-                            on_click=lambda e: switch_history("week"),
-                        ),
-                    ],
-                )
-            )
-            children.append(
-                mood_chart.month_nav(
-                    history_state["year"], history_state["month"], shift_month(-1), shift_month(1)
-                )
-            )
-            children.append(
-                mood_chart.build_month_chart(
-                    storage.get_mood_logs(), history_state["year"], history_state["month"], SCORE_COLORS
-                )
-            )
-            # Bulan lampau = tren jangka panjang, itu bagian premium.
-            # Bulan berjalan tetap kebuka gratis.
-            if not storage.is_premium():
-                children.append(
-                    ui_helpers.upgrade_hint(
-                        "Bulan ini kebuka gratis. Premium bisa telusuri "
-                        "bulan-bulan sebelumnya buat lihat tren panjang."
-                    )
-                )
         history_holder.content = ft.Column(children, spacing=8)
-
-    def switch_history(view: str):
-        history_state["view"] = view
-        render_history()
-        page.update()
 
     def shift_month(delta: int):
         def handler(e):
@@ -720,9 +545,31 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     render_history()
 
+    # Favorit turun pangkat dari kartu selebar halaman jadi ikon di pojok --
+    # pola yang sama kayak tombol Pengaturan di Beranda. Dia pintu ke halaman
+    # lain yang jarang dibuka, bukan bagian dari check-in, jadi nggak pantes
+    # makan tempat sebanyak itu tiap hari. Hitungan "n/9 terisi" pindah ke
+    # tooltip -- infonya nggak dibuang, cuma nggak dipajang terus.
+    terisi = storage.favorites_filled()
+    total_favorit = len(storage.FAVORITE_FIELDS)
+    header_row = ft.Row(
+        [
+            ft.Container(content=ui_helpers.title("Mood", 22), expand=True),
+            ft.IconButton(
+                icon=ft.Icons.FAVORITE_BORDER,
+                icon_color=theme.TERTIARY,
+                icon_size=20,
+                tooltip=f"Favorit kamu — {terisi}/{total_favorit} terisi · "
+                        "bikin saran Kalem lebih personal",
+                on_click=lambda e: navigate("favorites"),
+            ),
+        ],
+        spacing=0,
+    )
+
     return ft.Column(
         [
-            ui_helpers.page_header("Mood"),
+            header_row,
             ui_helpers.card(
                 ft.Column(
                     [
@@ -732,7 +579,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ui_helpers.subtitle("Hari ini kamu ngerasa gimana?"),
                         picker_holder,
                         energy_holder,
-                        tags_holder,
                         care_holder,
                         ui_helpers.wide_button("Simpan check-in", save_checkin),
                     ],
@@ -740,23 +586,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 )
             ),
+            # Hasil check-in nempel langsung di bawah tombolnya -- itu umpan
+            # balik buat aksi yang barusan dipencet, jadi nggak boleh kepisah.
             result_holder,
             ui_helpers.nav_link_card(
                 ft.Icons.MENU_BOOK,
                 theme.PRIMARY,
-                "Cerita tentang hari ini?",
-                "Kalem dengerin. Ceritanya juga bantu dia ngerti pola kamu.",
+                "Cerita Kamu",
+                "Tulis cerita hari ini, atau baca lagi yang udah pernah kamu tulis.",
                 lambda e: navigate("diary"),
             ),
-            ui_helpers.nav_link_card(
-                ft.Icons.FAVORITE_BORDER,
-                theme.TERTIARY,
-                "Favorit kamu",
-                f"{storage.favorites_filled()}/{len(storage.FAVORITE_FIELDS)} terisi · "
-                "bikin saran Kalem lebih personal",
-                lambda e: navigate("favorites"),
-            ),
             ui_helpers.card(insight_holder),
+            # Rekomendasi nempel di bawah kartu insight: dua-duanya jawaban
+            # atas "apa yang Kalem tau soal aku", jadi kebaca sebagai satu
+            # alur -- temuannya dulu, baru saran yang keluar dari temuan itu.
             rec_holder,
             ui_helpers.card(history_holder),
             ui_helpers.disclaimer(

@@ -684,6 +684,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
     # Dua aksi yang beda, jadi dua target klik yang beda: badan kartu buat
     # NULIS cepat, angka "n tersimpan" buat NGEBUKA daftarnya. Sebelumnya
     # chevron-nya cuma hiasan -- catatan masuk tapi nggak pernah bisa dibaca.
+    #
+    # Tombol "+" terpisah sempat ada di sini, tapi dibuang: dia aksinya SAMA
+    # PERSIS sama teks di sebelahnya, jadi cuma nambah satu benda buat dilihat
+    # tanpa nambah satu hal pun yang bisa dilakuin. Barisnya sekarang tinggal
+    # dua bagian -- tulis cepat, dan yang tersimpan.
     inbox_count = len(storage.get_inbox())
 
     capture_children: list[ft.Control] = [
@@ -699,19 +704,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ink=True,
             border_radius=10,
             padding=ft.Padding.symmetric(vertical=4, horizontal=2),
-        ),
-        # Tombol "+" SELALU kelihatan, nggak peduli inbox kosong atau penuh.
-        # Sebelumnya afordansi nambahnya cuma teks yang bisa diklik -- nggak
-        # kebaca sebagai tombol, padahal ini justru fitur yang harus bisa
-        # dipencet tanpa mikir pas ide lagi lewat.
-        ft.Container(
-            content=ft.Icon(ft.Icons.ADD, color="#FFFFFF", size=18),
-            bgcolor=theme.SECONDARY,
-            border_radius=10,
-            padding=6,
-            tooltip="Tulis cepat",
-            on_click=open_capture,
-            ink=True,
         ),
     ]
     if inbox_count:

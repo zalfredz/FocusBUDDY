@@ -118,7 +118,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     return ft.Column(
         [
-            ui_helpers.page_header("Cerita Hari Ini", on_back=lambda e: navigate("mood")),
+            # "Cerita Kamu", bukan "Cerita Hari Ini": halaman ini isinya bukan
+            # cuma hari ini -- cerita lama tetap kesimpan & kebaca di bawah.
+            ui_helpers.page_header("Cerita Kamu", on_back=lambda e: navigate("mood")),
             ui_helpers.card(
                 ft.Column(
                     [
