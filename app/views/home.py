@@ -35,6 +35,39 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
         storage.advance_day(1)
         navigate("home")
 
+    def lompat_malam(e):
+        """Demo: geser jam app ke malem, dan bisa dibalikin lagi.
+
+        Tombolnya TOGGLE, bukan sekali-jalan: kalau lagi kegeser, pencet lagi
+        buat balik ke jam asli. Tanpa itu satu-satunya cara balik normal cuma
+        reset seluruh offset -- kebawa-bawa hari yang udah dimajuin.
+
+        Fitur yang gerbangnya jam (pertanyaan "udah makan?") mustahil
+        ditunjukin kalau demonya siang, dan "Maju 1 hari" nggak nolong --
+        dia cuma geser tanggal, jamnya tetap jam asli.
+        """
+        if storage.hour_offset():
+            storage.clear_hour_offset()
+        else:
+            storage.jump_to_hour(storage.MEAL_ASK_HOUR)
+        navigate("home")
+
+    def buka_ulang_app(e):
+        """Demo: 'tutup app, terus buka lagi'.
+
+        Ngulang persis yang kejadian pas app beneran distart (lihat main.py):
+        catat pembukaan baru, lupain brief hari ini, terus masuk lewat pintu
+        depan. Hasilnya Morning Brief nyapa lagi, dan popup check-in/makan
+        ikut kepancing -- alur pembukaan yang utuh, tanpa perlu bener-bener
+        matiin app di depan juri.
+
+        NGGAK nyentuh data: mood, tugas, dan riwayat tetap utuh. Yang direset
+        cuma penanda "hari ini udah disapa".
+        """
+        storage.clear_last_brief_date()
+        storage.touch_last_open()
+        navigate("home")
+
     def toggle_subs(e):
         storage.set_premium(not storage.is_premium())
         navigate("home")
@@ -120,6 +153,27 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             icon_size=20,
             tooltip=f"Maju 1 hari (testing) — sekarang {clock.today().strftime('%a, %d %b')}",
             on_click=next_day,
+        ),
+        # Ikonnya ikut keadaan: bulan = "lompat ke malam", matahari = "lagi
+        # kegeser, pencet buat balik". Tombol toggle yang ikonnya nggak pernah
+        # berubah itu bohong -- kelihatannya cuma bisa satu arah.
+        ft.IconButton(
+            icon=ft.Icons.WB_SUNNY if storage.hour_offset() else ft.Icons.BEDTIME,
+            icon_color=theme.TERTIARY if storage.hour_offset() else theme.MUTED,
+            icon_size=20,
+            tooltip=(
+                f"Balikin ke jam asli (demo) — sekarang {clock.now().strftime('%H:%M')}"
+                if storage.hour_offset()
+                else f"Lompat ke malam (demo) — sekarang {clock.now().strftime('%H:%M')}"
+            ),
+            on_click=lompat_malam,
+        ),
+        ft.IconButton(
+            icon=ft.Icons.LOGOUT,
+            icon_color=theme.MUTED,
+            icon_size=20,
+            tooltip="Tutup & buka lagi app (demo) — ngulang alur pembukaan",
+            on_click=buka_ulang_app,
         ),
         ft.IconButton(
             icon=ft.Icons.WORKSPACE_PREMIUM,
@@ -217,12 +271,20 @@ def _popup_checkin(page: ft.Page, navigate) -> None:
         )
         storage.set_today_energy(energi)
         page.pop_dialog()
+        # navigate() nge-build ulang Beranda, dan di ujung build() ada gerbang
+        # popup makan. Jadi rantainya nyambung sendiri: check-in kelar ->
+        # halaman digambar ulang -> kalau udah lewat jam 18, popup makan
+        # nyusul. Nggak perlu manggil popup kedua dari sini.
         navigate("home")
 
     def nanti(e):
         # Sengaja NGGAK nyimpen apa pun. Hari tanpa check-in itu harus
         # BENERAN kosong -- nebak-nebak di sini malah bikin data bohong,
         # dan model lebih baik tau "nggak ada data" daripada dikasih tebakan.
+        #
+        # Konsekuensinya popup makan juga nggak nyusul: jawabannya nempel di
+        # catatan mood hari itu, dan catatannya belum ada. Dua-duanya bakal
+        # ditawarin lagi pas Beranda kebuka berikutnya.
         page.pop_dialog()
 
     gambar()
@@ -242,6 +304,75 @@ def _popup_checkin(page: ft.Page, navigate) -> None:
 def _energi_dari_skor(score: int) -> int:
     """Skor mood (1-5) -> tebakan energi awal (1-6)."""
     return {1: 1, 2: 2, 3: 3, 4: 5, 5: 6}.get(score, 3)
+
+
+def _popup_makan(page: ft.Page, navigate) -> None:
+    """Satu pertanyaan, dua tombol: udah makan hari ini atau belum.
+
+    KENAPA CUMA MALEM
+    -----------------
+    Ditanya jam 9 pagi, "belum" itu jawaban normal yang nggak berarti apa-apa.
+    Ditanya jam 7 malem, "belum" itu sinyal beneran -- dan itu yang dipakai
+    `neglect_streak()` buat naikin burnout_risk (3 hari berturut-turut).
+
+    KENAPA NGGAK ADA TOMBOL "NANTI"
+    -------------------------------
+    Pertanyaannya cuma satu dan jawabannya dua-duanya sah. "Belum" BUKAN
+    jawaban yang salah -- dia data yang kepakai, sama pentingnya sama "udah".
+    Jadi nggak ada yang perlu dihindarin dengan nunda.
+    """
+    def jawab(makan: bool):
+        # Catatan mood hari ini ditulis ULANG UTUH: add_mood_log() nimpa
+        # seluruh entri per tanggal, jadi mood/energi/diary/tag hari itu harus
+        # dioper balik apa adanya. Kalau nggak, jawab "udah makan" bakal
+        # ngehapus check-in yang barusan disimpen.
+        log = storage.today_mood()
+        if not log:
+            page.pop_dialog()
+            return
+        storage.add_mood_log(
+            mood=log.get("mood", buddy.DEFAULT_MOOD),
+            score=log.get("score", 3),
+            energy=log.get("energy", 3),
+            diary=log.get("diary", ""),
+            tags=log.get("tags", []),
+            quick_tags=log.get("quick_tags", []),
+            ate_today=makan,
+            rested_enough=log.get("rested_enough"),
+        )
+        page.pop_dialog()
+        navigate("home")
+
+    page.show_dialog(
+        ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Udah makan hari ini? 🍚", size=16),
+            content=ft.Column(
+                [
+                    ft.Text(
+                        "Jawab jujur aja — dua-duanya nggak apa-apa.",
+                        size=12.5,
+                        color=theme.ON_BACKGROUND,
+                    ),
+                    ft.Text(
+                        "Kalem nanya ini cuma malem, buat tau kamu keurus apa "
+                        "nggak — bukan buat nilai kamu.",
+                        size=10.5,
+                        color=theme.MUTED,
+                    ),
+                ],
+                spacing=8,
+                tight=True,
+            ),
+            actions=[
+                ft.TextButton(
+                    content=ft.Text("Belum", color=theme.WARN, weight=ft.FontWeight.BOLD),
+                    on_click=lambda e: jawab(False),
+                ),
+                ui_helpers.primary_button("Udah", lambda e: jawab(True), icon=ft.Icons.CHECK),
+            ],
+        )
+    )
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
@@ -787,10 +918,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
     if session_active:
         page.run_task(ticker)
 
-    # Check-in mood+energi ditawarin sekali sehari, pas Beranda pertama
-    # kebuka. Nggak muncul kalau: udah check-in hari ini, atau lagi ada sesi
-    # fokus jalan (jangan motong orang yang lagi ngerjain sesuatu).
-    if storage.today_mood() is None and not session_active:
-        _popup_checkin(page, navigate)
+    # Dua popup, satu antrian, urutannya nggak pernah tabrakan:
+    #
+    #   belum check-in  -> popup mood+energi dulu. Pas disimpen dia manggil
+    #                      navigate("home"), build() jalan lagi, dan giliran
+    #                      popup makan kecek di bawah ini.
+    #   udah check-in   -> langsung popup makan (kalau udah lewat jam 18 dan
+    #                      belum dijawab).
+    #
+    # Dua-duanya nggak muncul pas lagi ada sesi fokus jalan -- jangan motong
+    # orang yang lagi ngerjain sesuatu.
+    if not session_active:
+        if storage.today_mood() is None:
+            _popup_checkin(page, navigate)
+        elif storage.perlu_tanya_makan():
+            _popup_makan(page, navigate)
 
     return layout

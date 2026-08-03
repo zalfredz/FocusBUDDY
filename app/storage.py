@@ -178,9 +178,9 @@ def _default_state() -> dict[str, Any]:
         # Tanggal terakhir app dibuka. Dipakai buat ngitung berapa hari user
         # menghilang -- lihat `hari_sejak_checkin()`.
         "last_open_date": "",
-        # Khusus testing: geseran hari buat tombol "next day" di Home.
-        # Di pemakaian normal nilainya selalu 0.
-        "dev": {"day_offset": 0},
+        # Khusus testing: geseran hari & jam buat tombol dev di Home.
+        # Di pemakaian normal dua-duanya selalu 0.
+        "dev": {"day_offset": 0, "hour_offset": 0},
     }
 
 
@@ -242,7 +242,7 @@ def _migrate(state: dict[str, Any]) -> dict[str, Any]:
     fresh["inbox"] = state.get("inbox", [])
     fresh["last_brief_date"] = state.get("last_brief_date", "")
     fresh["today_energy"] = state.get("today_energy", {"date": "", "level": 0})
-    fresh["dev"] = state.get("dev", {"day_offset": 0})
+    fresh["dev"] = state.get("dev", {"day_offset": 0, "hour_offset": 0})
 
     med = state.get("medication")
     if med:
@@ -401,9 +401,11 @@ def load_state() -> dict[str, Any]:
         changed = True
     if changed:
         save_state(migrated)
-    # Samain jam aplikasi dengan offset yang tersimpan, biar "hari" hasil
-    # tombol next-day tetap sama setelah app di-restart.
-    clock.set_offset(migrated.get("dev", {}).get("day_offset", 0))
+    # Samain jam aplikasi dengan offset yang tersimpan, biar "hari" (dan jam)
+    # hasil tombol dev tetap sama setelah app di-restart.
+    dev = migrated.get("dev", {})
+    clock.set_offset(dev.get("day_offset", 0))
+    clock.set_hour_offset(dev.get("hour_offset", 0))
     return migrated
 
 
@@ -523,6 +525,38 @@ def data_mood_basi(logs: Optional[list[dict]] = None) -> bool:
     """True kalau catatan terakhir udah kelewat lama buat nebak hari ini."""
     jarak = hari_sejak_checkin(logs)
     return jarak is not None and jarak > STALE_AFTER_DAYS
+
+
+# ------------------------------------------------- pertanyaan "udah makan?"
+#
+# Nanya "udah makan hari ini?" jam 9 pagi itu nggak ada gunanya -- jawabannya
+# hampir pasti "belum", dan itu bukan sinyal apa-apa selain hari masih pagi.
+# Baru mulai jam 18 jawabannya berarti: kalau sampai malam belum makan, itu
+# sinyal beneran buat burnout classifier (lihat neglect_streak).
+MEAL_ASK_HOUR = 18
+
+
+def waktunya_tanya_makan(now: Optional[Any] = None) -> bool:
+    """True kalau sekarang udah masuk jam buat nanya soal makan."""
+    return (now or clock.now()).hour >= MEAL_ASK_HOUR
+
+
+def sudah_jawab_makan() -> bool:
+    """True kalau pertanyaan makan hari ini udah dijawab (apa pun isinya)."""
+    log = today_mood()
+    return bool(log) and log.get("ate_today") is not None
+
+
+def perlu_tanya_makan() -> bool:
+    """Gerbang buat popup & tombol: udah lewat jam 18, udah check-in, dan
+    pertanyaannya belum dijawab.
+
+    Syarat "udah check-in" penting: jawaban makan disimpan di dalam catatan
+    mood hari itu. Kalau belum ada catatannya, nyimpen jawaban makan bakal
+    maksa ngarang mood & energi -- dan hari tanpa check-in harus tetap
+    BENERAN kosong (lihat catatan di atas soal data basi).
+    """
+    return waktunya_tanya_makan() and today_mood() is not None and not sudah_jawab_makan()
 
 
 # ---------------------------------------------------------- subscription
@@ -654,9 +688,56 @@ def day_offset() -> int:
     return load_state().get("dev", {}).get("day_offset", 0)
 
 
+def jump_to_hour(target_hour: int) -> int:
+    """Majuin jam aplikasi sampai `now()` lewat `target_hour`.
+
+    Dipakai tombol demo "Lompat ke malam": fitur yang gerbangnya jam (mis.
+    pertanyaan "udah makan?") mustahil ditunjukin kalau demonya siang, dan
+    tombol "Maju 1 hari" nggak nolong -- dia cuma geser tanggal.
+    """
+    state = load_state()
+    dev = state.setdefault("dev", {"day_offset": 0, "hour_offset": 0})
+    dev["hour_offset"] = dev.get("hour_offset", 0) + clock.hours_until(target_hour)
+    save_state(state)
+    clock.set_hour_offset(dev["hour_offset"])
+    return dev["hour_offset"]
+
+
+def hour_offset() -> int:
+    return load_state().get("dev", {}).get("hour_offset", 0)
+
+
+def clear_hour_offset() -> None:
+    """Balikin jam aplikasi ke jam asli, TANPA ngutak-atik geseran hari.
+
+    Kepisah dari `clear_day_offset()` (yang nge-nol-in dua-duanya) supaya
+    tombol "lompat ke malam" bisa dimatiin sendiri -- demo sering perlu tetap
+    di hari yang udah dimajuin, cuma jamnya balik normal.
+    """
+    state = load_state()
+    dev = state.setdefault("dev", {})
+    dev["hour_offset"] = 0
+    save_state(state)
+    clock.set_hour_offset(0)
+
+
+def clear_last_brief_date() -> None:
+    """Lupain 'brief hari ini udah tampil'. Khusus tombol demo 'buka app lagi'.
+
+    Kebalikan `set_last_brief_date()`. Tanpa ini, tombol buka-app-lagi nyaris
+    nggak kelihatan efeknya: Morning Brief cuma nongol sekali per tanggal,
+    jadi pembukaan kedua dan seterusnya langsung mendarat di Beranda.
+    """
+    state = load_state()
+    state["last_brief_date"] = ""
+    save_state(state)
+
+
 def clear_day_offset() -> None:
     state = load_state()
-    state.setdefault("dev", {})["day_offset"] = 0
+    dev = state.setdefault("dev", {})
+    dev["day_offset"] = 0
+    dev["hour_offset"] = 0
     save_state(state)
     clock.reset_offset()
 

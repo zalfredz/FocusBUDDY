@@ -24,10 +24,22 @@ SCORE_COLORS = {5: theme.PRIMARY, 4: theme.PRIMARY, 3: theme.WARN, 2: theme.WARN
 # (key, pertanyaan, ikon) -- tri-state: None (belum dijawab) -> True (udah) ->
 # False (belum) -> balik None. Sengaja BUKAN streak yang dipajang/bisa putus,
 # cuma sinyal tambahan buat burnout classifier. Lihat mood_model.neglect_streak.
-CARE_QUESTIONS = [
-    ("ate_today", "Udah makan hari ini?", ft.Icons.RESTAURANT),
-    ("rested_enough", "Istirahat cukup semalam?", ft.Icons.BEDTIME),
-]
+#
+# "Udah makan" DIPISAH: dia cuma nongol lewat jam 18 (storage.MEAL_ASK_HOUR).
+# Ditanya pagi, "belum" itu jawaban normal yang nggak berarti apa-apa; ditanya
+# malem, "belum" itu sinyal beneran. "Istirahat cukup semalam" tetap kelihatan
+# terus -- itu pertanyaan soal MALEM KEMAREN, jadi jam berapa pun tetap sah.
+CARE_MAKAN = ("ate_today", "Udah makan hari ini?", ft.Icons.RESTAURANT)
+CARE_ISTIRAHAT = ("rested_enough", "Istirahat cukup semalam?", ft.Icons.BEDTIME)
+CARE_QUESTIONS = [CARE_MAKAN, CARE_ISTIRAHAT]
+
+
+def _care_hari_ini() -> list[tuple]:
+    """Pertanyaan yang layak ditampilin sekarang, urut: makan dulu (di atas
+    istirahat) kalau emang udah waktunya."""
+    if storage.waktunya_tanya_makan():
+        return [CARE_MAKAN, CARE_ISTIRAHAT]
+    return [CARE_ISTIRAHAT]
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
@@ -144,7 +156,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def render_care():
         rows: list[ft.Control] = []
-        for key, question, icon in CARE_QUESTIONS:
+        for key, question, icon in _care_hari_ini():
             value = state["care"][key]
             if value is True:
                 label, bg, border, fg = "Udah", theme.PRIMARY, theme.PRIMARY, "#FFFFFF"
@@ -174,11 +186,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     padding=ft.Padding.symmetric(vertical=4, horizontal=2),
                 )
             )
+        judul = (
+            "Udah makan & istirahat cukup? (opsional, boleh dilewat)"
+            if storage.waktunya_tanya_makan()
+            else "Istirahat cukup semalam? (opsional, boleh dilewat)"
+        )
         care_holder.content = ft.Column(
-            [
-                ui_helpers.subtitle("Udah makan & istirahat cukup? (opsional, boleh dilewat)", 12),
-                *rows,
-            ],
+            [ui_helpers.subtitle(judul, 12), *rows],
             spacing=4,
         )
 
