@@ -523,7 +523,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         time_field = ft.TextField(
             label="Jam deadline (opsional)",
             hint_text="mis. 17:00",
-            helper_text="Dikosongin = dianggap sampai akhir hari",
+            helper="Dikosongin = dianggap sampai akhir hari",
             on_change=lambda ev: render_estimate(),
         )
         important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)

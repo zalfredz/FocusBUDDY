@@ -50,7 +50,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         time_field = ft.TextField(
             label="Jam deadline (opsional)",
             hint_text="mis. 17:00",
-            helper_text="Dikosongin = sampai akhir hari",
+            helper="Dikosongin = sampai akhir hari",
         )
         important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
         can_split = storage.can_use("decompose")
