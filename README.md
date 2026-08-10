@@ -656,7 +656,12 @@ Model mood/energi baru kelihatan pinter kalau udah ada histori. Daripada
 check-in manual berkali-kali sambil mencet "Maju 1 hari", pakai
 **`SettingDemo.py`** di folder utama: isi/tambah skenario di situ, lalu
 pilih lewat ikon tongkat sihir di Beranda (atau `python SettingDemo.py
-<skenario>` dari terminal).
+<skenario>` dari terminal). Jalur UI memakai **overlay non-destructive**:
+nama, profil, favorit, obat, diary, tugas, inbox, dan histori asli tetap
+dipertahankan. Record simulasi diberi marker khusus, skenario berikutnya hanya
+mengganti overlay sebelumnya, dan tombol **Hapus data demo** membersihkannya
+lagi. Perintah terminal tetap mengganti state penuh karena dipakai untuk
+evaluasi skenario yang harus deterministik.
 
 Riwayat panjang (sampai 90 hari) di-*generate* dari seed acak yang TETAP
 (`random.Random(seed)`), bukan ditulis manual satu-satu -- nulis ratusan
@@ -701,7 +706,8 @@ Buat testing ada 5 tombol di pojok kanan atas Home:
   bener-bener matiin app di depan juri. Nggak nyentuh data sama sekali --
   cuma penanda "brief hari ini udah tampil" yang direset.
 - **SUBS on/off**.
-- **Auto Feel** -- pilih salah satu dari 10 skenario di atas.
+- **Auto Feel** -- pilih salah satu dari 10 skenario di atas sebagai overlay
+  aman; data user tidak ditimpa dan overlay bisa dihapus lagi.
 
 "Reset data" **NGGAK** ada di header Home -- itu udah pindah permanen ke
 Pengaturan (`ui_helpers.show_reset_confirm`), biar nggak ada dua pintu ke

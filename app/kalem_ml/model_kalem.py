@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from functools import wraps
+from threading import RLock
 from typing import Any, Optional
 
 import numpy as np
@@ -44,6 +46,15 @@ _model: Optional[LogisticRegression] = None
 _scaler: Optional[StandardScaler] = None
 _fingerprint = ""
 _n_latih = 0
+_MODEL_LOCK = RLock()
+
+
+def _locked(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        with _MODEL_LOCK:
+            return fn(*args, **kwargs)
+    return wrapper
 
 
 def _records_layak(records: list[dict]) -> list[dict]:
@@ -98,6 +109,7 @@ def _latih(records: list[dict]) -> bool:
     return True
 
 
+@_locked
 def nilai(fitur: Any, records: Optional[list[dict]] = None) -> SinyalKalem:
     """Prediksi peluang pengguna memulai sesi fokus yang ditawarkan."""
     if records is None:
@@ -111,6 +123,7 @@ def nilai(fitur: Any, records: Optional[list[dict]] = None) -> SinyalKalem:
     return SinyalKalem(skor=skor, siap=True, n_latih=_n_latih, sumber="belajar")
 
 
+@_locked
 def status() -> dict:
     from app import storage
 
@@ -126,6 +139,7 @@ def status() -> dict:
     }
 
 
+@_locked
 def reset_model() -> None:
     global _model, _scaler, _fingerprint, _n_latih
     _model = _scaler = None

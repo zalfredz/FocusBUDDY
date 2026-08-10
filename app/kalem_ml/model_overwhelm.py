@@ -31,6 +31,8 @@ naikin opsi jeda, nggak nyodorin tugas berat.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import wraps
+from threading import RLock
 from typing import Any, Optional
 
 import numpy as np
@@ -125,8 +127,18 @@ _model: Optional[LogisticRegression] = None
 _scaler: Optional[StandardScaler] = None
 _n_latih: int = 0
 _terlatih_dari: str = ""
+_MODEL_LOCK = RLock()
 
 
+def _locked(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        with _MODEL_LOCK:
+            return fn(*args, **kwargs)
+    return wrapper
+
+
+@_locked
 def reset_model() -> None:
     global _model, _scaler, _n_latih, _terlatih_dari
     _model = _scaler = None
@@ -196,6 +208,7 @@ def _bobot_teratas(baris: list[float], n: int = 2) -> list[str]:
     return out
 
 
+@_locked
 def nilai(f: Optional[F.Fitur] = None) -> Risiko:
     """Perkiraan risiko kewalahan hari ini."""
     f = f or F.bangun_fitur()
@@ -241,6 +254,7 @@ def _tingkat(skor: float) -> str:
     return "tenang"
 
 
+@_locked
 def status() -> dict:
     siap = _latih()
     return {"siap": siap, "n_latih": _n_latih, "min_hari": MIN_HARI}

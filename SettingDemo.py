@@ -26,11 +26,11 @@ tiap skenario juga jawab TIGA hal sekaligus:
        BENERAN gitu    -> evaluate_demo_result()/run_demo() (decide() beneran
                            dipanggil, hasilnya dibandingin ke expected)
 
-Generator histori (`_riwayat_semester`, `_obat_take_log`), `apply_scenario()`,
-dan jadwal kuliah TETEP DIPAKAI apa adanya -- itu udah kerja, nggak ada
-alasan ditulis ulang. Yang berubah besar cuma ISI skenario (sekarang tugasnya
+Generator histori (`_riwayat_semester`, `_obat_take_log`), pemasang skenario,
+dan jadwal kuliah dipakai bersama oleh dua jalur: overlay aman dari tombol
+Auto Feel dan penggantian state penuh untuk CLI/evaluasi. ISI skenarionya
 sengaja DIBUAT KONFLIK biar decision engine beneran diuji, bukan cuma "bisa
-baca kondisi user apa nggak") dan metadata objektifnya.
+baca kondisi user apa nggak".
 
 VALIDATOR CUMA BACA FIELD YANG BENERAN ADA
 --------------------------------------------
@@ -62,7 +62,8 @@ CARA PAKAI
 ----------
 1. Edit / tambah skenario di SCENARIOS & DEMO_OBJECTIVES bawah ini.
 2. Buka app -> Beranda -> ikon tongkat sihir (Auto Feel) di pojok kanan atas.
-3. Pilih skenario -> data langsung kepasang, model langsung punya bahan.
+3. Pilih skenario -> overlay demo ditambahkan, model langsung punya bahan.
+   Nama, profil, favorit, obat, diary, tugas, dan catatan asli tetap ada.
 
 Dari terminal:
 
@@ -72,7 +73,10 @@ Dari terminal:
 
 CATATAN PENTING
 ---------------
-- Auto Feel MENIMPA data yang ada. Ini alat demo, bukan buat dipakai harian.
+- Auto Feel dari UI memasang overlay bertanda khusus dan bisa dibersihkan
+  lagi tanpa menghapus data asli user.
+- `apply_scenario()` dari CLI/evaluation tetap mengganti seluruh state supaya
+  hasil 10 skenario deterministik. Jangan panggil fungsi itu dari UI publik.
 - Skor mood: 1 = paling berat, 5 = paling enak. Energi: 1-6.
 - Tiap entri `mood_history` WAJIB punya key `"offset"` (berapa hari lalu,
   0 = hari ini).
@@ -102,6 +106,7 @@ ke-cover di sini -- tinggal bilang, gampang ditambahin sebagai skenario ke-11.
 from __future__ import annotations
 
 import random
+import uuid
 from datetime import date, timedelta
 from typing import Any, Callable, Optional
 
@@ -952,7 +957,12 @@ def _tugas_kelas_hari_ini() -> list[dict]:
 
 
 def apply_scenario(key: str) -> str:
-    """Pasang satu skenario ke storage. Return label yang kepasang."""
+    """Ganti seluruh storage dengan skenario untuk CLI/evaluation.
+
+    UI wajib memakai :func:`apply_scenario_overlay` agar data user tidak
+    ditimpa. Jalur destructive ini sengaja dipertahankan karena evaluator
+    perlu kondisi awal yang benar-benar identik pada setiap skenario.
+    """
     import sys
     from pathlib import Path
 
@@ -1074,6 +1084,219 @@ def apply_scenario(key: str) -> str:
             st["medication"]["last_taken"] = ""
             storage.save_state(st)
 
+    return scenario.get("label", key)
+
+
+_DEMO_MARKER = "_demo_generated"
+_DEMO_META_KEY = "demo_overlay"
+_DEMO_COLLECTIONS = ("mood_logs", "reset_events", "tasks", "inbox")
+
+
+def _without_demo_entries(state: dict) -> None:
+    """Buang hanya record buatan Auto Feel; record user tidak disentuh."""
+    for collection in _DEMO_COLLECTIONS:
+        state[collection] = [
+            item
+            for item in state.get(collection, [])
+            if not (isinstance(item, dict) and item.get(_DEMO_MARKER) is True)
+        ]
+
+
+def _reset_models() -> None:
+    """Paksa model membaca ulang gabungan histori user + overlay terbaru."""
+    try:
+        from app import kalem_ml
+
+        kalem_ml.reset_semua()
+    except Exception:
+        pass
+
+
+def demo_overlay_active() -> bool:
+    """Apakah sesi/user aktif sedang memiliki overlay Auto Feel."""
+    from app import storage
+
+    return isinstance(storage.load_state().get(_DEMO_META_KEY), dict)
+
+
+def clear_demo_overlay() -> bool:
+    """Hapus data simulasi Auto Feel dan pulihkan metadata sebelum demo.
+
+    Nama, profil, favorit, obat, diary, tugas, inbox, serta histori asli tidak
+    pernah dihapus karena semuanya tidak membawa ``_demo_generated``.
+    """
+    from app import storage
+
+    state = storage.load_state()
+    metadata = state.get(_DEMO_META_KEY)
+    had_overlay = isinstance(metadata, dict)
+    before_counts = tuple(len(state.get(key, [])) for key in _DEMO_COLLECTIONS)
+    _without_demo_entries(state)
+    after_counts = tuple(len(state.get(key, [])) for key in _DEMO_COLLECTIONS)
+
+    if had_overlay:
+        state["last_brief_date"] = metadata.get(
+            "original_last_brief_date", state.get("last_brief_date", "")
+        )
+        state.pop(_DEMO_META_KEY, None)
+
+    changed = had_overlay or before_counts != after_counts
+    if changed:
+        storage.save_state(state)
+        _reset_models()
+    return changed
+
+
+def apply_scenario_overlay(key: str) -> str:
+    """Tambahkan skenario demo tanpa menimpa data personal atau data asli.
+
+    Overlay disimpan di row Supabase user yang sedang login, sama seperti
+    perubahan app lain, tetapi setiap record sintetis diberi marker. Memilih
+    skenario lain mengganti *hanya* overlay sebelumnya; ``clear_demo_overlay``
+    menghapusnya lagi. Log mood pada tanggal yang sudah diisi user tidak
+    ditambahkan agar diary/check-in asli selalu menang.
+    """
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+    from app import clock, storage
+
+    scenario = SCENARIOS[key]
+    state = storage.load_state()
+    previous_meta = state.get(_DEMO_META_KEY)
+    original_last_brief = (
+        previous_meta.get("original_last_brief_date", state.get("last_brief_date", ""))
+        if isinstance(previous_meta, dict)
+        else state.get("last_brief_date", "")
+    )
+
+    # Ganti overlay lama, bukan data user. Ini juga membuat pemilihan skenario
+    # berulang tidak terus menumpuk puluhan task/log sintetis di Supabase.
+    _without_demo_entries(state)
+
+    today = clock.today()
+    from datetime import timedelta as _td
+
+    # Mood asli menang untuk tanggal yang sama. Dengan begitu check-in atau
+    # diary user hari ini tidak pernah hilang gara-gara tombol demo.
+    occupied_dates = {
+        str(log.get("date"))
+        for log in state.get("mood_logs", [])
+        if isinstance(log, dict) and log.get("date")
+    }
+    demo_logs: list[dict] = []
+    for entry in scenario.get("mood_history") or []:
+        offset = int(entry.get("offset", 0))
+        day = today - _td(days=offset)
+        if day.isoformat() in occupied_dates:
+            continue
+        score = int(entry.get("score", 3))
+        demo_logs.append(
+            {
+                "date": day.isoformat(),
+                "mood": _mood_for_score(score),
+                "score": score,
+                "energy": int(entry.get("energy", 3)),
+                "diary": entry.get("diary", ""),
+                "tags": [],
+                "quick_tags": list(entry.get("tags") or []),
+                "ate_today": entry.get("ate"),
+                "rested_enough": entry.get("rested"),
+                "weekday": day.weekday(),
+                "is_weekend": day.weekday() >= 5,
+                _DEMO_MARKER: True,
+                "_demo_scenario": key,
+            }
+        )
+    state["mood_logs"] = sorted(
+        state.get("mood_logs", []) + demo_logs,
+        key=lambda log: str(log.get("date", "")),
+        reverse=True,
+    )
+
+    demo_resets = [
+        {
+            "timestamp": (today - _td(days=d)).isoformat(),
+            "date": (today - _td(days=d)).isoformat(),
+            "choice": "napas",
+            "mood_score": None,
+            _DEMO_MARKER: True,
+            "_demo_scenario": key,
+        }
+        for d in (scenario.get("sos_days_ago") or [])
+    ]
+    state["reset_events"] = sorted(
+        state.get("reset_events", []) + demo_resets,
+        key=lambda event: str(event.get("timestamp", event.get("date", ""))),
+        reverse=True,
+    )
+
+    # Task dibangun langsung di state agar seluruh overlay tersimpan atomik
+    # (satu save/cloud enqueue), bukan satu request Supabase per task.
+    for task in (scenario.get("tasks") or []) + _tugas_kelas_hari_ini():
+        deadline_time = task.get("deadline_time")
+        if deadline_time is None:
+            deadline_time = "09:00" if task.get("urgent") else ""
+        deadline_date = task.get("deadline_date")
+        if deadline_date is None:
+            deadline_iso = today.isoformat()
+        elif hasattr(deadline_date, "isoformat"):
+            deadline_iso = deadline_date.isoformat()
+        else:
+            deadline_iso = str(deadline_date)
+        state.setdefault("tasks", []).append(
+            {
+                "id": str(uuid.uuid4()),
+                "title": task["title"],
+                "deadline": deadline_iso,
+                "deadline_time": deadline_time,
+                "important": task.get("important", True),
+                "difficulty_est": int(task.get("difficulty", 2)),
+                "kategori": task.get("kategori", ""),
+                "jumlah_unit": float(task.get("jumlah_unit", 0)),
+                "menit_est": int(
+                    task.get("estimated_minutes", task.get("menit_est", 0)) or 0
+                ),
+                "description": "",
+                "custom_steps": [],
+                "repeat": "none",
+                "occurrences": {},
+                "steps": [
+                    {"text": step, "done": False}
+                    for step in (task.get("steps") or [task["title"]])
+                ],
+                "created_at": clock.now().isoformat(),
+                _DEMO_MARKER: True,
+                "_demo_scenario": key,
+            }
+        )
+
+    for note in reversed(scenario.get("inbox") or []):
+        state.setdefault("inbox", []).insert(
+            0,
+            {
+                "id": str(uuid.uuid4()),
+                "text": str(note).strip(),
+                "created_at": clock.now().isoformat(),
+                _DEMO_MARKER: True,
+                "_demo_scenario": key,
+            },
+        )
+
+    # Yang boleh berubah cuma metadata presentasi. Profile/favorites/obat,
+    # subscription, today_energy, dan seluruh record belajar asli dibiarkan.
+    state["last_brief_date"] = (
+        "" if scenario.get("show_brief_today", True) else today.isoformat()
+    )
+    state[_DEMO_META_KEY] = {
+        "scenario": key,
+        "applied_at": clock.now().isoformat(),
+        "original_last_brief_date": original_last_brief,
+    }
+    storage.save_state(state)
+    _reset_models()
     return scenario.get("label", key)
 
 

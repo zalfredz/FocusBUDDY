@@ -66,6 +66,27 @@ FOKUS_BOLEH = {"home", "reset"}
 NAV_INDEX = {name: i for i, (name, _, _) in enumerate(NAV_ROUTES)}
 
 
+def _hydrate_user_state(cloud: FocusBuddyCloud, user_id: str) -> str:
+    """Ambil state user dari DB sebelum UI dibangun.
+
+    Return dipakai sebagai bukti/diagnostik sumber awal: ``database`` berarti
+    row lama berhasil di-fetch, ``cache`` berarti DB belum punya row tetapi
+    cache sesi sudah ada, dan ``baru`` berarti akun benar-benar baru.
+    """
+    had_user_cache = storage.current_data_file().exists()
+    remote = cloud.download_state(user_id)
+    if remote is not None:
+        # Database menang saat startup. Seluruh view setelah ini membaca state
+        # yang baru saja ditulis ke cache sesi ini.
+        storage.save_state(remote)
+        return "database"
+    if had_user_cache:
+        cloud.upload_state(user_id, storage.load_state())
+        return "cache"
+    cloud.upload_state(user_id, storage.load_state())
+    return "baru"
+
+
 async def main(page: ft.Page) -> None:
     page.title = "FocusBuddy"
     page.theme = theme.build_theme()
@@ -136,16 +157,9 @@ async def main(page: ft.Page) -> None:
 
         storage.set_cloud_save_hook(None)
         storage.configure_user_storage(user.id)
-        had_user_cache = storage.current_data_file().exists()
         cloud_status = "Tersinkron ke database"
         try:
-            remote = cloud.download_state(user.id)
-            if remote is not None:
-                storage.save_state(remote)
-            elif had_user_cache:
-                cloud.upload_state(user.id, storage.load_state())
-            else:
-                cloud.upload_state(user.id, storage.load_state())
+            _hydrate_user_state(cloud, user.id)
         except Exception:
             # Sesi tetap bisa dibuka dari cache server sementara. Save
             # berikutnya akan dicoba lagi oleh worker cloud.

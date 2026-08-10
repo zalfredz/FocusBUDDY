@@ -23,6 +23,8 @@ Dua peran yang beda, sengaja nggak digabung.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import wraps
+from threading import RLock
 from typing import Any, Optional
 
 import numpy as np
@@ -75,8 +77,18 @@ def rata_per_hari(logs: list[dict]) -> dict[int, float]:
 _model: Optional[RandomForestRegressor] = None
 _n_latih: int = 0
 _tanda: str = ""
+_MODEL_LOCK = RLock()
 
 
+def _locked(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        with _MODEL_LOCK:
+            return fn(*args, **kwargs)
+    return wrapper
+
+
+@_locked
 def reset_model() -> None:
     global _model, _n_latih, _tanda
     _model = None
@@ -121,6 +133,7 @@ def _latih(day: Any = None) -> bool:
     return True
 
 
+@_locked
 def ramal(f: Optional[F.Fitur] = None) -> RamalanMood:
     f = f or F.bangun_fitur()
     # Catatan diambil dari snapshot yang dioper, BUKAN baca storage lagi.
@@ -168,6 +181,7 @@ def ramal(f: Optional[F.Fitur] = None) -> RamalanMood:
     )
 
 
+@_locked
 def status() -> dict:
     logs = [l for l in storage.get_mood_logs() if l.get("score") is not None]
     return {

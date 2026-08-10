@@ -13,16 +13,32 @@ import asyncio
 
 import flet as ft
 
-from app import buddy, clock, config, focus_session, storage, theme, ui_helpers
+from app import (
+    buddy,
+    clock,
+    config,
+    focus_session,
+    session_scope,
+    storage,
+    theme,
+    ui_helpers,
+)
 from app.core import kalem_engine
 from app.core.medication_model import check_status
 
-# Satu detak untuk seluruh app. `build()` bisa kepanggil berkali-kali (tiap
-# navigate balik ke Beranda), dan tiap panggilan bikin closure `refresh` yang
-# baru. Yang disimpan di sini cuma callback TERAKHIR, jadi loop-nya tetap satu
-# dan selalu ngegambar kontrol yang beneran lagi nempel di layar -- bukan sisa
-# kontrol dari build sebelumnya yang udah nggak keliatan.
-_ticker: dict = {"running": False, "refresh": None}
+_TICKER_SESSION_KEY = "focusbuddy.home_ticker.v1"
+_FALLBACK_TICKER: dict = {"running": False, "refresh": None}
+
+
+def _ticker_state() -> dict:
+    """Satu ticker per browser, bukan satu ticker untuk seluruh server."""
+    return (
+        session_scope.get_or_create(
+            _TICKER_SESSION_KEY,
+            lambda: {"running": False, "refresh": None},
+        )
+        or _FALLBACK_TICKER
+    )
 
 
 def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
@@ -101,13 +117,22 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             return
 
         def pick(key: str):
-            SettingDemo.apply_scenario(key)
+            # Jalur UI harus non-destructive. `apply_scenario()` yang lama
+            # sengaja khusus CLI/evaluator karena me-reset seluruh storage.
+            SettingDemo.apply_scenario_overlay(key)
+            page.pop_dialog()
+            navigate("home")
+
+        def clear_demo(e):
+            SettingDemo.clear_demo_overlay()
             page.pop_dialog()
             navigate("home")
 
         rows: list[ft.Control] = [
             ft.Text(
-                "Pilih kondisi yang mau ditunjukin. Data sekarang bakal DITIMPA.",
+                "Pilih kondisi yang mau ditunjukin. Ini cuma menambahkan overlay "
+                "demo; nama, profil, favorit, obat, diary, tugas, dan catatan "
+                "aslimu tetap aman.",
                 size=12,
                 color=theme.MUTED,
             )
@@ -147,6 +172,11 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
                 title=ft.Text("Auto Feel — data demo", size=16),
                 content=ft.Column(rows, spacing=8, tight=True, scroll=ft.ScrollMode.AUTO),
                 actions=[
+                    ft.TextButton(
+                        content=ft.Text("Hapus data demo"),
+                        on_click=clear_demo,
+                        disabled=not SettingDemo.demo_overlay_active(),
+                    ),
                     ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog())
                 ],
             )
@@ -196,7 +226,7 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             icon=ft.Icons.AUTO_FIX_HIGH,
             icon_color=theme.MUTED,
             icon_size=20,
-            tooltip="Auto Feel — isi data demo",
+            tooltip="Auto Feel — overlay data demo (data asli tetap aman)",
             on_click=open_auto_feel,
         ),
     ]
@@ -386,6 +416,7 @@ def _popup_makan(page: ft.Page, navigate) -> None:
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
+    ticker_state = _ticker_state()
     # Redirect kalau belum onboarding ditangani router di main.py -- jangan
     # panggil navigate() dari sini, hasilnya bakal ketimpa nilai balik fungsi ini.
     profile, day = kalem_engine.snapshot()
@@ -752,22 +783,22 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.update()
 
     async def ticker():
-        """Satu loop buat seluruh app, dijaga `_ticker['running']`.
+        """Satu loop untuk sesi browser ini, dijaga ``ticker_state``.
 
         Tanpa penjaga ini tiap kunjungan ke Beranda bakal nambah satu loop,
         dan timernya keliatan lompat 2-3 detik sekaligus.
         """
-        if _ticker["running"]:
+        if ticker_state["running"]:
             return
-        _ticker["running"] = True
+        ticker_state["running"] = True
         try:
             while focus_session.is_active():
                 await asyncio.sleep(1)
-                fn = _ticker["refresh"]
+                fn = ticker_state["refresh"]
                 if fn:
                     fn()
         finally:
-            _ticker["running"] = False
+            ticker_state["running"] = False
 
     focus_card = ui_helpers.card(
         ft.Column(
@@ -817,7 +848,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     session_active = focus_session.is_active()
     if session_active:
-        _ticker["refresh"] = refresh_focus
+        ticker_state["refresh"] = refresh_focus
         refresh_focus()
 
     # ------------------------------------------------------ quick capture

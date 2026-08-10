@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from app import clock, focus_session, storage
 from app.cloud import FocusBuddyCloud, oauth_code_from_url
+from app.main import _hydrate_user_state
+from app.views import home
 
 
 class _StorePalsu:
@@ -46,6 +49,25 @@ def test_pkce_verifier_bisa_dipulihkan_setelah_redirect():
     cloud = FocusBuddyCloud()
     cloud.restore_pkce_verifier("verifier-browser")
     assert cloud.pkce_verifier() == "verifier-browser"
+
+
+def test_fetch_database_selalu_difilter_dengan_uid_login():
+    cloud = FocusBuddyCloud()
+    response = SimpleNamespace(
+        status_code=200,
+        raise_for_status=lambda: None,
+        json=lambda: [{"state": {"profile": {"name": "Dari DB"}}}],
+    )
+    try:
+        with patch.object(
+            cloud, "session", return_value=SimpleNamespace(access_token="jwt-user-a")
+        ), patch.object(cloud._http, "get", return_value=response) as get:
+            state = cloud.download_state("uid-user-a")
+        assert state["profile"]["name"] == "Dari DB"
+        assert get.call_args.kwargs["params"]["user_id"] == "eq.uid-user-a"
+        assert get.call_args.kwargs["headers"]["Authorization"] == "Bearer jwt-user-a"
+    finally:
+        cloud._http.close()
 
 
 def test_storage_user_dipisah_dan_hook_dipanggil():
@@ -88,16 +110,50 @@ def test_dua_sesi_browser_tidak_berbagi_state_runtime():
         storage.save_state(state_a)
         storage.advance_day(7)
         focus_session.start(10, task_title="Tugas A")
+        ticker_a = home._ticker_state()
+        ticker_a["running"] = True
 
         active[0] = "b"
         storage.configure_user_storage("user-b", cache_root=root)
         assert storage.load_state()["profile"]["name"] == ""
         assert clock.get_offset() == 0
         assert not focus_session.is_active()
+        ticker_b = home._ticker_state()
+        assert ticker_b is not ticker_a
+        assert ticker_b["running"] is False
 
         active[0] = "a"
         assert storage.load_state()["profile"]["name"] == "A"
         assert clock.get_offset() == 7
         assert focus_session.snapshot()["task_title"] == "Tugas A"
+        assert home._ticker_state()["running"] is True
         focus_session.stop()
         clock.reset_offset()
+
+
+def test_fetch_database_menghidrasi_state_yang_dibaca_frontend():
+    stores = {"browser": _StorePalsu()}
+    remote = storage._default_state()
+    remote["profile"]["name"] = "Nama dari Supabase"
+
+    class CloudPalsu:
+        uploads = []
+
+        def download_state(self, user_id):
+            assert user_id == "uid-db"
+            return remote
+
+        def upload_state(self, user_id, state):
+            self.uploads.append((user_id, state))
+
+    with tempfile.TemporaryDirectory() as tmp, patch(
+        "app.session_scope.current_store", return_value=stores["browser"]
+    ), patch(
+        "app.session_scope.current_session_id", return_value="browser"
+    ):
+        storage.configure_user_storage("uid-db", cache_root=Path(tmp))
+        cloud = CloudPalsu()
+        sumber = _hydrate_user_state(cloud, "uid-db")
+        assert sumber == "database"
+        assert storage.get_profile()["name"] == "Nama dari Supabase"
+        assert cloud.uploads == []
