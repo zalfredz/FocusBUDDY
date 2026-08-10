@@ -1,6 +1,7 @@
 # rahasia -- API key nggak boleh ke-commit
 .env
 .env.local
+!.env.example
 
 # virtualenv
 .venv/

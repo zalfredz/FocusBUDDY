@@ -1,4 +1,4 @@
-"""Persistensi lokal FocusBuddy (JSON di ~/.focusbuddy/data.json).
+"""Persistensi FocusBuddy (cache sesi server + database Supabase).
 
 Schema v3 memisahkan dua lapisan yang dipakai Kalem decision engine:
 
@@ -6,26 +6,118 @@ Schema v3 memisahkan dua lapisan yang dipakai Kalem decision engine:
 - **DayState harian** -- energi, mood, tugas, absen obat, riwayat SOS.
   Berubah tiap hari/sesi.
 
-Nggak ada server/DB eksternal di build ini. Ganti modul ini kalau nanti
-mau pindah ke backend beneran -- layer UI nggak perlu ikut berubah.
+Setelah login, cache server dipisah per ``user_id`` dan sesi browser, lalu
+setiap perubahan disinkronkan ke row Supabase milik user tersebut. UI tetap
+memakai API storage lama agar decision engine tidak perlu tahu detail cloud.
 """
 from __future__ import annotations
 
 import json
 import os
 import shutil
+import tempfile
 import uuid
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
-from app import clock
+from app import clock, session_scope
 
 DATA_DIR = Path.home() / ".focusbuddy"
 DATA_FILE = DATA_DIR / "data.json"
 BACKUP_FILE = DATA_DIR / "data.json.bak"
 SCHEMA_VERSION = 3
+
+_CLOUD_SAVE_HOOK: Optional[Callable[[dict[str, Any]], None]] = None
+_SESSION_STORAGE_KEY = "focusbuddy.storage.v1"
+
+
+@dataclass
+class _StorageBinding:
+    data_dir: Path
+    data_file: Path
+    backup_file: Path
+    cloud_save_hook: Optional[Callable[[dict[str, Any]], None]] = None
+
+
+def _session_binding() -> Optional[_StorageBinding]:
+    store = session_scope.current_store()
+    if store is None:
+        return None
+    value = store.get(_SESSION_STORAGE_KEY)
+    return value if isinstance(value, _StorageBinding) else None
+
+
+def _paths() -> tuple[Path, Path, Path]:
+    binding = _session_binding()
+    if binding is not None:
+        return binding.data_dir, binding.data_file, binding.backup_file
+    # Fallback ini dipakai script CLI dan regression test di luar Flet.
+    return DATA_DIR, DATA_FILE, BACKUP_FILE
+
+
+def current_data_file() -> Path:
+    """Lokasi cache milik sesi aktif (berguna untuk startup/sinkronisasi)."""
+    return _paths()[1]
+
+
+def configure_user_storage(user_id: str, cache_root: Optional[Path] = None) -> None:
+    """Arahkan cache ke folder user + sesi browser yang terautentikasi.
+
+    Folder sesi yang unik mencegah dua tab akun yang sama menulis temporary
+    file bersamaan. Supabase tetap menjadi salinan persisten lintas sesi.
+    """
+    global DATA_DIR, DATA_FILE, BACKUP_FILE
+    safe_id = "".join(c for c in str(user_id) if c.isalnum() or c in "-_")
+    if not safe_id:
+        raise ValueError("user_id tidak valid")
+    session_id = "".join(
+        c for c in session_scope.current_session_id() if c.isalnum() or c in "-_"
+    )
+    if session_id:
+        root = cache_root or Path(
+            os.getenv(
+                "FOCUSBUDDY_CACHE_DIR",
+                str(Path(tempfile.gettempdir()) / "focusbuddy-web-cache"),
+            )
+        )
+        data_dir = root / safe_id / session_id
+        session_scope.set_value(
+            _SESSION_STORAGE_KEY,
+            _StorageBinding(
+                data_dir=data_dir,
+                data_file=data_dir / "data.json",
+                backup_file=data_dir / "data.json.bak",
+            ),
+        )
+        return
+
+    # Kompatibilitas script/testing tanpa Flet context.
+    DATA_DIR = Path.home() / ".focusbuddy" / "users" / safe_id
+    DATA_FILE = DATA_DIR / "data.json"
+    BACKUP_FILE = DATA_DIR / "data.json.bak"
+
+
+def set_cloud_save_hook(hook: Optional[Callable[[dict[str, Any]], None]]) -> None:
+    """Pasang callback non-blocking sesudah penulisan lokal berhasil."""
+    global _CLOUD_SAVE_HOOK
+    binding = _session_binding()
+    if binding is not None:
+        binding.cloud_save_hook = hook
+        return
+    _CLOUD_SAVE_HOOK = hook
+
+
+def clear_user_storage() -> None:
+    """Lepas binding sesi saat logout; tidak memengaruhi browser lain."""
+    session_scope.remove_value(_SESSION_STORAGE_KEY)
+
+
+def _cloud_save_hook() -> Optional[Callable[[dict[str, Any]], None]]:
+    binding = _session_binding()
+    return binding.cloud_save_hook if binding is not None else _CLOUD_SAVE_HOOK
 
 # Pilihan onboarding -- dipakai juga sama halaman onboarding buat render opsi.
 STATUS_OPTIONS = {
@@ -374,21 +466,22 @@ def set_productive_hours(ranges: list[list[int]]) -> None:
 
 
 def load_state() -> dict[str, Any]:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    if not DATA_FILE.exists():
+    data_dir, data_file, backup_file = _paths()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    if not data_file.exists():
         state = _default_state()
         save_state(state)
         return state
     recovered_from_backup = False
     try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
+        with open(data_file, "r", encoding="utf-8") as f:
             state = json.load(f)
     except (json.JSONDecodeError, OSError):
         # Penulisan normal bersifat atomik, tapi backup tetap penting buat
         # kasus storage/OS mati di waktu yang paling nggak enak. Jangan
         # diam-diam nampilin app kosong kalau salinan terakhir masih sehat.
         try:
-            with open(BACKUP_FILE, "r", encoding="utf-8") as f:
+            with open(backup_file, "r", encoding="utf-8") as f:
                 state = json.load(f)
             recovered_from_backup = True
         except (json.JSONDecodeError, OSError):
@@ -453,26 +546,34 @@ def load_state() -> dict[str, Any]:
 
 
 def save_state(state: dict[str, Any]) -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    temporary = DATA_FILE.with_suffix(".json.tmp")
+    data_dir, data_file, backup_file = _paths()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    temporary = data_file.with_suffix(".json.tmp")
     with open(temporary, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2, ensure_ascii=False, default=str)
         f.flush()
         os.fsync(f.fileno())
     # Backup adalah salinan state VALID sebelum diganti; kegagalannya nggak
     # boleh menghalangi simpan utama kalau filesystem menolak metadata backup.
-    if DATA_FILE.exists():
+    if data_file.exists():
         try:
             # Jangan menimpa backup sehat dengan primary yang korup saat
             # recovery. Copy hanya kalau JSON primary bisa dibaca sebagai
             # object state yang masuk akal.
-            with open(DATA_FILE, "r", encoding="utf-8") as current:
+            with open(data_file, "r", encoding="utf-8") as current:
                 valid_primary = isinstance(json.load(current), dict)
             if valid_primary:
-                shutil.copy2(DATA_FILE, BACKUP_FILE)
+                shutil.copy2(data_file, backup_file)
         except (json.JSONDecodeError, OSError):
             pass
-    os.replace(temporary, DATA_FILE)
+    os.replace(temporary, data_file)
+    hook = _cloud_save_hook()
+    if hook is not None:
+        try:
+            hook(deepcopy(state))
+        except Exception:
+            # Menyimpan lokal tidak boleh gagal hanya karena internet/cloud.
+            pass
 
 
 def reset_all_data() -> dict[str, Any]:
@@ -774,11 +875,19 @@ def clear_hour_offset() -> None:
     tombol "lompat ke malam" bisa dimatiin sendiri -- demo sering perlu tetap
     di hari yang udah dimajuin, cuma jamnya balik normal.
     """
+    effective_day = clock.today()
     state = load_state()
     dev = state.setdefault("dev", {})
     dev["hour_offset"] = 0
-    save_state(state)
     clock.set_hour_offset(0)
+    # Kalau offset jam sebelumnya melewati tengah malam, menghapusnya bisa
+    # membuat tanggal demo mundur satu hari. Pindahkan selisih itu ke offset
+    # hari agar tombol ini benar-benar cuma mengubah JAM.
+    day_adjustment = (effective_day - clock.today()).days
+    if day_adjustment:
+        dev["day_offset"] = int(dev.get("day_offset", 0)) + day_adjustment
+        clock.set_offset(dev["day_offset"])
+    save_state(state)
 
 
 def clear_last_brief_date() -> None:

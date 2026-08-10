@@ -25,7 +25,7 @@ from app.kalem_ml import fitur as kfitur
 
 AGE_OPTIONS = ["<18", "18-24", "25-34", "35+"]
 
-APP_VERSION = "4.1.0"
+APP_VERSION = "5.0.0"
 
 # Rentang yang dipasang pas user mencet "Tambah rentang" -- sore-malam,
 # jam paling umum buat orang ngerjain sesuatu di luar jam wajib.
@@ -407,6 +407,48 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def confirm_reset(e):
         ui_helpers.show_reset_confirm(page, lambda: (storage.reset_all_data(), navigate("home")))
 
+    cloud_user = getattr(page, "_focusbuddy_cloud_user", None)
+    cloud_status = getattr(page, "_focusbuddy_cloud_status", "Status sinkronisasi belum tersedia")
+    logout_handler = getattr(page, "_focusbuddy_logout", None)
+
+    akun_card = ui_helpers.card(
+        ft.Column(
+            [
+                ui_helpers.section_header("Akun & Cloud"),
+                ft.Text(
+                    (cloud_user.name or cloud_user.email)
+                    if cloud_user
+                    else "Belum terhubung",
+                    size=13,
+                    weight=ft.FontWeight.BOLD,
+                    color=theme.ON_BACKGROUND,
+                ),
+                ft.Text(
+                    cloud_user.email if cloud_user else "",
+                    size=11,
+                    color=theme.MUTED,
+                    visible=bool(cloud_user and cloud_user.name and cloud_user.email),
+                ),
+                ft.Row(
+                    [
+                        ft.Icon(ft.Icons.CLOUD_DONE_OUTLINED, size=15, color=theme.PRIMARY),
+                        ft.Text(cloud_status, size=11, color=theme.MUTED, expand=True),
+                    ],
+                    spacing=7,
+                ),
+                ft.TextButton(
+                    content=ft.Text("Keluar dari akun", color=theme.DANGER),
+                    icon=ft.Icons.LOGOUT,
+                    icon_color=theme.DANGER,
+                    on_click=logout_handler,
+                    visible=logout_handler is not None,
+                ),
+            ],
+            spacing=7,
+        ),
+        padding=16,
+    )
+
     return ft.Column(
         [
             ui_helpers.page_header("Pengaturan", on_back=lambda e: navigate("home")),
@@ -438,13 +480,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 lambda e: navigate("favorites"),
             ),
             _kartu_model(),
+            akun_card,
             ui_helpers.card(
                 ft.Column(
                     [
                         ui_helpers.section_header("Privasi & Data"),
                         ft.Text(
-                            "Semua data (profil, tugas, mood, diary, favorit, obat) disimpan "
-                            "lokal di HP ini aja. Nggak ada server luar di build ini.",
+                            "Data (profil, tugas, mood, diary, favorit, dan obat) disimpan "
+                            "di database akun kamu. Cache sementara setiap sesi browser "
+                            "dipisahkan, dan setiap akun hanya boleh membaca row miliknya "
+                            "melalui Row Level Security. "
+                            "Isi tugas yang perlu disusun dapat diproses Kalem; kredensial "
+                            "Google dan isi diary tidak dikirim ke model penyusun.",
                             size=12,
                             color=theme.MUTED,
                         ),
@@ -562,8 +609,8 @@ def _kartu_model() -> ft.Control:
             [
                 ui_helpers.section_header("Yang Kalem pelajari"),
                 ft.Text(
-                    "Semua ini dipelajari dari pemakaian kamu sendiri, di HP ini aja. "
-                    "Makin sering dipakai, makin nyesuain.",
+                    "Semua ini dipelajari dari pemakaian akun kamu sendiri, tidak "
+                    "dicampur dengan akun lain. Makin sering dipakai, makin nyesuain.",
                     size=11.5,
                     color=theme.MUTED,
                 ),

@@ -1,0 +1,11 @@
+.env
+.env.local
+.git
+.venv
+.venv-*
+.flet
+app/.flet
+build
+__pycache__
+*.pyc
+.DS_Store

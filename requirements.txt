@@ -1,4 +1,6 @@
-flet>=0.86.0
+flet>=0.86.0,<0.87
+flet-web>=0.86.0,<0.87
+supabase-auth>=2.31.0,<3
 google-genai>=1.0.0
 openai>=1.0.0
 python-dotenv>=1.0.0
