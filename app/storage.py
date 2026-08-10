@@ -12,7 +12,10 @@ mau pindah ke backend beneran -- layer UI nggak perlu ikut berubah.
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import uuid
+from copy import deepcopy
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
@@ -21,6 +24,7 @@ from app import clock
 
 DATA_DIR = Path.home() / ".focusbuddy"
 DATA_FILE = DATA_DIR / "data.json"
+BACKUP_FILE = DATA_DIR / "data.json.bak"
 SCHEMA_VERSION = 3
 
 # Pilihan onboarding -- dipakai juga sama halaman onboarding buat render opsi.
@@ -175,6 +179,14 @@ def _default_state() -> dict[str, Any]:
         # personal di kalem_ml/model_durasi. {kategori, jumlah_unit, menit,
         # energi, date}
         "focus_records": [],
+        # Hasil Pecah Tugas yang sukses -- bahan retrieval di
+        # kalem_ml/model_pecah, biar tugas mirip nggak perlu manggil AI lagi.
+        # {title, description, steps, source, date}
+        "decompose_records": [],
+        # "Kalem nampilin pesan X, user mencet apa nggak" -- SATU-SATUNYA
+        # label objektif buat ngelatih pemilihan pesan (calon ML_KALEM).
+        # {id, date, kind, action_kind, n_tampil, acted, fitur}
+        "decision_records": [],
         # Tanggal terakhir app dibuka. Dipakai buat ngitung berapa hari user
         # menghilang -- lihat `hari_sejak_checkin()`.
         "last_open_date": "",
@@ -367,20 +379,51 @@ def load_state() -> dict[str, Any]:
         state = _default_state()
         save_state(state)
         return state
+    recovered_from_backup = False
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             state = json.load(f)
     except (json.JSONDecodeError, OSError):
-        return _default_state()
+        # Penulisan normal bersifat atomik, tapi backup tetap penting buat
+        # kasus storage/OS mati di waktu yang paling nggak enak. Jangan
+        # diam-diam nampilin app kosong kalau salinan terakhir masih sehat.
+        try:
+            with open(BACKUP_FILE, "r", encoding="utf-8") as f:
+                state = json.load(f)
+            recovered_from_backup = True
+        except (json.JSONDecodeError, OSError):
+            return _default_state()
+
+    # JSON yang valid belum tentu state aplikasi yang valid. Jangan izinkan
+    # file manual/rusak membuat `.get()` di bawah meledak saat app dibuka.
+    if not isinstance(state, dict):
+        state = _default_state()
+        recovered_from_backup = True
 
     migrated = _migrate(state)
-    changed = migrated is not state
+    changed = migrated is not state or recovered_from_backup
     # Isi key root yang belum ada TANPA naikin schema. Perlu karena _migrate()
     # berhenti lebih awal kalau schema-nya udah sama -- jadi field baru yang
     # ditambahin ke _default_state() nggak akan pernah nyampe ke file lama.
     for key, value in _default_state().items():
         if key not in migrated:
-            migrated[key] = value
+            migrated[key] = deepcopy(value)
+            changed = True
+
+    # Bentuk root yang salah sama berbahayanya dengan key yang hilang: schema
+    # bisa tetap "terbaru" sementara `tasks` berubah jadi string akibat edit
+    # manual atau write yang rusak. Normalisasi hanya mengganti field rusak,
+    # tidak membuang field valid lain.
+    for key in ("profile", "favorites", "today_energy", "subscription", "usage", "dev"):
+        if not isinstance(migrated.get(key), dict):
+            migrated[key] = deepcopy(_default_state()[key])
+            changed = True
+    for key in (
+        "tasks", "mood_logs", "reset_events", "inbox", "focus_records",
+        "decompose_records", "decision_records",
+    ):
+        if not isinstance(migrated.get(key), list):
+            migrated[key] = []
             changed = True
 
     # Isi juga kolom favorit baru. Nggak cukup ngandelin backfill root di
@@ -411,8 +454,25 @@ def load_state() -> dict[str, Any]:
 
 def save_state(state: dict[str, Any]) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
+    temporary = DATA_FILE.with_suffix(".json.tmp")
+    with open(temporary, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2, ensure_ascii=False, default=str)
+        f.flush()
+        os.fsync(f.fileno())
+    # Backup adalah salinan state VALID sebelum diganti; kegagalannya nggak
+    # boleh menghalangi simpan utama kalau filesystem menolak metadata backup.
+    if DATA_FILE.exists():
+        try:
+            # Jangan menimpa backup sehat dengan primary yang korup saat
+            # recovery. Copy hanya kalau JSON primary bisa dibaca sebagai
+            # object state yang masuk akal.
+            with open(DATA_FILE, "r", encoding="utf-8") as current:
+                valid_primary = isinstance(json.load(current), dict)
+            if valid_primary:
+                shutil.copy2(DATA_FILE, BACKUP_FILE)
+        except (json.JSONDecodeError, OSError):
+            pass
+    os.replace(temporary, DATA_FILE)
 
 
 def reset_all_data() -> dict[str, Any]:
@@ -832,17 +892,17 @@ def in_tired_window(now: Optional[Any] = None) -> bool:
 URGENT_WITHIN_HOURS = 24
 
 
-def is_urgent(task: dict, now: Optional[Any] = None) -> bool:
-    """Mendesak = deadline tinggal <= 24 jam lagi (atau udah lewat).
+def deadline_at(task: dict) -> Optional[datetime]:
+    """Deadline ter-normalisasi untuk satu tugas, atau ``None`` bila tidak ada.
 
-    Kalau jam deadline nggak diisi, dianggap akhir hari (23:59) -- biar
-    tugas "hari ini" tanpa jam nggak langsung kehitung lewat pas pagi.
+    Satu parser dipakai oleh label kuadran dan penilaian urutan urgensi agar
+    tugas dengan deadline yang sama tidak bisa dibaca berbeda di dua tempat.
+    Jam kosong tetap berarti akhir hari, sesuai kontrak lama.
     """
-    now = now or clock.now()
     try:
         d = date.fromisoformat(task.get("deadline", ""))
     except (TypeError, ValueError):
-        return False
+        return None
 
     jam = (task.get("deadline_time") or "").strip()
     if jam:
@@ -852,8 +912,19 @@ def is_urgent(task: dict, now: Optional[Any] = None) -> bool:
             h, m = 23, 59
     else:
         h, m = 23, 59
+    return datetime(d.year, d.month, d.day, min(h, 23), min(m, 59))
 
-    batas = datetime(d.year, d.month, d.day, min(h, 23), min(m, 59))
+
+def is_urgent(task: dict, now: Optional[Any] = None) -> bool:
+    """Mendesak = deadline tinggal <= 24 jam lagi (atau udah lewat).
+
+    Kalau jam deadline nggak diisi, dianggap akhir hari (23:59) -- biar
+    tugas "hari ini" tanpa jam nggak langsung kehitung lewat pas pagi.
+    """
+    now = now or clock.now()
+    batas = deadline_at(task)
+    if batas is None:
+        return False
     sisa_jam = (batas - now).total_seconds() / 3600
     return sisa_jam <= URGENT_WITHIN_HOURS
 
@@ -868,6 +939,9 @@ def add_task(
     jumlah_unit: float = 0,
     menit_est: int = 0,
     deadline_time: str = "",
+    description: str = "",
+    repeat: str = "none",
+    custom_steps: Optional[list[str]] = None,
 ) -> dict:
     state = load_state()
     task = {
@@ -889,6 +963,18 @@ def add_task(
         "kategori": kategori,
         "jumlah_unit": float(jumlah_unit),
         "menit_est": int(menit_est),
+        # Konteks bebas OPSIONAL. Kalau diisi, Pecah Tugas mecah dari ISI
+        # INI (bukan cuma judul) -- lihat decomposer_logic.py. Judul tugas
+        # sering cuma 3-5 kata ("Bikin proposal hackathon"), nggak cukup
+        # buat AI ngerti APA yang mau dikerjain; deskripsi itu konteksnya.
+        "description": description,
+        # Langkah yang ditulis user sendiri saat Pecah Tugas. Disimpan agar
+        # penyusunan ulang berikutnya tidak menghapus konteks personalnya.
+        "custom_steps": [str(step).strip() for step in (custom_steps or []) if str(step).strip()],
+        # Tugas berulang adalah satu template, bukan ratusan duplikat.
+        # Status checklist per tanggal disimpan terpisah di `occurrences`.
+        "repeat": repeat if repeat in {"none", "daily", "weekly", "monthly"} else "none",
+        "occurrences": {},
         "steps": steps or [],
         "created_at": clock.now().isoformat(),
     }
@@ -902,11 +988,64 @@ def get_tasks() -> list[dict]:
 
 
 def tasks_for(day: str) -> list[dict]:
-    return [t for t in get_tasks() if t["deadline"] == day]
+    """Tugas yang tampil pada satu hari, termasuk occurrence berulang.
+
+    Untuk tugas berulang, object hasil adalah salinan bertanda
+    `_occurrence_date`; mutasi checklist harus lewat `set_step_done()` agar
+    hanya occurrence itu yang berubah, bukan semua minggu berikutnya.
+    """
+    try:
+        target = date.fromisoformat(day)
+    except (TypeError, ValueError):
+        return []
+
+    tampil: list[dict] = []
+    for task in get_tasks():
+        try:
+            mulai = date.fromisoformat(task["deadline"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        repeat = task.get("repeat", "none")
+        cocok = (
+            target == mulai
+            or (repeat == "daily" and target >= mulai)
+            or (repeat == "weekly" and target >= mulai and target.weekday() == mulai.weekday())
+            or (repeat == "monthly" and target >= mulai and target.day == mulai.day)
+        )
+        if not cocok:
+            continue
+        shown = dict(task)
+        if repeat != "none":
+            saved_steps = task.get("occurrences", {}).get(day, task.get("steps", []))
+            shown["steps"] = [dict(step) for step in saved_steps]
+            shown["_occurrence_date"] = day
+        tampil.append(shown)
+    return tampil
 
 
 def tasks_today() -> list[dict]:
     return tasks_for(clock.today().isoformat())
+
+
+def tasks_actionable_today() -> list[dict]:
+    """Occurrence hari ini plus tugas sekali jalan yang sudah terlambat.
+
+    Deadline yang terlewat tetap perlu ditriage, bukan hilang dari Beranda.
+    Tugas berulang tidak dibawa dari occurrence lama karena setiap tanggal
+    punya checklistnya sendiri dan akan muncul lagi sesuai jadwalnya.
+    """
+    today = clock.today()
+    current = tasks_for(today.isoformat())
+    overdue = []
+    for task in get_tasks():
+        if task.get("repeat", "none") != "none" or task_is_done(task):
+            continue
+        try:
+            if date.fromisoformat(task["deadline"]) < today:
+                overdue.append(task)
+        except (KeyError, TypeError, ValueError):
+            continue
+    return current + overdue
 
 
 def delete_task(task_id: str) -> None:
@@ -915,7 +1054,7 @@ def delete_task(task_id: str) -> None:
     save_state(state)
 
 
-def set_task_steps(task_id: str, steps: list[dict]) -> None:
+def set_task_steps(task_id: str, steps: list[dict], occurrence_date: Optional[str] = None) -> None:
     """Timpa langkah tugas, TAPI centang yang teksnya sama tetap kejaga.
 
     Tanpa penjagaan ini, mencet "Pecah Tugas" buat kedua kalinya bakal
@@ -925,22 +1064,51 @@ def set_task_steps(task_id: str, steps: list[dict]) -> None:
     state = load_state()
     for task in state["tasks"]:
         if task["id"] == task_id:
+            old_steps = task.get("steps", [])
+            if occurrence_date and task.get("repeat", "none") != "none":
+                old_steps = task.get("occurrences", {}).get(occurrence_date, old_steps)
             done_texts = {
-                s.get("text") for s in task.get("steps", []) if s.get("done")
+                s.get("text") for s in old_steps if s.get("done")
             }
-            task["steps"] = [
+            new_steps = [
                 {**s, "done": s.get("done", False) or s.get("text") in done_texts}
                 for s in steps
             ]
+            # Template baru dipakai occurrence berikutnya. Occurrence yang
+            # sedang dikerjakan juga di-update tanpa menghapus centang lama.
+            task["steps"] = new_steps
+            if occurrence_date and task.get("repeat", "none") != "none":
+                task.setdefault("occurrences", {})[occurrence_date] = [dict(s) for s in new_steps]
             break
     save_state(state)
 
 
-def set_step_done(task_id: str, step_index: int, done: bool) -> None:
+def set_task_custom_steps(task_id: str, steps: list[str]) -> None:
+    """Simpan langkah tambahan user sebagai bagian permanen dari tugas."""
+    state = load_state()
+    clean = [str(step).strip() for step in steps if str(step).strip()]
+    for task in state["tasks"]:
+        if task["id"] == task_id:
+            task["custom_steps"] = clean
+            break
+    save_state(state)
+
+
+def set_step_done(
+    task_id: str, step_index: int, done: bool, occurrence_date: Optional[str] = None
+) -> None:
     state = load_state()
     for task in state["tasks"]:
-        if task["id"] == task_id and 0 <= step_index < len(task["steps"]):
-            task["steps"][step_index]["done"] = done
+        if task["id"] != task_id:
+            continue
+        if occurrence_date and task.get("repeat", "none") != "none":
+            steps = task.setdefault("occurrences", {}).setdefault(
+                occurrence_date, [dict(step) for step in task.get("steps", [])]
+            )
+        else:
+            steps = task.get("steps", [])
+        if 0 <= step_index < len(steps):
+            steps[step_index]["done"] = done
             break
     save_state(state)
 
@@ -949,7 +1117,7 @@ def task_is_done(task: dict) -> bool:
     return bool(task["steps"]) and all(s.get("done") for s in task["steps"])
 
 
-def quadrant_of(task: dict) -> str:
+def quadrant_of(task: dict, now: Optional[Any] = None) -> str:
     """Kuadran Eisenhower. Sumbu "mendesak" DIHITUNG dari deadline.
 
     Dulu ini baca `task["urgent"]` -- centang yang diisi user waktu bikin
@@ -957,7 +1125,7 @@ def quadrant_of(task: dict) -> str:
     dicentang "nggak mendesak" tetap ngaku nggak mendesak walau deadline-nya
     besok. Sekarang dihitung ulang tiap dibaca, jadi selalu jujur.
     """
-    urgent = is_urgent(task)
+    urgent = is_urgent(task, now=now)
     penting = task.get("important", True)
     if urgent and penting:
         return "lakukan"      # penting + mendesak
@@ -1047,6 +1215,197 @@ def get_focus_records() -> list[dict]:
 # nyaring sendiri inline dari `get_focus_records()`. Dihapus.
 
 
+# ------------------------------------------- riwayat pecah tugas (retrieval)
+#
+# KENAPA INI ADA
+# --------------
+# Tiap Pecah Tugas yang sukses disimpen di sini, biar tugas MIRIP berikutnya
+# bisa mungut hasil lama -- nol panggilan AI. Makin lama app dipakai, makin
+# sering ketemu yang mirip, makin jarang API kepanggil. Itu satu-satunya cara
+# "makin dipakai makin murah" yang realistis buat output berupa KALIMAT:
+# model lokal bisa NEBAK ANGKA (lihat model_durasi) tapi nggak bisa NGARANG
+# kalimat baru tanpa fine-tune LLM -- di luar skala project ini.
+#
+# Yang disimpen sengaja judul+deskripsi MENTAH: pencocokannya di
+# `kalem_ml/model_pecah.py` pakai TF-IDF n-gram huruf, jadi butuh teks asli,
+# bukan hasil olahan.
+
+# Batas entri. Lebih dari ini nggak nambah peluang ketemu yang mirip secara
+# berarti, tapi bikin file data numpuk & pencocokan makin lambat.
+MAX_DECOMPOSE_RECORDS = 300
+
+
+def add_decompose_record(
+    title: str,
+    description: str,
+    steps: list[str],
+    source: str = "ai",
+    language: str = "id",
+) -> Optional[dict]:
+    """Catat satu hasil Pecah Tugas yang sukses. Return None kalau nggak layak.
+
+    `source`: "ai" (dari LLM) | "manual" (deskripsi terstruktur user sendiri)
+    | "dataset" (pola bawaan dari DATASET/).
+
+    `language`: penanda bahasa. Retrieval cuma mungut pola SEBAHASA biar user
+    Indonesia nggak pernah dapet langkah berbahasa Inggris -- lihat
+    `kalem_ml/model_pecah.cari()`.
+    """
+    steps = [s.strip() for s in steps if (s or "").strip()]
+    if not (title or "").strip() or not steps:
+        return None
+
+    state = load_state()
+    record = {
+        "title": title.strip(),
+        "description": (description or "").strip(),
+        "steps": steps,
+        "source": source,
+        "language": language,
+        "date": clock.today().isoformat(),
+    }
+    daftar = state.setdefault("decompose_records", [])
+    # Judul+deskripsi yang sama persis ditimpa, bukan numpuk -- mecah ulang
+    # tugas yang sama harusnya ngoreksi catatan lama, bukan bikin duplikat
+    # yang nanti rebutan pas dicocokin.
+    kunci = (record["title"].lower(), record["description"].lower())
+    state["decompose_records"] = [
+        r for r in daftar
+        if (r.get("title", "").lower(), r.get("description", "").lower()) != kunci
+    ]
+    state["decompose_records"].insert(0, record)
+    state["decompose_records"] = state["decompose_records"][:MAX_DECOMPOSE_RECORDS]
+    save_state(state)
+    return record
+
+
+def get_decompose_records() -> list[dict]:
+    return load_state().get("decompose_records", [])
+
+
+# ------------------------------------------- label keputusan (bahan ML_KALEM)
+#
+# KENAPA INI ADA
+# --------------
+# Semua model lain punya label yang OBJEKTIF & gratis: model_mood belajar dari
+# skor besok, model_overwhelm dari "user mencet SOS apa nggak". Tapi buat
+# pertanyaan "pesan mana yang sebaiknya Kalem tampilkan sekarang" -- nggak ada
+# jawaban benar yang bisa dikarang dari data yang ada.
+#
+# Satu-satunya label jujur: USER NGAPAIN sesudah dikasih pesan itu. Dipencet
+# tombol aksinya, atau didiemin? Itu yang dicatat di sini, dan itu satu-satunya
+# bahan yang bisa bikin ML_KALEM belajar milih.
+#
+# TIGA HAL YANG SENGAJA DIPEGANG
+# ------------------------------
+# 1. NGGAK ADA PENILAIAN. "Didiemin" itu data, bukan kegagalan user. Angka ini
+#    nggak pernah dipajang sebagai skor kepatuhan -- itu bakal ngubah app jadi
+#    alat yang bikin merasa bersalah, kebalikan dari tujuannya.
+# 2. LOKAL. Sama kayak data lain di app ini, nggak ke mana-mana.
+# 3. DITAMPILIN BERULANG ITU SINYAL. Kalau pesan yang sama muncul 5x dan nggak
+#    pernah dipencet, itu jauh lebih informatif daripada 1x nggak dipencet --
+#    makanya yang dicatat `n_tampil`, bukan bikin baris baru tiap render.
+
+MAX_DECISION_RECORDS = 500
+
+
+def _fitur_ringkas(f: Optional[Any]) -> dict[str, float]:
+    """Ambil SEBAGIAN fitur aja buat disimpen bareng keputusan.
+
+    Bukan semua ~43 kolom: yang disimpen cuma yang masuk akal ngaruh ke
+    "pesan ini kepencet apa nggak". Nyimpen semuanya bikin file data
+    membengkak tanpa nambah apa-apa yang kepakai.
+    """
+    if f is None:
+        return {}
+    kolom = (
+        "skor_3h", "energi_terakhir", "streak_abai", "n_sos_7h",
+        "n_belum_selesai", "n_mendesak", "beban_menit", "rasio_selesai_7h",
+        "di_jam_produktif", "di_jam_capek", "jam", "weekday", "is_weekend",
+        "obat_kelewat", "hari_sejak_checkin",
+    )
+    keluar: dict[str, float] = {}
+    for k in kolom:
+        try:
+            keluar[k] = round(float(f[k]), 3)
+        except (KeyError, TypeError, ValueError):
+            continue
+    return keluar
+
+
+def record_decision_shown(
+    kind: str,
+    action_kind: str,
+    fitur: Optional[Any] = None,
+    label: str = "",
+) -> Optional[str]:
+    """Catat "Kalem nampilin keputusan X". Return id catatannya.
+
+    Kalau keputusan yang SAMA (kind+action_kind) hari ini udah kecatat dan
+    belum dipencet, yang ada tinggal ditambah `n_tampil` -- bukan bikin baris
+    baru. `build()` halaman Beranda kepanggil tiap kali user balik ke sana,
+    dan tanpa penggabungan ini satu keputusan bisa kecatat puluhan kali.
+    """
+    if not kind:
+        return None
+    state = load_state()
+    daftar = state.setdefault("decision_records", [])
+    hari_ini = clock.today().isoformat()
+
+    for r in daftar:
+        if (
+            r.get("date") == hari_ini
+            and r.get("kind") == kind
+            and r.get("action_kind") == action_kind
+            and not r.get("acted")
+        ):
+            r["n_tampil"] = int(r.get("n_tampil", 1)) + 1
+            r["terakhir_tampil"] = clock.now().isoformat()
+            save_state(state)
+            return r.get("id")
+
+    catatan = {
+        "id": str(uuid.uuid4()),
+        "date": hari_ini,
+        "timestamp": clock.now().isoformat(),
+        "terakhir_tampil": clock.now().isoformat(),
+        "kind": kind,                 # med | pre_escalate | next_action | calm
+        "action_kind": action_kind,   # med_taken | reset | focus | add_task
+        "label": label,               # teks tombolnya, buat dibaca manusia
+        "n_tampil": 1,
+        "acted": False,
+        "acted_at": "",
+        "fitur": _fitur_ringkas(fitur),
+    }
+    daftar.insert(0, catatan)
+    state["decision_records"] = daftar[:MAX_DECISION_RECORDS]
+    save_state(state)
+    return catatan["id"]
+
+
+def record_decision_acted(kind: str, action_kind: str) -> bool:
+    """Tandai keputusan hari ini yang cocok sebagai DIPENCET. Return True
+    kalau ada yang ketandai."""
+    state = load_state()
+    hari_ini = clock.today().isoformat()
+    for r in state.get("decision_records", []):
+        if (
+            r.get("date") == hari_ini
+            and r.get("kind") == kind
+            and r.get("action_kind") == action_kind
+            and not r.get("acted")
+        ):
+            r["acted"] = True
+            r["acted_at"] = clock.now().isoformat()
+            save_state(state)
+            return True
+    return False
+
+
+def get_decision_records() -> list[dict]:
+    return load_state().get("decision_records", [])
+
+
 # ---------------------------------------------------------- quick capture
 
 
@@ -1093,16 +1452,23 @@ def add_mood_log(
     """
     state = load_state()
     today = clock.today()
+    # Check-in, pertanyaan care, dan Diary bisa disimpan dari halaman berbeda
+    # di hari yang sama. Field yang tidak dikirim pemanggil harus mewarisi
+    # jawaban sebelumnya, bukan berubah jadi kosong/None.
+    previous = next(
+        (entry for entry in state["mood_logs"] if entry.get("date") == today.isoformat()),
+        {},
+    )
     log = {
         "date": today.isoformat(),
         "mood": mood,
         "score": score,
         "energy": energy,
-        "diary": diary,
-        "tags": tags or [],
-        "quick_tags": quick_tags or [],
-        "ate_today": ate_today,
-        "rested_enough": rested_enough,
+        "diary": diary if diary else previous.get("diary", ""),
+        "tags": tags if tags is not None else previous.get("tags", []),
+        "quick_tags": quick_tags if quick_tags is not None else previous.get("quick_tags", []),
+        "ate_today": ate_today if ate_today is not None else previous.get("ate_today"),
+        "rested_enough": rested_enough if rested_enough is not None else previous.get("rested_enough"),
         "weekday": today.weekday(),
         "is_weekend": today.weekday() >= 5,
     }

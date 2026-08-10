@@ -1,0 +1,449 @@
+﻿query,target_judul,kategori,sumber
+kerjain review lecture notes,Review lecture notes,Academic,synthetic_user_query
+mulai review lecture notes,Review lecture notes,Academic,synthetic_user_query
+kerjain prepare for exam,Prepare for exam,Academic,synthetic_user_query
+mulai prepare for exam,Prepare for exam,Academic,synthetic_user_query
+kerjain study chapter,Study chapter,Academic,synthetic_user_query
+mulai study chapter,Study chapter,Academic,synthetic_user_query
+kerjain make flashcards,Make flashcards,Academic,synthetic_user_query
+mulai make flashcards,Make flashcards,Academic,synthetic_user_query
+kerjain practice mathematics,Practice mathematics,Academic,synthetic_user_query
+mulai practice mathematics,Practice mathematics,Academic,synthetic_user_query
+kerjain practice programming,Practice programming,Academic,synthetic_user_query
+mulai practice programming,Practice programming,Academic,synthetic_user_query
+kerjain debug assignment code,Debug assignment code,Academic,synthetic_user_query
+mulai debug assignment code,Debug assignment code,Academic,synthetic_user_query
+kerjain read research paper,Read research paper,Academic,synthetic_user_query
+mulai read research paper,Read research paper,Academic,synthetic_user_query
+kerjain find research sources,Find research sources,Academic,synthetic_user_query
+mulai find research sources,Find research sources,Academic,synthetic_user_query
+kerjain create bibliography,Create bibliography,Academic,synthetic_user_query
+mulai create bibliography,Create bibliography,Academic,synthetic_user_query
+kerjain write literature review,Write literature review,Academic,synthetic_user_query
+mulai write literature review,Write literature review,Academic,synthetic_user_query
+kerjain choose thesis topic,Choose thesis topic,Academic,synthetic_user_query
+mulai choose thesis topic,Choose thesis topic,Academic,synthetic_user_query
+kerjain prepare supervisor meeting,Prepare supervisor meeting,Academic,synthetic_user_query
+mulai prepare supervisor meeting,Prepare supervisor meeting,Academic,synthetic_user_query
+kerjain plan research project,Plan research project,Academic,synthetic_user_query
+mulai plan research project,Plan research project,Academic,synthetic_user_query
+kerjain write abstract,Write abstract,Academic,synthetic_user_query
+mulai write abstract,Write abstract,Academic,synthetic_user_query
+kerjain write introduction,Write introduction,Academic,synthetic_user_query
+mulai write introduction,Write introduction,Academic,synthetic_user_query
+kerjain write discussion,Write discussion,Academic,synthetic_user_query
+mulai write discussion,Write discussion,Academic,synthetic_user_query
+kerjain format assignment,Format assignment,Academic,synthetic_user_query
+mulai format assignment,Format assignment,Academic,synthetic_user_query
+kerjain submit assignment,Submit assignment,Academic,synthetic_user_query
+mulai submit assignment,Submit assignment,Academic,synthetic_user_query
+kerjain catch up missed class,Catch up missed class,Academic,synthetic_user_query
+mulai catch up missed class,Catch up missed class,Academic,synthetic_user_query
+kerjain organize study files,Organize study files,Academic,synthetic_user_query
+mulai organize study files,Organize study files,Academic,synthetic_user_query
+kerjain prepare group assignment,Prepare group assignment,Academic,synthetic_user_query
+mulai prepare group assignment,Prepare group assignment,Academic,synthetic_user_query
+kerjain rehearse presentation,Rehearse presentation,Academic,synthetic_user_query
+mulai rehearse presentation,Rehearse presentation,Academic,synthetic_user_query
+kerjain create study plan,Create study plan,Academic,synthetic_user_query
+mulai create study plan,Create study plan,Academic,synthetic_user_query
+kerjain review feedback,Review feedback,Academic,synthetic_user_query
+mulai review feedback,Review feedback,Academic,synthetic_user_query
+kerjain plan weekly work,Plan weekly work,Work,synthetic_user_query
+mulai plan weekly work,Plan weekly work,Work,synthetic_user_query
+kerjain prepare meeting,Prepare meeting,Work,synthetic_user_query
+mulai prepare meeting,Prepare meeting,Work,synthetic_user_query
+kerjain write meeting notes,Write meeting notes,Work,synthetic_user_query
+mulai write meeting notes,Write meeting notes,Work,synthetic_user_query
+kerjain follow up meeting,Follow up meeting,Work,synthetic_user_query
+mulai follow up meeting,Follow up meeting,Work,synthetic_user_query
+kerjain process inbox,Process inbox,Work,synthetic_user_query
+mulai process inbox,Process inbox,Work,synthetic_user_query
+kerjain write professional email,Write professional email,Work,synthetic_user_query
+mulai write professional email,Write professional email,Work,synthetic_user_query
+kerjain create project plan,Create project plan,Work,synthetic_user_query
+mulai create project plan,Create project plan,Work,synthetic_user_query
+kerjain track project progress,Track project progress,Work,synthetic_user_query
+mulai track project progress,Track project progress,Work,synthetic_user_query
+kerjain prepare status report,Prepare status report,Work,synthetic_user_query
+mulai prepare status report,Prepare status report,Work,synthetic_user_query
+kerjain review contract draft,Review contract draft,Work,synthetic_user_query
+mulai review contract draft,Review contract draft,Work,synthetic_user_query
+kerjain create presentation,Create presentation,Work,synthetic_user_query
+mulai create presentation,Create presentation,Work,synthetic_user_query
+kerjain prepare interview,Prepare interview,Work,synthetic_user_query
+mulai prepare interview,Prepare interview,Work,synthetic_user_query
+kerjain update portfolio,Update portfolio,Work,synthetic_user_query
+mulai update portfolio,Update portfolio,Work,synthetic_user_query
+kerjain update resume,Update resume,Work,synthetic_user_query
+mulai update resume,Update resume,Work,synthetic_user_query
+kerjain apply for job,Apply for job,Work,synthetic_user_query
+mulai apply for job,Apply for job,Work,synthetic_user_query
+kerjain prepare report,Prepare report,Work,synthetic_user_query
+mulai prepare report,Prepare report,Work,synthetic_user_query
+kerjain clean spreadsheet,Clean spreadsheet,Work,synthetic_user_query
+mulai clean spreadsheet,Clean spreadsheet,Work,synthetic_user_query
+kerjain analyze spreadsheet,Analyze spreadsheet,Work,synthetic_user_query
+mulai analyze spreadsheet,Analyze spreadsheet,Work,synthetic_user_query
+kerjain prepare workshop,Prepare workshop,Work,synthetic_user_query
+mulai prepare workshop,Prepare workshop,Work,synthetic_user_query
+kerjain delegate task,Delegate task,Work,synthetic_user_query
+mulai delegate task,Delegate task,Work,synthetic_user_query
+kerjain review teammate work,Review teammate work,Work,synthetic_user_query
+mulai review teammate work,Review teammate work,Work,synthetic_user_query
+kerjain plan daily work,Plan daily work,Work,synthetic_user_query
+mulai plan daily work,Plan daily work,Work,synthetic_user_query
+kerjain prepare client call,Prepare client call,Work,synthetic_user_query
+mulai prepare client call,Prepare client call,Work,synthetic_user_query
+kerjain write proposal,Write proposal,Work,synthetic_user_query
+mulai write proposal,Write proposal,Work,synthetic_user_query
+kerjain organize work files,Organize work files,Work,synthetic_user_query
+mulai organize work files,Organize work files,Work,synthetic_user_query
+kerjain clean bedroom,Clean bedroom,Home,synthetic_user_query
+mulai clean bedroom,Clean bedroom,Home,synthetic_user_query
+kerjain clean desk,Clean desk,Home,synthetic_user_query
+mulai clean desk,Clean desk,Home,synthetic_user_query
+kerjain do laundry,Do laundry,Home,synthetic_user_query
+mulai do laundry,Do laundry,Home,synthetic_user_query
+kerjain fold laundry,Fold laundry,Home,synthetic_user_query
+mulai fold laundry,Fold laundry,Home,synthetic_user_query
+kerjain wash dishes,Wash dishes,Home,synthetic_user_query
+mulai wash dishes,Wash dishes,Home,synthetic_user_query
+kerjain clean kitchen,Clean kitchen,Home,synthetic_user_query
+mulai clean kitchen,Clean kitchen,Home,synthetic_user_query
+kerjain clean bathroom,Clean bathroom,Home,synthetic_user_query
+mulai clean bathroom,Clean bathroom,Home,synthetic_user_query
+kerjain take out trash,Take out trash,Home,synthetic_user_query
+mulai take out trash,Take out trash,Home,synthetic_user_query
+kerjain grocery shopping,Grocery shopping,Home,synthetic_user_query
+mulai grocery shopping,Grocery shopping,Home,synthetic_user_query
+kerjain meal prep,Meal prep,Home,synthetic_user_query
+mulai meal prep,Meal prep,Home,synthetic_user_query
+kerjain cook dinner,Cook dinner,Home,synthetic_user_query
+mulai cook dinner,Cook dinner,Home,synthetic_user_query
+kerjain plan meals,Plan meals,Home,synthetic_user_query
+mulai plan meals,Plan meals,Home,synthetic_user_query
+kerjain organize closet,Organize closet,Home,synthetic_user_query
+mulai organize closet,Organize closet,Home,synthetic_user_query
+kerjain change bedsheets,Change bedsheets,Home,synthetic_user_query
+mulai change bedsheets,Change bedsheets,Home,synthetic_user_query
+kerjain water plants,Water plants,Home,synthetic_user_query
+mulai water plants,Water plants,Home,synthetic_user_query
+kerjain clean fridge,Clean fridge,Home,synthetic_user_query
+mulai clean fridge,Clean fridge,Home,synthetic_user_query
+kerjain declutter room,Declutter room,Home,synthetic_user_query
+mulai declutter room,Declutter room,Home,synthetic_user_query
+kerjain organize documents,Organize documents,Home,synthetic_user_query
+mulai organize documents,Organize documents,Home,synthetic_user_query
+kerjain pack for trip,Pack for trip,Home,synthetic_user_query
+mulai pack for trip,Pack for trip,Home,synthetic_user_query
+kerjain unpack after trip,Unpack after trip,Home,synthetic_user_query
+mulai unpack after trip,Unpack after trip,Home,synthetic_user_query
+kerjain clean laptop files,Clean laptop files,Home,synthetic_user_query
+mulai clean laptop files,Clean laptop files,Home,synthetic_user_query
+kerjain back up files,Back up files,Home,synthetic_user_query
+mulai back up files,Back up files,Home,synthetic_user_query
+kerjain organize photos,Organize photos,Home,synthetic_user_query
+mulai organize photos,Organize photos,Home,synthetic_user_query
+kerjain pay bills,Pay bills,Home,synthetic_user_query
+mulai pay bills,Pay bills,Home,synthetic_user_query
+kerjain plan monthly budget,Plan monthly budget,Home,synthetic_user_query
+mulai plan monthly budget,Plan monthly budget,Home,synthetic_user_query
+kerjain renew id document,Renew ID document,Errands,synthetic_user_query
+mulai renew id document,Renew ID document,Errands,synthetic_user_query
+kerjain process administrative document,Process administrative document,Errands,synthetic_user_query
+mulai process administrative document,Process administrative document,Errands,synthetic_user_query
+kerjain book appointment,Book appointment,Errands,synthetic_user_query
+mulai book appointment,Book appointment,Errands,synthetic_user_query
+kerjain book travel ticket,Book travel ticket,Errands,synthetic_user_query
+mulai book travel ticket,Book travel ticket,Errands,synthetic_user_query
+kerjain prepare travel documents,Prepare travel documents,Errands,synthetic_user_query
+mulai prepare travel documents,Prepare travel documents,Errands,synthetic_user_query
+kerjain return online purchase,Return online purchase,Errands,synthetic_user_query
+mulai return online purchase,Return online purchase,Errands,synthetic_user_query
+kerjain pick up package,Pick up package,Errands,synthetic_user_query
+mulai pick up package,Pick up package,Errands,synthetic_user_query
+kerjain send package,Send package,Errands,synthetic_user_query
+mulai send package,Send package,Errands,synthetic_user_query
+kerjain go to bank,Go to bank,Errands,synthetic_user_query
+mulai go to bank,Go to bank,Errands,synthetic_user_query
+kerjain visit government office,Visit government office,Errands,synthetic_user_query
+mulai visit government office,Visit government office,Errands,synthetic_user_query
+kerjain schedule vehicle service,Schedule vehicle service,Errands,synthetic_user_query
+mulai schedule vehicle service,Schedule vehicle service,Errands,synthetic_user_query
+kerjain prepare appointment,Prepare appointment,Errands,synthetic_user_query
+mulai prepare appointment,Prepare appointment,Errands,synthetic_user_query
+kerjain return library books,Return library books,Errands,synthetic_user_query
+mulai return library books,Return library books,Errands,synthetic_user_query
+kerjain buy household supplies,Buy household supplies,Errands,synthetic_user_query
+mulai buy household supplies,Buy household supplies,Errands,synthetic_user_query
+kerjain renew subscription,Renew subscription,Errands,synthetic_user_query
+mulai renew subscription,Renew subscription,Errands,synthetic_user_query
+kerjain cancel subscription,Cancel subscription,Errands,synthetic_user_query
+mulai cancel subscription,Cancel subscription,Errands,synthetic_user_query
+kerjain register for class,Register for class,Errands,synthetic_user_query
+mulai register for class,Register for class,Errands,synthetic_user_query
+kerjain register for event,Register for event,Errands,synthetic_user_query
+mulai register for event,Register for event,Errands,synthetic_user_query
+kerjain prepare documents for application,Prepare documents for application,Errands,synthetic_user_query
+mulai prepare documents for application,Prepare documents for application,Errands,synthetic_user_query
+kerjain scan documents,Scan documents,Errands,synthetic_user_query
+mulai scan documents,Scan documents,Errands,synthetic_user_query
+kerjain print documents,Print documents,Errands,synthetic_user_query
+mulai print documents,Print documents,Errands,synthetic_user_query
+kerjain prepare payment,Prepare payment,Errands,synthetic_user_query
+mulai prepare payment,Prepare payment,Errands,synthetic_user_query
+kerjain check delivery,Check delivery,Errands,synthetic_user_query
+mulai check delivery,Check delivery,Errands,synthetic_user_query
+kerjain plan route,Plan route,Errands,synthetic_user_query
+mulai plan route,Plan route,Errands,synthetic_user_query
+kerjain prepare for move,Prepare for move,Errands,synthetic_user_query
+mulai prepare for move,Prepare for move,Errands,synthetic_user_query
+kerjain plan tomorrow,Plan tomorrow,Personal,synthetic_user_query
+mulai plan tomorrow,Plan tomorrow,Personal,synthetic_user_query
+kerjain plan week,Plan week,Personal,synthetic_user_query
+mulai plan week,Plan week,Personal,synthetic_user_query
+kerjain set monthly goals,Set monthly goals,Personal,synthetic_user_query
+mulai set monthly goals,Set monthly goals,Personal,synthetic_user_query
+kerjain journal,Journal,Personal,synthetic_user_query
+mulai journal,Journal,Personal,synthetic_user_query
+kerjain reflect on week,Reflect on week,Personal,synthetic_user_query
+mulai reflect on week,Reflect on week,Personal,synthetic_user_query
+kerjain plan personal project,Plan personal project,Personal,synthetic_user_query
+mulai plan personal project,Plan personal project,Personal,synthetic_user_query
+kerjain start a habit,Start a habit,Personal,synthetic_user_query
+mulai start a habit,Start a habit,Personal,synthetic_user_query
+kerjain read a book,Read a book,Personal,synthetic_user_query
+mulai read a book,Read a book,Personal,synthetic_user_query
+kerjain learn a skill,Learn a skill,Personal,synthetic_user_query
+mulai learn a skill,Learn a skill,Personal,synthetic_user_query
+kerjain practice language,Practice language,Personal,synthetic_user_query
+mulai practice language,Practice language,Personal,synthetic_user_query
+kerjain plan exercise week,Plan exercise week,Personal,synthetic_user_query
+mulai plan exercise week,Plan exercise week,Personal,synthetic_user_query
+kerjain prepare for sleep,Prepare for sleep,Personal,synthetic_user_query
+mulai prepare for sleep,Prepare for sleep,Personal,synthetic_user_query
+kerjain plan morning,Plan morning,Personal,synthetic_user_query
+mulai plan morning,Plan morning,Personal,synthetic_user_query
+kerjain declutter phone,Declutter phone,Personal,synthetic_user_query
+mulai declutter phone,Declutter phone,Personal,synthetic_user_query
+kerjain organize bookmarks,Organize bookmarks,Personal,synthetic_user_query
+mulai organize bookmarks,Organize bookmarks,Personal,synthetic_user_query
+kerjain clean email,Clean email,Personal,synthetic_user_query
+mulai clean email,Clean email,Personal,synthetic_user_query
+kerjain plan finances,Plan finances,Personal,synthetic_user_query
+mulai plan finances,Plan finances,Personal,synthetic_user_query
+kerjain prepare weekly meals,Prepare weekly meals,Personal,synthetic_user_query
+mulai prepare weekly meals,Prepare weekly meals,Personal,synthetic_user_query
+kerjain plan weekend,Plan weekend,Personal,synthetic_user_query
+mulai plan weekend,Plan weekend,Personal,synthetic_user_query
+kerjain organize notes,Organize notes,Personal,synthetic_user_query
+mulai organize notes,Organize notes,Personal,synthetic_user_query
+kerjain set up workspace,Set up workspace,Personal,synthetic_user_query
+mulai set up workspace,Set up workspace,Personal,synthetic_user_query
+kerjain prepare clothes,Prepare clothes,Personal,synthetic_user_query
+mulai prepare clothes,Prepare clothes,Personal,synthetic_user_query
+kerjain pack bag,Pack bag,Personal,synthetic_user_query
+mulai pack bag,Pack bag,Personal,synthetic_user_query
+kerjain make a decision,Make a decision,Personal,synthetic_user_query
+mulai make a decision,Make a decision,Personal,synthetic_user_query
+kerjain organize desktop,Organize desktop,Digital,synthetic_user_query
+mulai organize desktop,Organize desktop,Digital,synthetic_user_query
+kerjain clean downloads,Clean downloads,Digital,synthetic_user_query
+mulai clean downloads,Clean downloads,Digital,synthetic_user_query
+kerjain organize cloud drive,Organize cloud drive,Digital,synthetic_user_query
+mulai organize cloud drive,Organize cloud drive,Digital,synthetic_user_query
+kerjain back up phone,Back up phone,Digital,synthetic_user_query
+mulai back up phone,Back up phone,Digital,synthetic_user_query
+kerjain clean phone storage,Clean phone storage,Digital,synthetic_user_query
+mulai clean phone storage,Clean phone storage,Digital,synthetic_user_query
+kerjain organize contacts,Organize contacts,Digital,synthetic_user_query
+mulai organize contacts,Organize contacts,Digital,synthetic_user_query
+kerjain update apps,Update apps,Digital,synthetic_user_query
+mulai update apps,Update apps,Digital,synthetic_user_query
+kerjain update operating system,Update operating system,Digital,synthetic_user_query
+mulai update operating system,Update operating system,Digital,synthetic_user_query
+kerjain create folder structure,Create folder structure,Digital,synthetic_user_query
+mulai create folder structure,Create folder structure,Digital,synthetic_user_query
+kerjain rename files,Rename files,Digital,synthetic_user_query
+mulai rename files,Rename files,Digital,synthetic_user_query
+kerjain remove duplicate files,Remove duplicate files,Digital,synthetic_user_query
+mulai remove duplicate files,Remove duplicate files,Digital,synthetic_user_query
+kerjain create backup routine,Create backup routine,Digital,synthetic_user_query
+mulai create backup routine,Create backup routine,Digital,synthetic_user_query
+kerjain secure account,Secure account,Digital,synthetic_user_query
+mulai secure account,Secure account,Digital,synthetic_user_query
+kerjain change password,Change password,Digital,synthetic_user_query
+mulai change password,Change password,Digital,synthetic_user_query
+kerjain organize browser tabs,Organize browser tabs,Digital,synthetic_user_query
+mulai organize browser tabs,Organize browser tabs,Digital,synthetic_user_query
+kerjain create email filters,Create email filters,Digital,synthetic_user_query
+mulai create email filters,Create email filters,Digital,synthetic_user_query
+kerjain set calendar reminders,Set calendar reminders,Digital,synthetic_user_query
+mulai set calendar reminders,Set calendar reminders,Digital,synthetic_user_query
+kerjain create template,Create template,Digital,synthetic_user_query
+mulai create template,Create template,Digital,synthetic_user_query
+kerjain create spreadsheet tracker,Create spreadsheet tracker,Digital,synthetic_user_query
+mulai create spreadsheet tracker,Create spreadsheet tracker,Digital,synthetic_user_query
+kerjain clean cloud storage,Clean cloud storage,Digital,synthetic_user_query
+mulai clean cloud storage,Clean cloud storage,Digital,synthetic_user_query
+kerjain export data,Export data,Digital,synthetic_user_query
+mulai export data,Export data,Digital,synthetic_user_query
+kerjain import data,Import data,Digital,synthetic_user_query
+mulai import data,Import data,Digital,synthetic_user_query
+kerjain create shared folder,Create shared folder,Digital,synthetic_user_query
+mulai create shared folder,Create shared folder,Digital,synthetic_user_query
+kerjain manage notifications,Manage notifications,Digital,synthetic_user_query
+mulai manage notifications,Manage notifications,Digital,synthetic_user_query
+kerjain clean social media feed,Clean social media feed,Digital,synthetic_user_query
+mulai clean social media feed,Clean social media feed,Digital,synthetic_user_query
+kerjain reply to friend,Reply to friend,Communication,synthetic_user_query
+mulai reply to friend,Reply to friend,Communication,synthetic_user_query
+kerjain make phone call,Make phone call,Communication,synthetic_user_query
+mulai make phone call,Make phone call,Communication,synthetic_user_query
+kerjain send reminder,Send reminder,Communication,synthetic_user_query
+mulai send reminder,Send reminder,Communication,synthetic_user_query
+kerjain ask for help,Ask for help,Communication,synthetic_user_query
+mulai ask for help,Ask for help,Communication,synthetic_user_query
+kerjain give project update,Give project update,Communication,synthetic_user_query
+mulai give project update,Give project update,Communication,synthetic_user_query
+kerjain write apology message,Write apology message,Communication,synthetic_user_query
+mulai write apology message,Write apology message,Communication,synthetic_user_query
+kerjain schedule catch-up,Schedule catch-up,Communication,synthetic_user_query
+mulai schedule catch-up,Schedule catch-up,Communication,synthetic_user_query
+kerjain prepare difficult conversation,Prepare difficult conversation,Communication,synthetic_user_query
+mulai prepare difficult conversation,Prepare difficult conversation,Communication,synthetic_user_query
+kerjain send thank-you message,Send thank-you message,Communication,synthetic_user_query
+mulai send thank-you message,Send thank-you message,Communication,synthetic_user_query
+kerjain decline invitation,Decline invitation,Communication,synthetic_user_query
+mulai decline invitation,Decline invitation,Communication,synthetic_user_query
+kerjain coordinate group task,Coordinate group task,Communication,synthetic_user_query
+mulai coordinate group task,Coordinate group task,Communication,synthetic_user_query
+kerjain ask for clarification,Ask for clarification,Communication,synthetic_user_query
+mulai ask for clarification,Ask for clarification,Communication,synthetic_user_query
+kerjain send document,Send document,Communication,synthetic_user_query
+mulai send document,Send document,Communication,synthetic_user_query
+kerjain collect responses,Collect responses,Communication,synthetic_user_query
+mulai collect responses,Collect responses,Communication,synthetic_user_query
+kerjain write announcement,Write announcement,Communication,synthetic_user_query
+mulai write announcement,Write announcement,Communication,synthetic_user_query
+kerjain prepare presentation speech,Prepare presentation speech,Communication,synthetic_user_query
+mulai prepare presentation speech,Prepare presentation speech,Communication,synthetic_user_query
+kerjain give feedback,Give feedback,Communication,synthetic_user_query
+mulai give feedback,Give feedback,Communication,synthetic_user_query
+kerjain request deadline extension,Request deadline extension,Communication,synthetic_user_query
+mulai request deadline extension,Request deadline extension,Communication,synthetic_user_query
+kerjain follow up application,Follow up application,Communication,synthetic_user_query
+mulai follow up application,Follow up application,Communication,synthetic_user_query
+kerjain respond to feedback,Respond to feedback,Communication,synthetic_user_query
+mulai respond to feedback,Respond to feedback,Communication,synthetic_user_query
+kerjain take a short break,Take a short break,Self-care,synthetic_user_query
+mulai take a short break,Take a short break,Self-care,synthetic_user_query
+kerjain reset after overwhelm,Reset after overwhelm,Self-care,synthetic_user_query
+mulai reset after overwhelm,Reset after overwhelm,Self-care,synthetic_user_query
+kerjain start morning routine,Start morning routine,Self-care,synthetic_user_query
+mulai start morning routine,Start morning routine,Self-care,synthetic_user_query
+kerjain prepare for class,Prepare for class,Self-care,synthetic_user_query
+mulai prepare for class,Prepare for class,Self-care,synthetic_user_query
+kerjain prepare for workday,Prepare for workday,Self-care,synthetic_user_query
+mulai prepare for workday,Prepare for workday,Self-care,synthetic_user_query
+kerjain take a walk,Take a walk,Self-care,synthetic_user_query
+mulai take a walk,Take a walk,Self-care,synthetic_user_query
+kerjain stretch,Stretch,Self-care,synthetic_user_query
+mulai stretch,Stretch,Self-care,synthetic_user_query
+kerjain prepare healthy snack,Prepare healthy snack,Self-care,synthetic_user_query
+mulai prepare healthy snack,Prepare healthy snack,Self-care,synthetic_user_query
+kerjain drink water,Drink water,Self-care,synthetic_user_query
+mulai drink water,Drink water,Self-care,synthetic_user_query
+kerjain prepare workout,Prepare workout,Self-care,synthetic_user_query
+mulai prepare workout,Prepare workout,Self-care,synthetic_user_query
+kerjain wind down,Wind down,Self-care,synthetic_user_query
+mulai wind down,Wind down,Self-care,synthetic_user_query
+kerjain prepare for appointment,Prepare for appointment,Self-care,synthetic_user_query
+mulai prepare for appointment,Prepare for appointment,Self-care,synthetic_user_query
+kerjain create calm space,Create calm space,Self-care,synthetic_user_query
+mulai create calm space,Create calm space,Self-care,synthetic_user_query
+kerjain start task after procrastination,Start task after procrastination,Self-care,synthetic_user_query
+mulai start task after procrastination,Start task after procrastination,Self-care,synthetic_user_query
+kerjain recover after missed day,Recover after missed day,Self-care,synthetic_user_query
+mulai recover after missed day,Recover after missed day,Self-care,synthetic_user_query
+kerjain quiz,Quiz,Existing,synthetic_user_query
+mulai quiz,Quiz,Existing,synthetic_user_query
+kerjain ulangan harian,Ulangan harian,Existing,synthetic_user_query
+mulai ulangan harian,Ulangan harian,Existing,synthetic_user_query
+kerjain latihan soal,Latihan soal,Existing,synthetic_user_query
+mulai latihan soal,Latihan soal,Existing,synthetic_user_query
+kerjain tugas kuliah,Tugas kuliah,Existing,synthetic_user_query
+mulai tugas kuliah,Tugas kuliah,Existing,synthetic_user_query
+kerjain laporan praktikum,Laporan praktikum,Existing,synthetic_user_query
+mulai laporan praktikum,Laporan praktikum,Existing,synthetic_user_query
+kerjain makalah,Makalah,Existing,synthetic_user_query
+mulai makalah,Makalah,Existing,synthetic_user_query
+kerjain essay,Essay,Existing,synthetic_user_query
+mulai essay,Essay,Existing,synthetic_user_query
+kerjain presentasi kelompok,Presentasi kelompok,Existing,synthetic_user_query
+mulai presentasi kelompok,Presentasi kelompok,Existing,synthetic_user_query
+kerjain bikin slide presentasi,Bikin slide presentasi,Existing,synthetic_user_query
+mulai bikin slide presentasi,Bikin slide presentasi,Existing,synthetic_user_query
+kerjain proposal skripsi,Proposal skripsi,Existing,synthetic_user_query
+mulai proposal skripsi,Proposal skripsi,Existing,synthetic_user_query
+kerjain skripsi bab,Skripsi bab,Existing,synthetic_user_query
+mulai skripsi bab,Skripsi bab,Existing,synthetic_user_query
+kerjain revisi dari dosen,Revisi dari dosen,Existing,synthetic_user_query
+mulai revisi dari dosen,Revisi dari dosen,Existing,synthetic_user_query
+kerjain revisi dokumen,Revisi dokumen,Existing,synthetic_user_query
+mulai revisi dokumen,Revisi dokumen,Existing,synthetic_user_query
+kerjain baca jurnal,Baca jurnal,Existing,synthetic_user_query
+mulai baca jurnal,Baca jurnal,Existing,synthetic_user_query
+kerjain baca materi kuliah,Baca materi kuliah,Existing,synthetic_user_query
+mulai baca materi kuliah,Baca materi kuliah,Existing,synthetic_user_query
+kerjain rangkum materi,Rangkum materi,Existing,synthetic_user_query
+mulai rangkum materi,Rangkum materi,Existing,synthetic_user_query
+kerjain kerja kelompok,Kerja kelompok,Existing,synthetic_user_query
+mulai kerja kelompok,Kerja kelompok,Existing,synthetic_user_query
+kerjain daftar ulang,Daftar ulang,Existing,synthetic_user_query
+mulai daftar ulang,Daftar ulang,Existing,synthetic_user_query
+kerjain isi krs,Isi KRS,Existing,synthetic_user_query
+mulai isi krs,Isi KRS,Existing,synthetic_user_query
+kerjain laporan bulanan,Laporan bulanan,Existing,synthetic_user_query
+mulai laporan bulanan,Laporan bulanan,Existing,synthetic_user_query
+kerjain laporan mingguan,Laporan mingguan,Existing,synthetic_user_query
+mulai laporan mingguan,Laporan mingguan,Existing,synthetic_user_query
+kerjain rekap data,Rekap data,Existing,synthetic_user_query
+mulai rekap data,Rekap data,Existing,synthetic_user_query
+kerjain persiapan meeting,Persiapan meeting,Existing,synthetic_user_query
+mulai persiapan meeting,Persiapan meeting,Existing,synthetic_user_query
+kerjain balas email,Balas email,Existing,synthetic_user_query
+mulai balas email,Balas email,Existing,synthetic_user_query
+kerjain balas chat kerjaan,Balas chat kerjaan,Existing,synthetic_user_query
+mulai balas chat kerjaan,Balas chat kerjaan,Existing,synthetic_user_query
+kerjain review dokumen,Review dokumen,Existing,synthetic_user_query
+mulai review dokumen,Review dokumen,Existing,synthetic_user_query
+kerjain bikin proposal,Bikin proposal,Existing,synthetic_user_query
+mulai bikin proposal,Bikin proposal,Existing,synthetic_user_query
+kerjain bikin cv,Bikin CV,Existing,synthetic_user_query
+mulai bikin cv,Bikin CV,Existing,synthetic_user_query
+kerjain beresin kamar,Beresin kamar,Existing,synthetic_user_query
+mulai beresin kamar,Beresin kamar,Existing,synthetic_user_query
+kerjain cuci baju,Cuci baju,Existing,synthetic_user_query
+mulai cuci baju,Cuci baju,Existing,synthetic_user_query
+kerjain beresin meja kerja,Beresin meja kerja,Existing,synthetic_user_query
+mulai beresin meja kerja,Beresin meja kerja,Existing,synthetic_user_query
+kerjain belanja bulanan,Belanja bulanan,Existing,synthetic_user_query
+mulai belanja bulanan,Belanja bulanan,Existing,synthetic_user_query
+kerjain masak,Masak,Existing,synthetic_user_query
+mulai masak,Masak,Existing,synthetic_user_query
+kerjain bayar tagihan,Bayar tagihan,Existing,synthetic_user_query
+mulai bayar tagihan,Bayar tagihan,Existing,synthetic_user_query
+kerjain olahraga,Olahraga,Existing,synthetic_user_query
+mulai olahraga,Olahraga,Existing,synthetic_user_query
+kerjain urus berkas,Urus berkas,Existing,synthetic_user_query
+mulai urus berkas,Urus berkas,Existing,synthetic_user_query
+kerjain perpanjang stnk,Perpanjang STNK,Existing,synthetic_user_query
+mulai perpanjang stnk,Perpanjang STNK,Existing,synthetic_user_query
+kerjain booking tiket,Booking tiket,Existing,synthetic_user_query
+mulai booking tiket,Booking tiket,Existing,synthetic_user_query
+kerjain bikin jadwal belajar,Bikin jadwal belajar,Existing,synthetic_user_query
+mulai bikin jadwal belajar,Bikin jadwal belajar,Existing,synthetic_user_query
+kerjain bersihin file laptop,Bersihin file laptop,Existing,synthetic_user_query
+mulai bersihin file laptop,Bersihin file laptop,Existing,synthetic_user_query

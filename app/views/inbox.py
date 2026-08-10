@@ -6,8 +6,8 @@ angka di Home, dan `delete_inbox_note()` nggak pernah dipanggil sama
 sekali. Jadi datanya ke-capture tapi nggak ada jalan keluarnya.
 
 Halaman ini yang nutup lingkarannya: catatan mentah -> tugas beneran di
-Tracker, langkah-langkahnya dipecah pakai AI Task Decomposer yang udah ada
-(fallback rule-based tetap jalan kalau API-nya nggak kepakai).
+Tracker, langkah-langkahnya disusun Kalem (fallback template tetap jalan
+kalau penyusunan generatif tidak tersedia).
 """
 from __future__ import annotations
 
@@ -45,6 +45,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def to_task(note: dict):
         """Ubah catatan mentah jadi tugas + langkah kecil."""
         title_field = ft.TextField(label="Jadiin tugas apa?", value=note["text"], multiline=True, max_lines=3)
+        # OPSIONAL -- diisi -> Pecah Tugas mecah dari SINI, bukan cuma judul.
+        # Lihat catatan panjang di decomposer_logic.py.
+        description_field = ft.TextField(
+            label="Deskripsi (opsional)",
+            hint_text="konteks lebih detail, kalau ada",
+            multiline=True,
+            min_lines=2,
+            max_lines=5,
+            helper="Diisi -> Pecah Tugas mecah dari SINI, bukan cuma judul",
+        )
         # Jam deadline, bukan centang "mendesak" -- mendesaknya dihitung
         # sistem dari tanggal+jam (lihat storage.is_urgent).
         time_field = ft.TextField(
@@ -53,17 +63,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
             helper="Dikosongin = sampai akhir hari",
         )
         important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
-        can_split = storage.can_use("decompose")
+        can_use_ai = storage.can_use("decompose")
         split_check = ft.Checkbox(
             label="Pecah otomatis jadi langkah kecil",
-            value=can_split,
-            disabled=not can_split,
+            value=True,
         )
         # Kalau kuotanya abis, bilang terus terang -- jangan biarin checkbox
         # kepencet terus diem-diem nggak ngapa-ngapain.
         note_text = ft.Text(
-            "" if can_split else "Jatah Pecah Tugas pakai AI hari ini udah abis. "
-            "Tugasnya tetap kebikin, langkahnya bisa kamu isi manual.",
+            "" if can_use_ai else "Kuota penyusunan Kalem habis: tetap coba pola lokal; "
+            "kalau nggak cocok, dipakai template sederhana.",
             size=11,
             color=theme.MUTED,
         )
@@ -82,16 +91,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 steps=[{"text": name, "done": False}],
                 difficulty_est=2,
                 deadline_time=(time_field.value or "").strip(),
+                description=(description_field.value or "").strip(),
             )
 
-            # Kuota Pecah Tugas dicek DI SINI juga. Dulu jalur ini manggil
-            # plan_today() tanpa cek apa pun, jadi user gratis bisa nembus
-            # batas 3x/hari cukup dengan lewat Inbox -- pintu belakang buat
-            # fitur yang dibatesin di Tracker.
-            if split_check.value and storage.can_use("decompose"):
+            # Kuota hanya membatasi request API. Outline/retrieval lokal
+            # tetap layak dicoba ketika kuota habis.
+            if split_check.value:
                 energy = storage.today_energy() or 3
-                result = plan_today([task], energy)
-                if result.source == "ai":
+                result = plan_today([task], energy, allow_ai=can_use_ai)
+                if result.n_ai:
                     storage.record_usage("decompose")
                 steps = [
                     {"text": step, "done": False}
@@ -112,7 +120,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 modal=True,
                 title=ft.Text("Rapikan jadi tugas", size=16),
                 content=ft.Column(
-                    [title_field, time_field, important_check, split_check, note_text],
+                    [title_field, description_field, time_field, important_check, split_check, note_text],
                     spacing=8,
                     tight=True,
                 ),

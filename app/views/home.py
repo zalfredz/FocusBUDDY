@@ -112,17 +112,27 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
                 color=theme.MUTED,
             )
         ]
-        for key, label, desc in SettingDemo.list_scenarios():
+        for key, label, desc, judul_demo, wow in SettingDemo.list_scenarios():
+            objective = SettingDemo.DEMO_OBJECTIVES.get(key, {})
+            isi: list[ft.Control] = [
+                ft.Text(judul_demo, size=13, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND),
+            ]
+            if objective.get("story"):
+                isi.append(ft.Text(objective["story"], size=11.5, color=theme.ON_BACKGROUND))
+            if objective.get("tests"):
+                isi.append(ft.Text(
+                    "Yang diuji: " + ", ".join(objective["tests"]),
+                    size=10.5, color=theme.MUTED,
+                ))
+            if wow:
+                isi.append(ft.Text(f"Demo point: {wow}", size=10.5,
+                                    color=theme.PRIMARY, italic=True))
+            # Label/deskripsi teknis lama tetap ditaruh, cuma lebih kecil --
+            # masih berguna buat debug, bukan lagi yang paling menonjol.
+            isi.append(ft.Text(f"{label} — {desc}", size=9.5, color=theme.MUTED))
             rows.append(
                 ft.Container(
-                    content=ft.Column(
-                        [
-                            ft.Text(label, size=13, weight=ft.FontWeight.BOLD,
-                                    color=theme.ON_BACKGROUND),
-                            ft.Text(desc, size=11, color=theme.MUTED),
-                        ],
-                        spacing=2,
-                    ),
+                    content=ft.Column(isi, spacing=3),
                     bgcolor=theme.BACKGROUND,
                     border_radius=12,
                     padding=12,
@@ -381,6 +391,23 @@ def build(page: ft.Page, navigate) -> ft.Control:
     profile, day = kalem_engine.snapshot()
     decision = kalem_engine.decide(profile, day)
 
+    # Catat "Kalem nampilin pesan ini" -- bahan label buat belajar milih pesan
+    # (lihat catatan panjang di storage.record_decision_shown). Nggak ada
+    # penilaian di sini: didiemin itu data, bukan kegagalan user.
+    #
+    # Sengaja SESUDAH decide() & sebelum UI dirakit, dan cuma pas nggak ada
+    # sesi fokus jalan -- pas sesi jalan kartu aksinya emang nggak ditampilin,
+    # jadi nyatet "ditampilin" di situ bakal bohong.
+    if not focus_session.is_active():
+        from app.kalem_ml import fitur as kfitur
+
+        storage.record_decision_shown(
+            decision.kind,
+            decision.action_kind,
+            kfitur.bangun_fitur(day=day, profil=profile),
+            decision.action_label,
+        )
+
     # ------------------------------------------------- banner (dev & obat)
 
     sim_banner: list[ft.Control] = []
@@ -557,10 +584,24 @@ def build(page: ft.Page, navigate) -> ft.Control:
         # Sesinya jalan DI SINI, nggak dilempar ke Tracker. Dulu tombol ini
         # cuma nitip niat lewat nav.set_intent() terus pindah halaman -- satu
         # aksi kepecah dua layar, dan timernya mati begitu user pindah lagi.
+        # Home adalah jalur fokus utama, jadi konteks tugas ikut dibawa ke
+        # catatan sesi agar model durasi benar-benar belajar dari sini juga.
+        #
+        # `decision.task` dipakai LANGSUNG -- itu dict yang sama yang udah
+        # dipilih `pick_next_action()` di kalem_engine.decide(). Dulu di sini
+        # dicari ULANG lewat storage.tasks_actionable_today() dicocokin ke
+        # JUDUL, yang selain boros (nge-resolve ulang semua occurrence tugas
+        # berulang) juga rapuh: dua tugas actionable dengan judul sama bisa
+        # kecomot yang salah, dan kategori/jumlah_unit-nya ikut salah kesimpen
+        # ke catatan sesi.
+        task = decision.task or {}
         focus_session.start(
             decision.focus_minutes,
             label=decision.step_text or decision.detail,
             task_title=decision.detail,
+            kategori=task.get("kategori", ""),
+            jumlah_unit=task.get("jumlah_unit", 0),
+            energi=storage.today_energy() or 3,
         )
         navigate("home")
 
@@ -600,10 +641,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
     elif decision.detail:
         card_children = [ft.Text(decision.detail, size=13.5, color=theme.ON_BACKGROUND)]
 
+    def _aksi_dicatat(e):
+        """Bungkus aksi kartu: tandai keputusannya DIPENCET, baru jalanin.
+
+        Dibungkus di sini (satu tempat) daripada nyisipin pencatatan ke tiap
+        handler di ACTIONS -- biar nggak ada aksi yang kelupaan dicatat pas
+        nanti ada jenis aksi baru ditambahin.
+        """
+        storage.record_decision_acted(decision.kind, decision.action_kind)
+        ACTIONS.get(decision.action_kind, lambda ev: None)(e)
+
     card_children.append(
         ui_helpers.wide_button(
             decision.action_label,
-            ACTIONS.get(decision.action_kind, lambda e: None),
+            _aksi_dicatat,
             icon=ACTION_ICONS.get(decision.action_kind),
         )
     )

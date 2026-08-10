@@ -329,7 +329,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     render_care()
 
     # ------------------------------------- kartu rekomendasi (Weekly Insight)
-    # Lazy: baru manggil Gemini pas user beneran mau liat, bukan tiap buka
+    # Lazy: baru susun rekomendasi Kalem pas user beneran mau liat, bukan tiap buka
     # halaman Mood -- hemat kuota & nggak bikin halaman ini lemot dibuka.
     rec_state = {"cards": None, "index": 0}
     rec_holder = ft.Container()
@@ -393,7 +393,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         rec_holder.content = ui_helpers.card(ft.Column(children, spacing=8), padding=16)
 
     def fetch_rec(e):
-        # Free tier: 1 kartu per minggu (tiap kartu = panggilan Gemini).
+        # Free tier: 1 kartu per minggu (tiap kartu = penyusunan Kalem).
         if not storage.can_see_reco_card():
             rec_holder.content = ui_helpers.card(
                 ui_helpers.upgrade_hint(

@@ -75,14 +75,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
         storage.get_reset_events(), storage.get_mood_logs(), storage.all_triggers(profile)
     )
 
-    # Satu aktivitas dibuka = satu event. Digambar ulang berapa kali pun
-    # (ganti saran, tandai selesai) nggak nambah hitungan.
-    logged: set[str] = set()
+    # Satu KUNJUNGAN Reset = satu event. Mencoba beberapa aktivitas saat
+    # kunjungan yang sama bukan empat kejadian SOS terpisah.
+    logged = False
 
     def log_once(choice: str):
-        if choice not in logged:
+        nonlocal logged
+        if not logged:
             storage.add_reset_event(choice)
-            logged.add(choice)
+            logged = True
 
     # ------------------------------------------------------ rujukan pro
 
@@ -92,8 +93,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
         Tautan web bisa mati (dan pernah mati di app ini), butuh sinyal data,
         dan minta orang navigasiin situs dulu. Nomor telepon nggak.
         """
-        return [
-            ft.Container(
+        rows: list[ft.Control] = []
+        for h in CRISIS_HOTLINES:
+            rows.append(ft.Container(
                 content=ft.Row(
                     [
                         ft.Icon(ft.Icons.CALL, color="#FFFFFF", size=22),
@@ -113,11 +115,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 padding=ft.Padding.symmetric(vertical=12, horizontal=14),
                 bgcolor=theme.PRIMARY,
                 border_radius=12,
+                # Telepon 119 lalu pilih ekstensi 8. Sistem dialer tidak
+                # punya format lintas-perangkat yang andal untuk extension.
                 url=h["tel"],
                 ink=True,
-            )
-            for h in CRISIS_HOTLINES
-        ]
+            ))
+            if h.get("web"):
+                rows.append(
+                    ft.TextButton(
+                        content=ft.Text("Buka Healing119.id", size=12, color=theme.PRIMARY),
+                        icon=ft.Icons.OPEN_IN_NEW,
+                        url=h["web"],
+                    )
+                )
+        return rows
 
     def professional_card(prominent: bool) -> ft.Control:
         partner_rows = [

@@ -113,7 +113,9 @@ def detect_distress(
 ) -> DistressSignal:
     """Bedain overwhelm harian biasa vs pola distress yang perlu rujukan.
 
-    Kriteria eskalasi: SOS >= 3x dalam 7 hari DAN rata-rata mood <= 2.0.
+    Kriteria eskalasi: Reset dibuka di >= 3 HARI dalam 7 hari DAN rata-rata
+    mood <= 2.0. Hitung hari unik sebagai pagar tambahan terhadap event lama
+    yang mungkin tercatat beberapa kali dalam satu kunjungan.
     Dua-duanya harus kena -- SOS sering tapi mood oke belum tentu distress,
     dan mood rendah sekali-sekali juga hal yang normal.
     """
@@ -122,8 +124,11 @@ def detect_distress(
     def within_window(iso_day: str) -> bool:
         return (today - date.fromisoformat(iso_day)).days < window_days
 
-    recent_sos = [e for e in reset_events if within_window(e["date"])]
-    sos_count = len(recent_sos)
+    recent_sos_days = {
+        e.get("date") for e in reset_events
+        if e.get("date") and within_window(e["date"])
+    }
+    sos_count = len(recent_sos_days)
 
     recent_scores = [
         log["score"] for log in mood_logs
@@ -140,7 +145,7 @@ def detect_distress(
     reason = ""
     if escalate:
         reason = (
-            f"Dalam {window_days} hari terakhir kamu buka halaman ini {sos_count}x "
+            f"Dalam {window_days} hari terakhir kamu butuh Reset di {sos_count} hari "
             f"dan mood kamu rata-rata {avg_mood:.1f}/5."
         )
 
@@ -152,16 +157,17 @@ def detect_distress(
     )
 
 
-# --- Hotline krisis: TELEPON, bukan tautan web ---
-# Ditaruh paling atas dan sengaja bukan deep link ke situs: nomor telepon
-# nggak bisa 404, nggak butuh sinyal data yang kenceng, dan orang yang lagi
-# di titik terburuk nggak sanggup navigasiin website dulu.
+# --- Hotline krisis ---
+# Nama dan jam layanan dapat berubah; jangan mengunci klaim "24 jam" tanpa
+# verifikasi. Telepon tetap paling cepat, dan situs resmi disediakan sebagai
+# alternatif untuk chat/WhatsApp serta informasi terbaru.
 CRISIS_HOTLINES = [
     {
-        "name": "SEJIWA — Kemenkes",
-        "desc": "Konseling kesehatan jiwa, gratis, 24 jam",
+        "name": "Healing119.id — Kemenkes",
+        "desc": "Hubungi 119, lalu pilih ekstensi 8",
         "number": "119 ext. 8",
         "tel": "tel:119",
+        "web": "https://healing119.id",
     },
 ]
 

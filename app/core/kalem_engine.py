@@ -91,11 +91,19 @@ class DayState:
     reset_events: list[dict] = field(default_factory=list)
     medication: Optional[dict] = None
     energy_level: Optional[int] = None
+    # Menit kerja yang BENERAN tersedia buat keputusan saat ini -- BUKAN
+    # total menit tugas, BUKAN durasi sesi fokus, BUKAN energi. None berarti
+    # app nggak punya sumber data yang jujur buat ini (lihat `snapshot()` --
+    # SENGAJA nggak pernah nebak angka ini dari productive_hours atau
+    # sumber lain yang sebenernya ngukur hal beda). Cuma keisi kalau ada
+    # pemanggil yang eksplisit ngasih (mis. SettingDemo lewat `run_demo()`).
+    available_minutes: Optional[int] = None
     # --- dipakai lapisan fitur (kalem_ml), bukan sama rule di modul ini ---
     all_tasks: list[dict] = field(default_factory=list)   # buat rasio selesai & umur tugas
     favorites: dict = field(default_factory=dict)
     focus_records: list[dict] = field(default_factory=list)
     inbox_count: int = 0
+    decision_records: list[dict] = field(default_factory=list)
 
 
 # --------------------------------------------------------------- helpers
@@ -146,13 +154,68 @@ def _recent(items: list[dict], days: int, today: Optional[date] = None) -> list[
     return out
 
 
-def pick_next_action(tasks: list[dict]) -> Optional[tuple[dict, int, str]]:
+def _muat_kapasitas(task: dict, available_minutes: Optional[int]) -> bool:
+    """Tugas ini muat di waktu yang tersedia? `None` = nggak ada info waktu
+    tersedia -> selalu dianggap muat (nggak ngefek ke urutan sama sekali,
+    biar perilaku lama TETAP SAMA kalau nggak ada yang ngasih angka ini).
+
+    Dipakai `assess_capacity()` yang udah ada, bukan bikin perbandingan
+    baru -- satu sumber kebenaran soal "muat" itu apa. Konsekuensinya ikut
+    kebawa: tugas TANPA `menit_est` (nggak pernah diperkirakan) dianggap
+    MUAT, bukan didiskualifikasi cuma karena datanya nggak ada.
+    """
+    if available_minutes is None:
+        return True
+    from app.core.decision_quality import assess_capacity
+
+    return assess_capacity([task], available_minutes).fits
+
+
+def urgency_score(task: dict, now: Optional[datetime] = None) -> int:
+    """Skor urgensi rule-based yang bisa dijelaskan dari deadline nyata.
+
+    Nilai lebih besar berarti perlu dilihat lebih dulu *di dalam kuadran yang
+    sama*. Deadline terlewat selalu berada di atas deadline mendatang; di
+    masing-masing kelompok, semakin lama terlambat atau semakin dekat batas
+    waktunya, semakin besar skornya. Tugas tanpa deadline tetap netral (0).
+
+    Kuadran Eisenhower tetap menentukan prioritas utama. Kapasitas dan
+    kesulitan hanya tie-break setelah urgensi, jadi tugas sangat mendesak
+    tidak hilang hanya karena estimasinya besar.
+    """
+    from app import storage
+
+    batas = storage.deadline_at(task)
+    if batas is None:
+        return 0
+    now = now or clock.now()
+    remaining_minutes = int((batas - now).total_seconds() // 60)
+    if remaining_minutes <= 0:
+        return 3_000_000 + abs(remaining_minutes)
+    if remaining_minutes <= 24 * 60:
+        return 2_000_000 - remaining_minutes
+    # Tetap bedakan deadline besok dan minggu depan untuk kuadran
+    # "jadwalkan", tanpa membuat angka negatif bagi deadline yang jauh.
+    return max(1, 1_000_000 - remaining_minutes)
+
+
+def pick_next_action(
+    tasks: list[dict], available_minutes: Optional[int] = None,
+    now: Optional[datetime] = None,
+) -> Optional[tuple[dict, int, str]]:
     """Pilih satu tugas + satu langkah pertama buat dikerjain sekarang.
 
-    Urutannya: kuadran paling mendesak duluan, lalu di dalam kuadran itu
-    ambil yang `difficulty_est`-nya paling rendah. Jadi tetap ngerjain hal
-    yang penting, tapi mulai dari pintu masuk paling gampang -- ini yang
-    bikin tugas berat nggak kelihatan mustahil buat dimulai.
+    Urutannya: kuadran paling mendesak duluan, lalu deadline paling dekat
+    (atau yang paling lama overdue), baru tugas yang MUAT di
+    `available_minutes`, kesulitan paling rendah, dan waktu dibuat. Kuadran
+    tetap yang paling nentuin. Capacity membantu memilih dua kandidat yang
+    urgensinya sebanding, tetapi tidak menghapus urgensi nyata.
+
+    `available_minutes=None` (default) = urutan PERSIS kayak sebelum ada
+    parameter ini -- capacity nggak ngefek sama sekali kalau nggak ada yang
+    ngasih angkanya. Tugas yang nggak muat TETAP bisa kepilih kalau dia
+    satu-satunya (atau semua pilihan sama-sama nggak muat) -- fungsi ini
+    milih PRIORITAS, bukan nyaring/ngilangin tugas.
 
     Return (task, index langkah, teks langkah) atau None.
     """
@@ -163,9 +226,16 @@ def pick_next_action(tasks: list[dict]) -> Optional[tuple[dict, int, str]]:
         return None
 
     def sort_key(task: dict):
-        quadrant = storage.quadrant_of(task)
+        quadrant = storage.quadrant_of(task, now=now)
         rank = QUADRANT_PRIORITY.index(quadrant) if quadrant in QUADRANT_PRIORITY else 99
-        return (rank, task.get("difficulty_est", 2), task.get("created_at", ""))
+        muat = 0 if _muat_kapasitas(task, available_minutes) else 1
+        return (
+            rank,
+            -urgency_score(task, now=now),
+            muat,
+            task.get("difficulty_est", 2),
+            task.get("created_at", ""),
+        )
 
     pending.sort(key=sort_key)
     chosen = pending[0]
@@ -252,7 +322,8 @@ def decide(
     from app.kalem_ml import fitur as kfitur
     from app.kalem_ml import model_overwhelm
 
-    risiko = model_overwhelm.nilai(kfitur.bangun_fitur(now, day=day, profil=profile))
+    fitur_sekarang = kfitur.bangun_fitur(now, day=day, profil=profile)
+    risiko = model_overwhelm.nilai(fitur_sekarang)
     if risiko.perlu_diringankan:
         return KalemDecision(
             kind="pre_escalate",
@@ -265,9 +336,19 @@ def decide(
         )
 
     # --- 3. Next action dari tugas hari ini ---
-    found = pick_next_action(day.tasks_today)
+    found = pick_next_action(
+        day.tasks_today, available_minutes=day.available_minutes, now=now,
+    )
     if found:
         task, step_index, step_text = found
+        # ML_KALEM hanya boleh menurunkan tuntutan setelah punya cukup label
+        # fokus lokal. Ia tidak boleh mengubah urutan safety atau memilih
+        # tugas lain, sehingga fallback tetap keputusan rule-based yang jelas.
+        from app.kalem_ml import model_kalem
+
+        engagement = model_kalem.nilai(fitur_sekarang, records=day.decision_records)
+        if engagement.perlu_diringankan:
+            minutes = max(5, minutes - 5)
         gentle = in_productive_window(profile, now) is False
         message = (
             "Kalau lagi nggak di jam terbaik kamu, satu langkah kecil aja udah cukup."
@@ -320,7 +401,7 @@ def snapshot() -> tuple[dict, DayState]:
 
     profile = storage.get_profile()
     day = DayState(
-        tasks_today=storage.tasks_today(),
+        tasks_today=storage.tasks_actionable_today(),
         mood_logs=storage.get_mood_logs(),
         reset_events=storage.get_reset_events(),
         medication=storage.get_medication(),
@@ -328,6 +409,7 @@ def snapshot() -> tuple[dict, DayState]:
         favorites=storage.get_favorites(),
         focus_records=storage.get_focus_records(),
         inbox_count=len(storage.get_inbox()),
+        decision_records=storage.get_decision_records(),
         # Level energi hari ini kalau udah dikunci (dari Morning Brief atau
         # koreksi manual di Tracker). None = biar engine nebak dari mood log.
         energy_level=storage.today_energy(),

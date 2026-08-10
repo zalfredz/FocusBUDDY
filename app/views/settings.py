@@ -536,6 +536,11 @@ def _kartu_model() -> ft.Control:
          f"Belajar dari {o['n_latih']} hari" if o["siap"]
          else f"Butuh {o['min_hari']} hari check-in dulu")
 
+    k = st["kalem"]
+    item("Kalem belajar cara memulai", k["siap"],
+         f"Belajar dari {k['n_latih']} keputusan fokus"
+         if k["siap"] else f"Butuh {k['min_records']} keputusan fokus dulu")
+
     pn = st["penenang"]
     item("Opsi jeda yang cocok", bool(pn["terukur"]),
          f"{pn['n_pakai']}x kamu pakai halaman jeda" if pn["n_pakai"]

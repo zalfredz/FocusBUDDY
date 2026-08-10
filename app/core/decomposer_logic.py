@@ -4,17 +4,19 @@ Beda dari versi sebelumnya: ini nggak memecah semua tugas di kalender,
 tapi HANYA tugas yang deadline-nya hari ini, lalu menatanya jadi slot
 waktu berurutan supaya bisa selesai optimal sesuai level energi user.
 
-Pakai Gemini API kalau tersedia; kalau nggak ada API key / gagal /
-lagi offline, otomatis jatuh ke pembagian rule-based. Ketergantungan ke
-API pihak ketiga ini sengaja diekspos lewat `PlanResult.source`.
+Pakai AI (Gemini/OpenAI/DeepSeek, lihat `ai_client.active_provider()`) kalau
+tersedia; kalau nggak ada API key / gagal / lagi offline, otomatis jatuh ke
+pembagian rule-based. Ketergantungan ke API pihak ketiga ini sengaja
+diekspos lewat `PlanResult.source`.
 
-Output JSON-nya dipaksa lewat `response_schema` Gemini (structured output),
-bukan cuma minta "jawab pakai JSON" di prompt -- jadi bentuknya dijamin
-valid sama API-nya, bukan bergantung model nurut apa nggak.
+Output JSON-nya dipaksa lewat skema structured output (bentuk pastinya beda
+per provider, urusan itu ada di `ai_client.generate_json()`), bukan cuma
+minta "jawab pakai JSON" di prompt -- jadi bentuknya dijamin valid, nggak
+bergantung model nurut apa nggak. File ini sendiri nggak pernah tau lagi
+provider mana yang aktif.
 """
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Optional
@@ -26,16 +28,17 @@ from app.core import ai_client
 # timer di Tracker lewat kalem_engine.
 from app.core.kalem_engine import ENERGY_BLOCKS
 
-DECOMPOSER_MODEL = ai_client.MODEL
-
-# Skema output. `menit` SENGAJA DIBUANG dari sini -- lihat catatan di bawah.
+# Skema output dalam JSON Schema STANDAR (huruf kecil) -- `ai_client`
+# nerjemahin ke konvensi Gemini (huruf besar) atau bentuk OpenAI sendiri,
+# jadi file ini nggak perlu tau bedanya. `menit` SENGAJA DIBUANG dari sini,
+# lihat catatan di bawah.
 RESPONSE_SCHEMA = {
-    "type": "ARRAY",
+    "type": "array",
     "items": {
-        "type": "OBJECT",
+        "type": "object",
         "properties": {
-            "tugas": {"type": "STRING", "description": "Judul tugas asli, disalin persis"},
-            "langkah": {"type": "STRING", "description": "Satu langkah konkret yang kecil"},
+            "tugas": {"type": "string", "description": "Judul tugas asli, disalin persis"},
+            "langkah": {"type": "string", "description": "Satu langkah konkret yang kecil"},
         },
         "required": ["tugas", "langkah"],
     },
@@ -62,7 +65,14 @@ SYSTEM_PROMPT = (
     "konkret yang kecil. JANGAN nyebut durasi/menit sama sekali. Aturan: langkah "
     "pertama tiap tugas harus yang paling ringan (bisa dimulai dalam sekali duduk), "
     "bahasa Indonesia santai, jangan pakai jargon, maksimal 3 langkah per tugas. "
-    "Field 'tugas' harus disalin persis dari judul yang dikasih."
+    "Field 'tugas' harus disalin persis dari judul yang dikasih.\n\n"
+    "PENTING soal sumber langkah: beberapa tugas di bawah punya baris "
+    "'Deskripsi'. Kalau ADA, langkah-langkahnya HARUS dipecah dari ISI "
+    "deskripsi itu -- itu konteks nyata soal APA yang mau dikerjain "
+    "(mis. deskripsi 'bikin proposal buat hackathon, cari tim dulu' harus "
+    "jadi langkah kayak 'cari 1-2 orang buat diajak bareng', bukan cuma "
+    "'buka dokumen proposal'). Judul di situ cuma LABEL, bukan sumber isi. "
+    "Kalau tugas TIDAK punya deskripsi, pecah dari judulnya aja seperti biasa."
 )
 
 # Bagian menit buat langkah PERTAMA. Kecil disengaja: hambatan ADHD ada di
@@ -83,50 +93,73 @@ class TimeBlock:
 @dataclass
 class PlanResult:
     blocks: list[TimeBlock]
-    source: str         # "ai" | "fallback"
+    # "ai"        -> API beneran kepanggil (dan kuota kepotong)
+    # "lokal"     -> SEMUA tugas kelayanin tanpa API: dari deskripsi
+    #                terstruktur user, atau pungutan hasil pecahan lama
+    #                (model_pecah). Kualitasnya setara "ai", biayanya nol.
+    # "campuran"  -> DUA kemungkinan: (1) sebagian tugas kelayanin lokal,
+    #                sebagian lagi beneran manggil AI; (2) sebagian lokal,
+    #                sisanya jatuh ke template generik karena AI nggak
+    #                boleh/nggak kepakai (`allow_ai=False` atau kuota abis).
+    #                Bedanya diliat dari `n_ai`: >0 berarti kasus (1).
+    # "fallback"  -> template rule-based generik, dipakai kalau AI gagal/
+    #                nggak ada key. Ini yang kualitasnya paling apa adanya.
+    source: str
     total_minutes: int
     reason: str = ""    # kalau fallback: kenapa AI-nya nggak kepakai
     # Langkah mentah (judul, langkah, menit) SEBELUM ditaruh ke slot waktu.
     # Disimpen biar jadwalnya bisa disusun ulang pas ada tugas yang dihapus,
     # tanpa manggil AI-nya lagi.
     steps: list[tuple[str, str, int]] = field(default_factory=list)
+    # Langkah yang sama, tetapi dikunci ke ID tugas untuk write-back. Judul
+    # bukan identitas: dua tugas sah memiliki judul yang sama.
+    task_steps: dict[str, list[dict]] = field(default_factory=dict)
+    # Berapa tugas yang kelayanin tanpa API vs yang mesti nelpon AI.
+    # Dipajang di Tracker biar penghematannya KELIATAN, bukan cuma kejadian
+    # diam-diam di belakang layar.
+    n_lokal: int = 0
+    n_ai: int = 0
 
 
 def _fmt(dt: datetime) -> str:
     return dt.strftime("%H:%M")
 
 
+def _garis_deskripsi(description: str) -> list[str]:
+    """Deskripsi yang udah ditulis per-baris (user bikin outline sendiri
+    sebelum ngisi form) jadi list baris bersih. Return [] kalau deskripsinya
+    cuma satu paragraf utuh -- itu nggak bisa dipecah tanpa ngerti isinya,
+    butuh AI buat itu (lihat `_ai_steps`)."""
+    baris = [b.strip(" \t-•*").strip() for b in (description or "").splitlines()]
+    baris = [b for b in baris if b]
+    return baris if len(baris) >= 2 else []
+
+
 def _rule_based_steps(tasks: list[dict], energy_level: int) -> list[tuple[str, str, int]]:
-    """(judul tugas, langkah, menit) tanpa bantuan LLM."""
+    """(judul tugas, langkah, menit) tanpa bantuan AI.
+
+    Kalau deskripsi tugas UDAH ditulis per-baris (user bikin outline
+    sendiri), baris-baris itu dipakai APA ADANYA sebagai langkah -- nggak
+    ada gunanya manggil AI buat mecah sesuatu yang penulisnya sendiri udah
+    pecah. Efek sampingnya kebetulan pas buat biaya API: Pecah Tugas dari
+    deskripsi terstruktur GRATIS dan nggak potong kuota `decompose`, jadi
+    user yang emang udah niat bikin outline nggak perlu ngorbanin jatah
+    AI-nya buat itu.
+    """
     focus_min, _ = ENERGY_BLOCKS.get(energy_level, ENERGY_BLOCKS[3])
+    menit_per_tugas = perkiraan_menit(tasks, energy_level)
     out: list[tuple[str, str, int]] = []
     for task in tasks:
         title = task["title"]
+        baris = _garis_deskripsi(task.get("description", ""))
+        if baris:
+            bagian = _bagi_menit(menit_per_tugas.get(title, 30), len(baris))
+            out.extend((title, langkah, menit) for langkah, menit in zip(baris, bagian))
+            continue
         out.append((title, f"Siapin bahan/alat buat '{title}'", 5))
         out.append((title, f"Kerjain bagian paling awal dari '{title}'", focus_min))
         out.append((title, f"Rapikan & cek hasil '{title}'", max(focus_min // 2, 5)))
     return out
-
-
-def _extract_json_array(text: str) -> Optional[list]:
-    text = text.strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        if text.startswith("json"):
-            text = text[4:]
-    try:
-        parsed = json.loads(text)
-        return parsed if isinstance(parsed, list) else None
-    except json.JSONDecodeError:
-        pass
-    start, end = text.find("["), text.rfind("]")
-    if start == -1 or end == -1 or end < start:
-        return None
-    try:
-        parsed = json.loads(text[start : end + 1])
-        return parsed if isinstance(parsed, list) else None
-    except json.JSONDecodeError:
-        return None
 
 
 def perkiraan_menit(tasks: list[dict], energy_level: int) -> dict[str, int]:
@@ -180,65 +213,37 @@ def _ai_steps(
 ) -> tuple[Optional[list[tuple[str, str, int]]], str]:
     """Return (langkah, alasan-gagal). Alasan dipakai UI biar user tau
     kenapa mode AI-nya nggak kepakai -- bukan cuma diem-diem fallback."""
-    try:
-        from google import genai
-        from google.genai import types
-    except ImportError:
-        return None, "SDK google-genai belum terpasang (pip install google-genai)"
-
-    api_key = ai_client.api_key()
-    if not api_key:
-        return None, "API key belum di-set (isi GEMINI_API_KEY di file .env)"
-
     # LANGKAH 1: model kita yang ngitung durasi.
     menit_per_tugas = perkiraan_menit(tasks, energy_level)
-    task_lines = "\n".join(
-        f"- {t['title']} (~{menit_per_tugas.get(t['title'], 30)} menit)" for t in tasks
+
+    def _baris_tugas(t: dict) -> str:
+        baris = f"- {t['title']} (~{menit_per_tugas.get(t['title'], 30)} menit)"
+        deskripsi = (t.get("description") or "").strip()
+        if deskripsi:
+            # Deskripsi ITU yang mau dipecah, bukan judulnya -- lihat
+            # instruksi di SYSTEM_PROMPT soal ini.
+            baris += f"\n  Deskripsi: {deskripsi}"
+        return baris
+
+    task_lines = "\n".join(_baris_tugas(t) for t in tasks)
+
+    # LANGKAH 2: AI cuma mecah jadi kalimat langkah -- provider mana yang
+    # beneran dipanggil (Gemini/OpenAI/DeepSeek) urusan `ai_client`, bukan di sini.
+    parsed, reason = ai_client.generate_json(
+        system_instruction=SYSTEM_PROMPT,
+        prompt=(
+            f"Tugas hari ini:\n{task_lines}\n\n"
+            f"Energi user: {energy_level}/6 (1 = capek banget, 6 = penuh energi). "
+            "Makin rendah energinya, makin kecil langkahnya.\n"
+            "Pecah jadi langkah. Jangan sebut menit."
+        ),
+        schema=RESPONSE_SCHEMA,
+        temperature=0.7,
     )
-    import time
-
-    mulai = time.time()
-    try:
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model=DECOMPOSER_MODEL,
-            contents=(
-                f"Tugas hari ini:\n{task_lines}\n\n"
-                f"Energi user: {energy_level}/6 (1 = capek banget, 6 = penuh energi). "
-                "Makin rendah energinya, makin kecil langkahnya.\n"
-                "Pecah jadi langkah. Jangan sebut menit."
-            ),
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                # Structured output: bentuk JSON-nya dijamin API, bukan
-                # bergantung model nurut sama instruksi prompt.
-                response_mime_type="application/json",
-                response_schema=RESPONSE_SCHEMA,
-                temperature=0.7,
-                # Model lite nggak makan token "thinking" (diukur: 0), jadi
-                # budget segini udah lega buat 5 tugas x 3 langkah. Budget
-                # yang kekecilan bikin balasan kepotong MAX_TOKENS sebelum
-                # JSON-nya utuh -> diem-diem jatuh ke rule-based.
-                max_output_tokens=ai_client.MAX_OUTPUT_TOKENS,
-            ),
-        )
-    except Exception as exc:
-        return None, _explain(exc)
-    ai_client.catat_lama(time.time() - mulai)
-
-    text = (getattr(response, "text", None) or "").strip()
-    if not text:
-        # Paling sering: kena safety filter, atau kepotong di tengah jalan.
-        blocked = getattr(getattr(response, "prompt_feedback", None), "block_reason", None)
-        if blocked:
-            return None, "permintaan ditolak filter keamanan model"
-        return None, "balasan AI kosong"
-
-    parsed = _extract_json_array(text)
     if not parsed:
-        return None, "balasan AI nggak bisa dibaca sebagai JSON"
+        return None, reason or "balasan AI kosong"
 
-    # LANGKAH 3: teks langkah dari Gemini, MENIT dari model kita.
+    # LANGKAH 3: teks langkah dari AI, MENIT dari model kita.
     per_tugas: dict[str, list[str]] = {}
     for item in parsed:
         if not isinstance(item, dict):
@@ -289,9 +294,6 @@ def _match_title(title: str, tasks: list[dict]) -> Optional[str]:
     return None
 
 
-_explain = ai_client.explain_error
-
-
 def lay_out(
     steps: list[tuple[str, str, int]],
     energy_level: int = 3,
@@ -328,22 +330,191 @@ def lay_out(
     return blocks, total
 
 
+def _langkah_lokal(task: dict) -> tuple[Optional[list[str]], str]:
+    """Langkah buat satu tugas TANPA nelpon API. Return (langkah, sumber).
+
+    Dua jalur, dicoba berurutan:
+
+      1. Deskripsi yang udah ditulis per-baris -- user bikin outline sendiri,
+         nggak ada gunanya minta AI mecah yang penulisnya udah pecah.
+      2. Pungutan dari pecahan lama yang MIRIP (`model_pecah`) -- ini yang
+         bikin app makin murah seiring dipakai.
+
+    Return (None, "") kalau dua-duanya nggak kena -> pemanggil lanjut ke AI.
+    """
+    baris = _garis_deskripsi(task.get("description", ""))
+    if baris:
+        return baris, "manual"
+
+    from app.kalem_ml import model_pecah
+
+    hasil = model_pecah.cari(task.get("title", ""), task.get("description", ""))
+    if hasil.ketemu:
+        return hasil.langkah, "retrieval"
+    return None, ""
+
+
+def _langkah_tambahan(task: dict) -> list[str]:
+    """Normalisasi langkah yang memang ingin user lakukan sendiri."""
+    raw = task.get("custom_steps", [])
+    if isinstance(raw, str):
+        raw = raw.splitlines()
+    return [str(step).strip(" \t-•*").strip() for step in raw if str(step).strip(" \t-•*").strip()]
+
+
+def _sisipkan_langkah_user(
+    per_judul: dict[str, list[tuple[str, str, int]]],
+    tasks: list[dict],
+    menit_per_tugas: dict[str, int],
+) -> None:
+    """Sisipkan langkah user setelah pembuka, lalu bagi ulang durasinya.
+
+    Posisi ini membuat kebutuhan seperti "Ambil pensil" muncul setelah
+    "Buka buku" dan sebelum kerja inti, tanpa meminta user menyusun seluruh
+    rencana dari nol. Langkah yang sama tidak diduplikasi.
+    """
+    for task in tasks:
+        title = task["title"]
+        tambahan = _langkah_tambahan(task)
+        if not tambahan or not per_judul.get(title):
+            continue
+        awal = [step for _, step, _ in per_judul[title]]
+        ada = {step.casefold() for step in awal}
+        tambahan = [step for step in tambahan if step.casefold() not in ada]
+        if not tambahan:
+            continue
+        gabung = awal[:1] + tambahan + awal[1:]
+        bagian = _bagi_menit(menit_per_tugas.get(title, 30), len(gabung))
+        per_judul[title] = [
+            (title, step, max(3, min(minutes, 120)))
+            for step, minutes in zip(gabung, bagian)
+        ]
+
+
 def plan_today(
     tasks: list[dict],
     energy_level: int = 3,
     start_at: Optional[datetime] = None,
+    allow_ai: bool = True,
 ) -> PlanResult:
-    """Susun rencana hari ini jadi slot waktu berurutan."""
+    """Susun rencana hari ini jadi slot waktu berurutan.
+
+    URUTAN YANG SENGAJA: yang GRATIS dicoba dulu, API belakangan.
+    Tugas yang bisa dilayanin dari deskripsi terstruktur atau pungutan
+    pecahan lama nggak pernah nyampe ke API -- dan kuotanya nggak kepotong.
+    Cuma sisanya yang beneran dikirim ke AI. `allow_ai=False` dipakai saat
+    kuota habis: jalur lokal tetap jalan, sisa tugas mendapat template aman.
+    """
     if not tasks:
         return PlanResult(blocks=[], source="fallback", total_minutes=0)
 
-    steps, reason = _ai_steps(tasks, energy_level)
-    source = "ai"
-    if not steps:
-        steps = _rule_based_steps(tasks, energy_level)
+    # Respons model memakai judul sebagai penanda. Kalau ada judul kembar,
+    # satu batch akan ambigu dan bisa menempelkan langkah tugas A ke B.
+    # Proses masing-masing secara terpisah: sedikit lebih banyak kerja hanya
+    # pada kasus ambigu, tetapi identitas tugas tetap benar.
+    titles = [str(task.get("title", "")) for task in tasks]
+    if len(set(titles)) != len(titles):
+        parts = [plan_today([task], energy_level, start_at, allow_ai) for task in tasks]
+        steps = [step for part in parts for step in part.steps]
+        task_steps = {
+            str(task.get("id", f"plan-{index}")): [
+                {"text": step, "done": False}
+                for _title, step, _minutes in part.steps
+            ]
+            for index, (task, part) in enumerate(zip(tasks, parts))
+        }
+        n_lokal = sum(part.n_lokal for part in parts)
+        n_ai = sum(part.n_ai for part in parts)
+        if n_ai and n_lokal:
+            source = "campuran"
+        elif n_ai:
+            source = "ai"
+        elif n_lokal and all(part.source == "lokal" for part in parts):
+            source = "lokal"
+        elif n_lokal:
+            source = "campuran"
+        else:
+            source = "fallback"
+        blocks, total = lay_out(steps, energy_level, start_at)
+        return PlanResult(
+            blocks=blocks, source=source, total_minutes=total,
+            reason="; ".join(part.reason for part in parts if part.reason),
+            steps=steps, task_steps=task_steps, n_lokal=n_lokal, n_ai=n_ai,
+        )
+
+    from app import storage
+
+    menit_per_tugas = perkiraan_menit(tasks, energy_level)
+    per_judul: dict[str, list[tuple[str, str, int]]] = {}
+    perlu_ai: list[dict] = []
+    n_lokal = 0
+
+    # --- Tahap 1: yang bisa dilayanin gratis ---
+    for t in tasks:
+        judul = t["title"]
+        langkah, sumber = _langkah_lokal(t)
+        if not langkah:
+            perlu_ai.append(t)
+            continue
+        bagian = _bagi_menit(menit_per_tugas.get(judul, 30), len(langkah))
+        per_judul[judul] = [
+            (judul, teks, max(3, min(m, 120))) for teks, m in zip(langkah, bagian)
+        ]
+        n_lokal += 1
+        # Outline manual user ikut disimpen: itu bahan retrieval paling bagus
+        # yang ada -- ditulis sendiri sama orang yang ngerti tugasnya.
+        if sumber == "manual":
+            storage.add_decompose_record(judul, t.get("description", ""), langkah, "manual")
+
+    # --- Tahap 2: sisanya baru ke AI ---
+    reason = ""
+    n_ai = 0
+    if perlu_ai:
+        if allow_ai:
+            ai_steps, reason = _ai_steps(perlu_ai, energy_level)
+        else:
+            ai_steps, reason = None, "kuota AI hari ini habis"
+        if ai_steps:
+            for judul, teks, menit in ai_steps:
+                per_judul.setdefault(judul, []).append((judul, teks, menit))
+            n_ai = len({j for j, _, _ in ai_steps})
+            # Simpen biar tugas mirip berikutnya nggak perlu nelpon API lagi.
+            for t in perlu_ai:
+                langkah = [teks for j, teks, _ in ai_steps if j == t["title"]]
+                if langkah:
+                    storage.add_decompose_record(
+                        t["title"], t.get("description", ""), langkah, "ai"
+                    )
+        else:
+            for judul, teks, menit in _rule_based_steps(perlu_ai, energy_level):
+                per_judul.setdefault(judul, []).append((judul, teks, menit))
+
+    # Urutan tugas dipertahanin sesuai `tasks`, bukan urutan selesainya --
+    # jadwal yang lompat-lompat bikin bingung.
+    _sisipkan_langkah_user(per_judul, tasks, menit_per_tugas)
+    steps = [langkah for t in tasks for langkah in per_judul.get(t["title"], [])]
+
+    if n_ai and n_lokal:
+        source = "campuran"
+    elif n_ai:
+        source = "ai"
+    elif n_lokal and not perlu_ai:
+        source = "lokal"
+    elif n_lokal:
+        source = "campuran"   # sebagian lokal, sisanya template
+    else:
         source = "fallback"
 
     blocks, total = lay_out(steps, energy_level, start_at)
     return PlanResult(
-        blocks=blocks, source=source, total_minutes=total, reason=reason, steps=steps
+        blocks=blocks, source=source, total_minutes=total, reason=reason,
+        steps=steps,
+        task_steps={
+            str(task.get("id", f"plan-{index}")): [
+                {"text": step, "done": False}
+                for _title, step, _minutes in per_judul.get(task["title"], [])
+            ]
+            for index, task in enumerate(tasks)
+        },
+        n_lokal=n_lokal, n_ai=n_ai,
     )

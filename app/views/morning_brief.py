@@ -41,8 +41,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         dismiss("home")
 
     def override(e):
-        # Nggak ngunci apa-apa -- user yang nentuin sendiri di Tracker.
-        dismiss("tracker")
+        # Kontrol energi ada di halaman Mood, bukan Tracker.
+        dismiss("mood")
 
     # ------------------------------------------------------------ isi kartu
 

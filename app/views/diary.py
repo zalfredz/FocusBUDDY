@@ -109,6 +109,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
             tags=tags[:6],
             # Jangan sampai nulis cerita ngehapus tag cepat yang udah dipilih.
             quick_tags=current.get("quick_tags", []) if current else [],
+            # Diary dan check-in adalah dua potongan dari hari yang sama.
+            # Jangan sampai nulis cerita menghapus jawaban makan/istirahat.
+            ate_today=current.get("ate_today") if current else None,
+            rested_enough=current.get("rested_enough") if current else None,
         )
         saved_note.value = "Tersimpan. Makasih udah cerita 🤍"
         render_entries()

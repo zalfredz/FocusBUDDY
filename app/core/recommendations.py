@@ -1,6 +1,7 @@
 """Kartu rekomendasi personal -- perluasan Weekly Insight (ide #4).
 
-Reuse infrastruktur Gemini yang sama kayak Task Decomposer (`ai_client`).
+Reuse infrastruktur AI yang sama kayak Task Decomposer (`ai_client` --
+provider-nya Gemini/OpenAI/DeepSeek, lihat `ai_client.active_provider()`).
 BUKAN integrasi Spotify/resep API beneran (di luar scope 3 hari) -- cukup
 teks rekomendasi singkat dari LLM, dipersonalisasi dari data Favorite yang
 user isi sendiri di menu Favorit.
@@ -10,7 +11,6 @@ ajakan isi Favorite dulu -- bukan kartu kosong atau nge-skip diem-diem.
 """
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from typing import Optional
 
@@ -18,11 +18,13 @@ from app.core import ai_client
 
 COOKING_KEYWORDS = ["masak", "cooking", "baking", "kue", "koki", "dapur", "resep"]
 
+# JSON Schema standar (huruf kecil) -- `ai_client` nerjemahin ke konvensi
+# Gemini atau bentuk OpenAI sendiri, jadi file ini nggak perlu tau bedanya.
 RESPONSE_SCHEMA = {
-    "type": "OBJECT",
+    "type": "object",
     "properties": {
-        "judul": {"type": "STRING", "description": "Judul singkat kartu, 3-6 kata"},
-        "isi": {"type": "STRING", "description": "Isi rekomendasi, boleh beberapa baris"},
+        "judul": {"type": "string", "description": "Judul singkat kartu, 3-6 kata"},
+        "isi": {"type": "string", "description": "Isi rekomendasi, boleh beberapa baris"},
     },
     "required": ["judul", "isi"],
 }
@@ -39,50 +41,18 @@ class RecCard:
 
 def _generate(prompt: str) -> tuple[Optional[dict], str]:
     """Return (parsed {'judul','isi'} | None, alasan-gagal)."""
-    try:
-        from google import genai
-        from google.genai import types
-    except ImportError:
-        return None, "SDK google-genai belum terpasang (pip install google-genai)"
-
-    key = ai_client.api_key()
-    if not key:
-        return None, "API key belum di-set (isi GEMINI_API_KEY di file .env)"
-
-    import time
-
-    mulai = time.time()
-    try:
-        client = genai.Client(api_key=key)
-        response = client.models.generate_content(
-            model=ai_client.MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=(
-                    "Kamu Kalem, buddy hangat buat orang ADHD. Kasih rekomendasi "
-                    "singkat, bahasa Indonesia santai, nggak ada markdown/emoji "
-                    "berlebihan."
-                ),
-                response_mime_type="application/json",
-                response_schema=RESPONSE_SCHEMA,
-                temperature=0.9,
-                # Lihat catatan budget di ai_client.MAX_OUTPUT_TOKENS.
-                max_output_tokens=ai_client.MAX_OUTPUT_TOKENS,
-            ),
-        )
-    except Exception as exc:
-        return None, ai_client.explain_error(exc)
-    ai_client.catat_lama(time.time() - mulai)
-
-    text = (getattr(response, "text", None) or "").strip()
-    if not text:
-        return None, "balasan AI kosong"
-
-    try:
-        parsed = json.loads(text)
-    except json.JSONDecodeError:
-        return None, "balasan AI nggak bisa dibaca sebagai JSON"
-
+    parsed, reason = ai_client.generate_json(
+        system_instruction=(
+            "Kamu Kalem, buddy hangat buat orang ADHD. Kasih rekomendasi "
+            "singkat, bahasa Indonesia santai, nggak ada markdown/emoji "
+            "berlebihan."
+        ),
+        prompt=prompt,
+        schema=RESPONSE_SCHEMA,
+        temperature=0.9,
+    )
+    if not parsed:
+        return None, reason or "balasan AI kosong"
     if not isinstance(parsed, dict) or not parsed.get("isi"):
         return None, "balasan AI kosong"
     return parsed, ""
@@ -102,8 +72,8 @@ def _music_card(musik: str) -> RecCard:
         "music",
         "Lagi pengen dengerin apa?",
         f"Kamu bilang suka '{musik}' -- puter itu lagi aja, kadang yang familiar "
-        "emang paling ngebantu fokus. (Rekomendasi AI lagi nggak kepakai: "
-        f"{reason})",
+        "emang paling ngebantu fokus. Rekomendasi Kalem lagi belum tersedia, "
+        "jadi puter yang familiar dulu aja.",
         source="fallback",
         reason=reason,
     )
@@ -125,8 +95,8 @@ def _recipe_card(hobi: str, energy_level: int) -> RecCard:
     return RecCard(
         "recipe",
         "Laper? Coba masak dikit",
-        "Rekomendasi resep dari AI lagi nggak kepakai "
-        f"({reason}) -- tapi karena kamu suka masak, coba aja bikin yang paling "
+        "Rekomendasi resep Kalem lagi nggak tersedia, tapi karena kamu suka masak, "
+        "coba aja bikin yang paling "
         "gampang di kepala kamu sekarang, nggak usah nunggu resep sempurna.",
         source="fallback",
         reason=reason,

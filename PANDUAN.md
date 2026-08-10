@@ -101,7 +101,9 @@ Satu lagi yang penting: **semua ini belajar dari catatan kamu sendiri, bukan dar
 
 ## Soal privasi — jujur aja
 
-- **Semua data kamu (tugas, mood, cerita diary, obat) disimpan di HP kamu sendiri.** Nggak dikirim ke server orang lain, nggak ada yang bisa lihat kecuali kamu.
+- **Mood, cerita diary, obat, dan riwayat fokus disimpan lokal di perangkat ini.** Data-data itu tidak diproses model Kalem.
+- **Pecah Tugas punya jalur lokal dulu:** outline yang kamu tulis dan pola yang pernah cocok dipakai ulang tanpa internet. Kalau keduanya tidak cukup dan penyusunan Kalem tersedia, judul serta deskripsi tugas diproses untuk membuat langkah. Hasilnya lalu disimpan lokal agar tugas serupa tidak perlu diproses lagi.
+- Rekomendasi Kalem bersifat opsional; bila diaktifkan, preferensi yang memang dipakai untuk rekomendasi (misalnya musik/hobi dan level energi) dapat diproses. Jangan isi detail yang tidak ingin kamu gunakan untuk rekomendasi.
 - **"Orang tempat cerita"** yang bisa kamu isi di Favorit itu cuma nama panggilan doang — FocusBuddy nggak nyimpen nomor telepon siapa pun, dan **nggak pernah** ngehubungin siapa pun otomatis atas nama kamu.
 - Kalimat penyemangat yang kamu tulis, itu murni kata-kata kamu sendiri — bukan kutipan orang lain, jadi bebas dipakai seenaknya.
 
@@ -112,14 +114,14 @@ Satu lagi yang penting: **semua ini belajar dari catatan kamu sendiri, bukan dar
 FocusBuddy itu **teman bantu harian, bukan pengganti tenaga medis.**
 
 - Bukan alat buat diagnosis ADHD. Kalau kamu curiga punya ADHD dan pengen tahu pasti, tetap perlu ketemu psikolog/psikiater.
-- Bukan layanan darurat. Kalau kamu dalam kondisi krisis dan butuh bantuan SEKARANG, di halaman "Lagi kewalahan?" ada nomor telepon **119 ext. 8** (SEJIWA dari Kemenkes, gratis, 24 jam) yang bisa langsung dipencet.
+- Bukan layanan darurat. Kalau kamu dalam kondisi krisis dan butuh bantuan SEKARANG, di halaman "Lagi kewalahan?" tersedia **Healing119.id — Kemenkes**: hubungi **119 lalu pilih ekstensi 8**, atau buka situs resminya untuk pilihan kontak dan jam layanan terbaru.
 - Ramalan-ramalan Kalem itu tebakan berdasar pola, bukan kepastian. Kalau ngerasa Kalem salah nebak, **kamu yang benar** — bukan aplikasinya.
 
 ---
 
 ## Gratis apa bayar?
 
-Semua yang kepakai tiap hari — nambah tugas, cek mood, sesi fokus, tombol jeda, **pengingat obat** — **gratis semua**, nggak ada batasnya. Yang berbayar cuma bagian "ekstra": misalnya pecah tugas pakai AI yang di versi gratis dibatasi 3x sehari, atau insight pola yang lebih dalam kalau udah pakai berminggu-minggu.
+Semua yang kepakai tiap hari — nambah tugas, cek mood, sesi fokus, tombol jeda, **pengingat obat** — **gratis semua**, nggak ada batasnya. Yang berbayar cuma bagian "ekstra": misalnya Pecah Tugas Kalem yang di versi gratis dibatasi 3x sehari, atau insight pola yang lebih dalam kalau udah pakai berminggu-minggu.
 
 Alasannya simpel: hal-hal yang penting buat keseharian kamu nggak boleh dikunci di balik bayar-bayar. Itu prinsip yang kami pegang dari awal.
 

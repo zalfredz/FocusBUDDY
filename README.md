@@ -23,17 +23,18 @@ app/
   storage.py                 # persistensi lokal (~/.focusbuddy/data.json)
   clock.py                   # sumber tunggal "sekarang" -- offset hari & jam buat testing
   focus_session.py           # sesi fokus global, hidup di luar halaman mana pun
-  ui_helpers.py               # komponen UI berulang + ProgresAI (bar progres Gemini)
+  ui_helpers.py               # komponen UI berulang + ProgresAI (bar progres AI)
   core/
     kalem_engine.py          # ★ decision engine: satu otak buat semua halaman
-    decomposer_logic.py      # pecah tugas HARI INI -> slot waktu (model_durasi + Gemini)
+    decomposer_logic.py      # pecah tugas HARI INI -> slot waktu (model_durasi + AI)
     energy_predictor.py      # Decision Tree (data sintetis) -- prior model_energi
     mood_model.py            # checkin_streak/neglect_streak (canonical), diary, tag
     reset_preferences.py     # opsi jeda + deteksi distress (rule-based, safety-critical)
     medication_model.py      # proyeksi stok obat + dosis kelewat + link apotek
     bpom.py                  # validasi nama obat dari registri BPOM (offline)
     recommendations.py       # kartu rekomendasi musik/resep dari Favorit
-    ai_client.py             # konfigurasi Gemini bersama + pengukur latensi
+    ai_client.py             # ★ provider AI (Gemini/OpenAI/DeepSeek, dari .env) + latensi
+    decision_quality.py      # beban tugas vs waktu tersedia -- fakta murni, nggak milih/nge-UI
   kalem_ml/
     fitur.py                 # ★ lapisan fitur bersama -- satu definisi, semua model baca dari sini
     riwayat.py                # rekonstruksi fitur per HARI LAMPAU (buat melatih) + sidik_jari()
@@ -42,6 +43,8 @@ app/
     model_energi.py          # beban kerja + burnout (prior sintetis + kalibrasi personal)
     model_overwhelm.py       # risiko hari berat (LogisticRegression, belajar dari SOS)
     model_penenang.py        # opsi jeda mana yang beneran nolong (dari perubahan mood)
+    model_pecah.py           # pungut pecahan tugas lama yang mirip (TFIDF char n-gram, 0 API)
+    model_kalem.py           # ML_KALEM -- kalibrasi ringan next-action, tidur sampai data cukup
   data/
     bpom_index.json          # 8.960 obat, hasil olahan CSV BPOM (dibuat tools/)
     model_durasi.joblib      # model durasi pra-latih (opsional, dibuat tools/)
@@ -61,11 +64,22 @@ app/
 DATASET/
   APP - Master Produk Komoditi Obat-<tanggal>.csv   # registri BPOM (23.437 baris)
   task_duration_dataset_id_lengkap.csv              # 549 tugas + durasi asli
+  focusbuddy_dekomposisi_id.csv                     # 212 pola Pecah Tugas Indonesia (auto-load, lihat model_pecah.py)
+  focusbuddy_task_decomposition_dataset_extended.csv # pola Inggris -- bahan terjemahan, TIDAK dimuat ke app
+  focusbuddy_task_queries.csv                       # query berlabel buat tools/evaluasi_retrieval.py
 tools/
   build_bpom_index.py        # CSV BPOM -> app/data/bpom_index.json
   latih_model_durasi.py      # CSV durasi -> app/data/model_durasi.joblib
+  muat_dataset_pecah.py      # intip dataset Pecah Tugas (default = --lihat doang;
+                              #   dataset-nya udah auto-load di app, lihat docstring
+                              #   sebelum pakai --tulis-ke-storage)
+  evaluasi_retrieval.py      # ukur retrieval model_pecah vs query berlabel
+                              #   (precision/coverage/wrong-retrieval-rate)
+  bikin_query_uji.py         # generate + jalanin query uji buat kalibrasi AMBANG_MIRIP
+  tes_manual_kalem.py        # tes manual tiap model KALEM, input custom (storage-independent)
 tests/
   test_regresi.py            # regresi -- `python tests/test_regresi.py`
+  test_decision_quality.py   # skenario capacity-aware planning -- `python tests/test_decision_quality.py`
 ```
 
 ## Arsitektur: "Kalem sebagai satu otak"
@@ -175,13 +189,17 @@ pip install -r requirements.txt
 ### (Opsional) Aktifkan AI buat "Pecah Tugas" & kartu rekomendasi
 
 Dua fitur ini jalan **tanpa** API key -- otomatis fallback ke template
-rule-based. Buat versi AI-nya, ambil key gratis di
-[Google AI Studio](https://aistudio.google.com/apikey):
+rule-based. Buat versi AI-nya, isi salah satu (atau lebih) key AI:
 
 ```bash
 cp .env.example .env
-# lalu isi GEMINI_API_KEY=... di file .env
+# isi satu atau lebih: GEMINI_API, OPENAI_API_KEY, DEEPSEEK_API_KEY
+# opsional: AI_PROVIDER=gemini|openai|deepseek untuk memilih yang aktif
 ```
+
+- Gemini -- key gratis di [Google AI Studio](https://aistudio.google.com/apikey)
+- OpenAI -- [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- DeepSeek -- [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys)
 
 `.env` sudah masuk `.gitignore`. Bisa juga di-`export` manual lewat shell --
 kalau ada, environment variable menang atas isi `.env`.
@@ -189,17 +207,36 @@ kalau ada, environment variable menang atas isi `.env`.
 **Jangan pernah commit API key ke `.env.example`** -- file itu memang
 di-commit ke repo (buat orang lain lihat formatnya), jadi harus selalu kosong.
 
-Model default `gemini-flash-lite-latest` -- tier PALING RENDAH yang tersedia,
-dan (diukur) juga yang paling cepat: 1,21 dtk vs 1,71 dtk buat `3.1-flash-lite`.
-Di-set satu tempat di `app/core/ai_client.py`, dipakai bareng sama DUA fitur:
-Pecah Tugas dan kartu rekomendasi. **Fitur obat sengaja NGGAK pakai AI sama
-sekali** -- lihat bagian Data Obat di bawah.
+#### Provider dipilih dari `.env`, bukan di-hardcode
 
-### Model kita dulu, baru Gemini
+`app/core/ai_client.py` adalah **satu-satunya** tempat di app ini yang tau
+SDK Gemini/OpenAI/DeepSeek itu apa -- `decomposer_logic.py` &
+`recommendations.py` cuma manggil `ai_client.generate_json(system_instruction,
+prompt, schema, temperature)` dan nggak pernah tau provider mana yang
+beneran jalan. Ganti provider = ganti `.env`, nol perubahan kode.
+
+Provider aktif ditentuin `ai_client.active_provider()`:
+
+1. `AI_PROVIDER=gemini|openai|deepseek` di `.env` kalau mau MAKSA salah satu.
+2. Kalau nggak diisi, ditebak dari key yang ADA -- urutan menang
+   **Gemini > OpenAI > DeepSeek** kalau lebih dari satu keisi sekaligus.
+3. Nggak ada key sama sekali -> dua fitur fallback ke rule-based, sama
+   kayak kalau API-nya lagi down.
+
+DeepSeek sengaja nggak butuh SDK terpisah -- API-nya kompatibel sama SDK
+`openai` (cuma beda `base_url` + nama model), jadi satu jalur kode yang
+sama dipakai buat dua provider itu.
+
+Model default per provider (`app/core/ai_client.py`): `gemini-flash-lite-latest`,
+`gpt-4o-mini`, `deepseek-chat`. **Fitur obat sengaja NGGAK pakai AI sama
+sekali, provider apa pun** -- lihat bagian Data Obat di bawah.
+
+### Model kita dulu, baru AI
 
 Data yang masuk ke API udah diolah model sendiri, bukan mentah. Dulu Gemini
 disuruh nebak durasi tiap langkah; sekarang `kalem_ml.model_durasi` yang
-ngitung, dan Gemini cuma nulis teks langkahnya. Diukur di 3 tugas:
+ngitung, dan AI-nya cuma nulis teks langkahnya. Diukur di 3 tugas (pakai
+Gemini, provider yang diukur pertama kali):
 
 | | token output | total token | waktu |
 |---|---|---|---|
@@ -209,15 +246,21 @@ ngitung, dan Gemini cuma nulis teks langkahnya. Diukur di 3 tugas:
 
 Bonus yang lebih penting dari hemat token: angkanya jadi KONSISTEN. Perkiraan
 di kartu tugas dan di rencana sekarang datang dari sumber yang sama. Output
-JSON-nya dipaksa lewat `response_schema` Gemini (structured output), bukan
-cuma diminta lewat prompt.
+JSON-nya dipaksa lewat structured output (bentuk persisnya beda per provider
+-- `response_schema` di Gemini, mode JSON + validasi manual di OpenAI/DeepSeek,
+urusan itu semua ada di `ai_client.generate_json()`), bukan cuma diminta
+lewat prompt.
 
 **Progres yang jujur, bukan spinner kosong.** `ui_helpers.ProgresAI` nampilin
 bar progres yang panjangnya dari MEDIAN LATENSI PANGGILAN SEBELUMNYA
-(`ai_client.perkiraan_lama()`), dan nggak pernah nyentuh 100% sebelum
-jawabannya beneran nyampe.
+(`ai_client.perkiraan_lama()`, dihitung terpisah per provider), dan nggak
+pernah nyentuh 100% sebelum jawabannya beneran nyampe.
 
 ### Kenapa `-lite`, bukan `gemini-flash-latest`
+
+(Pemilihan model di bagian ini spesifik Gemini -- OpenAI & DeepSeek pakai
+model default masing-masing yang belum diukur langsung kayak di bawah,
+lihat komentar di `app/core/ai_client.py`.)
 
 Diukur langsung ke API, bukan ditebak:
 
@@ -238,6 +281,7 @@ diem-diem jatuh ke rule-based dan keliatan kayak "API-nya belum nyala".
 flet run --web app/main.py      # browser -- paling gampang buat demo
 flet run app/main.py            # jendela desktop
 flet run --android app/main.py  # HP, lewat app Flet + scan QR
+flet run --ios app/main.py # ios
 ```
 
 Build jadi APK/IPA (butuh Flutter SDK, lihat [docs Flet](https://flet.dev/docs/publish)):
@@ -340,8 +384,8 @@ kalau ditekan "Lihat bulan".
   kuadran & tingkat kesulitan.
 - **Pecah Tugas** (opsional, bisa pilih tugas mana aja) -- menata ulang tugas
   **hari ini** jadi slot waktu berurutan. Durasinya dari `model_durasi` dulu,
-  Gemini cuma nulis kalimat langkahnya (lihat "Model kita dulu, baru Gemini"
-  di atas). Kalau satu tugas dihapus, rencana disusun ulang otomatis --
+  AI-nya (Gemini/OpenAI/DeepSeek) cuma nulis kalimat langkahnya (lihat
+  "Model kita dulu, baru AI" di atas). Kalau satu tugas dihapus, rencana disusun ulang otomatis --
   sisanya digeser, bukan ninggalin jam bolong.
 - **Mendesak DIHITUNG dari deadline**, bukan ditanya ke user. Yang diisi
   cuma tanggal + jam (opsional); `storage.is_urgent()` ngitung ulang tiap
@@ -572,8 +616,10 @@ kebangun.
 
 ## Limitasi yang Wajib Didisclose
 
-- **Pecah Tugas & kartu rekomendasi bergantung API Gemini pihak ketiga.** Ada
-  fallback rule-based buat Pecah Tugas, tapi ini bukan solusi 100% mandiri.
+- **Pecah Tugas & kartu rekomendasi bergantung API AI pihak ketiga**
+  (Gemini/OpenAI/DeepSeek, pilih salah satu lewat `.env` -- lihat
+  `ai_client.py`). Ada fallback rule-based buat Pecah Tugas, tapi ini bukan
+  solusi 100% mandiri.
 - **`model_energi` punya prior dari data SINTETIS** (`generate_synthetic_data`
   di `energy_predictor.py`), karena app belum punya histori pengguna riil
   buat semua kondisi. Dikalibrasi ke data user asli begitu ada histori
