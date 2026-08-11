@@ -138,7 +138,7 @@ rule-based. Buat versi AI-nya, isi salah satu (atau lebih) key AI:
 
 ```bash
 cp .env.example .env
-# isi satu atau lebih: GEMINI_API, OPENAI_API_KEY, DEEPSEEK_API_KEY
+# isi satu atau lebih: GEMINI_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY
 # opsional: AI_PROVIDER=gemini|openai|deepseek untuk memilih yang aktif
 ```
 

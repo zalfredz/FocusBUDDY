@@ -3,6 +3,11 @@
 .env.local
 !.env.example
 
+# konfigurasi lokal editor/agent
+.claude/
+.idea/
+.vscode/
+
 # virtualenv
 .venv/
 .venv-*/
@@ -14,6 +19,13 @@ build/
 
 __pycache__/
 *.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+*.egg-info/
 .DS_Store
 
 # artefak model yang bisa dibangun ulang dari datasets/
