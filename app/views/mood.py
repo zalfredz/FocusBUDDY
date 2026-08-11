@@ -31,6 +31,10 @@ def _care_hari_ini() -> list[tuple]:
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
+    def open_favorites(e=None) -> None:
+        setattr(page, "_focusbuddy_favorites_return", "mood")
+        navigate("favorites")
+
     latest = storage.latest_mood()
     today_log = storage.today_mood()
     state = {
@@ -310,7 +314,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ]
         if current.kind == "empty":
             children.append(
-                ui_helpers.wide_button("Isi Favorit", lambda e: navigate("favorites"), icon=ft.Icons.FAVORITE_BORDER)
+                ui_helpers.wide_button("Isi Favorit", open_favorites, icon=ft.Icons.FAVORITE_BORDER)
             )
         elif len(cards) > 1:
             children.append(
@@ -482,7 +486,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 icon_size=20,
                 tooltip=f"Favorit kamu — {terisi}/{total_favorit} terisi · "
                         "bikin saran Kalem lebih personal",
-                on_click=lambda e: navigate("favorites"),
+                on_click=open_favorites,
             ),
         ],
         spacing=0,

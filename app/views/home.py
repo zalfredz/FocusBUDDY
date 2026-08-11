@@ -16,7 +16,6 @@ from app import (
     ui_helpers,
 )
 from app.core import kalem_engine
-from app.core.capture_logic import save_capture
 from app.core.medication_model import check_status
 
 _TICKER_SESSION_KEY = "focusbuddy.home_ticker.v1"
@@ -196,9 +195,18 @@ def _popup_makan(page: ft.Page, navigate) -> None:
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
+    def open_med_setup(e=None) -> None:
+        setattr(page, "_focusbuddy_med_setup_return", "home")
+        navigate("med_setup")
+
     ticker_state = _ticker_state()
     profile, day = kalem_engine.snapshot()
     session_active = focus_session.is_active()
+    rendered_session_started_at = (
+        focus_session.snapshot().get("session_started_at", "")
+        if session_active
+        else ""
+    )
     needs_checkin = not session_active and _checkin_required()
     needs_meal = (
         not session_active
@@ -272,7 +280,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ft.Text(med_status.message, color="#FFFFFF", size=12.5, expand=True),
                         ft.TextButton(
                             content=ft.Text("Cari apotek", size=12, color="#FFFFFF"),
-                            on_click=lambda e: navigate("med_setup"),
+                            on_click=open_med_setup,
                         ),
                     ],
                     spacing=8,
@@ -411,7 +419,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ft.TextButton(content=ft.Text("Nanti"), on_click=lambda ev: page.pop_dialog()),
                         ui_helpers.primary_button(
                             "Ke setelan obat",
-                            lambda ev: (page.pop_dialog(), navigate("med_setup")),
+                            lambda ev: (page.pop_dialog(), open_med_setup()),
                         ),
                     ],
                 )
@@ -562,9 +570,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
         refresh_focus()
 
     def save_outcome(outcome: str, reflection: str = "") -> None:
-        focus_session.finish(outcome, reflection)
+        continued = False
         if outcome == "completed":
-            ui_helpers.reward_overlay(page)
+            record, continued = focus_session.complete_and_continue(
+                rendered_session_started_at
+            )
+            if record is not None:
+                ui_helpers.reward_overlay(
+                    page,
+                    "Step beres. Lanjut yang berikutnya!" if continued else "",
+                )
+        else:
+            focus_session.finish(outcome, reflection)
         navigate("home")
 
     def ask_blocker(e) -> None:
@@ -771,9 +788,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
             if not text:
                 page.pop_dialog()
                 return
-            result = save_capture(text)
+            storage.add_inbox_note(text)
             page.pop_dialog()
-            navigate(result.route)
+            navigate("home")
 
         page.show_dialog(
             ft.AlertDialog(
@@ -817,23 +834,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
     ]
     if inbox_count:
         capture_children.append(
-            ft.Container(
-                content=ft.Row(
-                    [
-                        ft.Text(
-                            f"{inbox_count} tersimpan",
-                            size=11.5,
-                            color=theme.PRIMARY,
-                            weight=ft.FontWeight.BOLD,
-                        ),
-                        ft.Icon(ft.Icons.CHEVRON_RIGHT, color=theme.PRIMARY, size=18),
-                    ],
-                    spacing=2,
+            ft.TextButton(
+                content=ft.Text(
+                    f"Buka {inbox_count} catatan",
+                    size=11.5,
+                    color=theme.PRIMARY,
+                    weight=ft.FontWeight.BOLD,
                 ),
+                icon=ft.Icons.CHEVRON_RIGHT,
                 on_click=lambda e: navigate("inbox"),
-                ink=True,
-                border_radius=10,
-                padding=ft.Padding.symmetric(vertical=4, horizontal=6),
             )
         )
 

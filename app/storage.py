@@ -991,9 +991,30 @@ def apply_focus_outcome(
 
 
 def task_completion_status(task_id: str, occurrence_date: Optional[str] = None) -> bool:
-    tasks = tasks_for(occurrence_date) if occurrence_date else get_tasks()
-    task = next((item for item in tasks if item.get("id") == task_id), None)
+    task = task_for_focus(task_id, occurrence_date)
     return task_is_done(task) if task else False
+
+
+def task_for_focus(
+    task_id: str,
+    occurrence_date: Optional[str] = None,
+) -> Optional[dict]:
+    """Ambil task/occurrence berdasarkan identity sesi, bukan berdasarkan judul."""
+    tasks = tasks_for(occurrence_date) if occurrence_date else get_tasks()
+    return next((item for item in tasks if item.get("id") == task_id), None)
+
+
+def next_pending_task_step(
+    task_id: str,
+    occurrence_date: Optional[str] = None,
+) -> Optional[tuple[dict, int, dict]]:
+    task = task_for_focus(task_id, occurrence_date)
+    if not task:
+        return None
+    for index, step in enumerate(task.get("steps", [])):
+        if not step.get("done"):
+            return task, index, step
+    return None
 
 
 def task_step_id(
@@ -1001,8 +1022,7 @@ def task_step_id(
     step_index: int,
     occurrence_date: Optional[str] = None,
 ) -> str:
-    tasks = tasks_for(occurrence_date) if occurrence_date else get_tasks()
-    task = next((item for item in tasks if item.get("id") == task_id), None)
+    task = task_for_focus(task_id, occurrence_date)
     if not task:
         return ""
     steps = task.get("steps", [])
@@ -1434,7 +1454,6 @@ def add_diary_entry(
         ))[:12]
     save_state(state)
     return record
-    return record
 
 
 def add_reset_event(choice: str) -> dict:
@@ -1451,10 +1470,29 @@ def add_reset_event(choice: str) -> dict:
         "completed_at": "",
         "improved": None,
         "followup_used": False,
+        "stages": [],
     }
     state["reset_events"].insert(0, event)
     save_state(state)
     return event
+
+
+def append_reset_stage(event_id: str, stage: str) -> bool:
+    """Tambahkan jejak tahap ke satu event recovery tanpa menggandakan sinyal SOS."""
+    clean = (stage or "").strip()
+    if not clean:
+        return False
+    state = load_state()
+    for event in state.get("reset_events", []):
+        if event.get("id") != event_id:
+            continue
+        event.setdefault("stages", []).append({
+            "name": clean,
+            "timestamp": clock.now().isoformat(),
+        })
+        save_state(state)
+        return True
+    return False
 
 
 def complete_reset_event(event_id: str, *, improved: bool) -> bool:

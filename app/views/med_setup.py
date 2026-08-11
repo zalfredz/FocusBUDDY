@@ -15,6 +15,7 @@ from app.core.medication_model import (
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
+    back_route = getattr(page, "_focusbuddy_med_setup_return", "home")
     existing = storage.get_medication()
     status = check_status(existing)
 
@@ -314,7 +315,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         [
             ui_helpers.page_header(
                 "Pengingat Obat",
-                on_back=lambda e: navigate("home"),
+                on_back=lambda e: navigate(back_route),
                 leading=ui_helpers.med_icon(26, theme.TERTIARY),
             ),
             ui_helpers.subtitle(

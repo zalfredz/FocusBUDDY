@@ -1,4 +1,4 @@
-"""Pengaturan profil, cloud, dan kontrol data pengguna."""
+"""Pengaturan profil dan kontrol data pengguna."""
 from __future__ import annotations
 
 import flet as ft
@@ -8,12 +8,94 @@ from models import fitur as kfitur
 
 AGE_OPTIONS = ["<18", "18-24", "25-34", "35+"]
 
-APP_VERSION = "5.0.0"
-
 DEFAULT_NEW_RANGE = [19, 22]
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
+    """Halaman utama Pengaturan yang ringkas."""
+    profile = storage.get_profile()
+    name = (profile.get("name") or "Teman").strip()
+    age = (profile.get("age_range") or "Belum diisi").replace("-", "–")
+
+    def confirm_reset(e):
+        ui_helpers.show_reset_confirm(page, lambda: (storage.reset_all_data(), navigate("home")))
+
+    def open_favorites(e) -> None:
+        setattr(page, "_focusbuddy_favorites_return", "settings")
+        navigate("favorites")
+
+    profile_card = ui_helpers.card(
+        ft.Column(
+            [
+                ft.Row(
+                    [
+                        ui_helpers.section_header("Profil"),
+                        ft.IconButton(
+                            icon=ft.Icons.SETTINGS_OUTLINED,
+                            icon_size=19,
+                            icon_color=theme.MUTED,
+                            tooltip="Pengaturan Profil",
+                            on_click=lambda e: navigate("profile_settings"),
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
+                ft.Text("Nama", size=11, color=theme.MUTED),
+                ft.Text(name, size=14, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND),
+                ft.Text("Usia", size=11, color=theme.MUTED),
+                ft.Text(age, size=14, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND),
+            ],
+            spacing=5,
+        ),
+        padding=16,
+    )
+
+    privacy_card = ui_helpers.card(
+        ft.Column(
+            [
+                ui_helpers.section_header("Privasi & Data"),
+                ft.Text(
+                    "Data aplikasi disimpan berdasarkan akun dan aksesnya dipisahkan "
+                    "untuk setiap pengguna. Data tersebut digunakan untuk menjalankan "
+                    "dan mempersonalisasi FocusBuddy serta KALEM.",
+                    size=12,
+                    color=theme.MUTED,
+                ),
+                ft.TextButton(
+                    content=ft.Text("Hapus semua data", color=theme.DANGER),
+                    icon=ft.Icons.DELETE_OUTLINE,
+                    icon_color=theme.DANGER,
+                    on_click=confirm_reset,
+                ),
+            ],
+            spacing=8,
+        ),
+        padding=16,
+    )
+
+    return ft.Column(
+        [
+            ui_helpers.page_header("Pengaturan", on_back=lambda e: navigate("home")),
+            profile_card,
+            _med_link_card(page, navigate),
+            ui_helpers.nav_link_card(
+                ft.Icons.FAVORITE_BORDER,
+                theme.TERTIARY,
+                "Favorit Kamu",
+                f"{storage.favorites_filled()}/{len(storage.FAVORITE_FIELDS)} terisi.",
+                open_favorites,
+            ),
+            _kartu_model(),
+            privacy_card,
+        ],
+        spacing=14,
+        scroll=ft.ScrollMode.AUTO,
+        expand=True,
+    )
+
+
+def build_profile(page: ft.Page, navigate) -> ft.Control:
+    """Subhalaman untuk mengedit seluruh konteks profil KALEM."""
     profile = storage.get_profile()
     state = {
         "name": profile.get("name", ""),
@@ -23,18 +105,24 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "overwhelm_triggers": list(profile.get("overwhelm_triggers") or []),
         "custom_triggers": list(profile.get("custom_triggers") or []),
         "productive_hours": [list(r) for r in (profile.get("productive_hours") or [])],
+        "status_input_open": False,
         "trigger_input_open": False,
     }
-    age_locked = bool(profile.get("age_range"))
 
-    name_field = ft.TextField(label="Panggil kamu siapa?", value=state["name"])
-    saved_note = ft.Text("", size=12, color=theme.PRIMARY)
-
+    name_field = ft.TextField(label="Nama panggilan kamu", value=state["name"])
     age_holder = ft.Container()
     status_holder = ft.Container()
     sleep_holder = ft.Container()
     hours_holder = ft.Container()
     triggers_holder = ft.Container()
+    status_field = ft.TextField(
+        hint_text="Tulis kesibukan kamu",
+        text_size=12,
+        height=42,
+        content_padding=ft.Padding.symmetric(vertical=4, horizontal=10),
+        expand=True,
+        on_submit=lambda e: add_custom_status(e),
+    )
     trigger_field = ft.TextField(
         hint_text="Tulis sendiri, mis. rapat mendadak",
         text_size=12,
@@ -47,43 +135,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
     def render_age():
-        if age_locked:
-            age_holder.content = ft.Column(
-                [
-                    ui_helpers.subtitle("Umur", 12),
-                    ft.Row(
-                        [
-                            ft.Container(
-                                content=ft.Text(state["age_range"], size=12.5,
-                                                color=theme.ON_BACKGROUND),
-                                bgcolor=theme.BACKGROUND,
-                                border=ft.Border.all(1, theme.BORDER),
-                                border_radius=12,
-                                padding=ft.Padding.symmetric(vertical=10, horizontal=14),
-                            ),
-                            ft.Row(
-                                [
-                                    ft.Icon(ft.Icons.LOCK_OUTLINE, size=13, color=theme.MUTED),
-                                    ft.Text("Nggak bisa diubah", size=11, color=theme.MUTED),
-                                ],
-                                spacing=4,
-                            ),
-                        ],
-                        spacing=10,
-                    ),
-                ],
-                spacing=6,
-            )
-            return
-
         age_holder.content = ft.Column(
             [
-                ui_helpers.subtitle("Umur", 12),
-                ft.Text(
-                    "Sekali disimpan, umur nggak bisa diubah lagi.",
-                    size=11,
-                    color=theme.MUTED,
-                ),
+                ui_helpers.subtitle("Berapa usia kamu sekarang?", 12),
                 ft.Row(
                     [
                         ui_helpers.choice_chip(
@@ -106,22 +160,61 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
     def render_status():
+        custom_statuses = [v for v in state["status"] if v not in storage.STATUS_OPTIONS]
         chips = [
             ui_helpers.choice_chip(
                 label, value in state["status"], lambda e, v=value: toggle_status(v)
             )
             for value, label in storage.STATUS_OPTIONS.items()
+            if value != "lainnya"
         ]
-        status_holder.content = ft.Column(
-            [
-                ui_helpers.subtitle(
-                    f"Sehari-hari kamu lagi... (boleh lebih dari satu, maks {storage.MAX_STATUS})",
-                    12,
-                ),
-                ft.Row(chips, spacing=6, wrap=True, run_spacing=6),
-            ],
-            spacing=6,
-        )
+        chips += [
+            ui_helpers.choice_chip(v, True, lambda e, value=v: drop_custom_status(value))
+            for v in custom_statuses
+        ]
+        if len(state["status"]) < storage.MAX_STATUS:
+            chips.append(
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.ADD, size=13, color=theme.MUTED),
+                            ft.Text("Lainnya", size=12.5, color=theme.MUTED),
+                        ],
+                        spacing=3,
+                        tight=True,
+                    ),
+                    border=ft.Border.all(1, theme.BORDER),
+                    border_radius=12,
+                    padding=ft.Padding.symmetric(vertical=10, horizontal=12),
+                    on_click=lambda e: open_status_input(),
+                    ink=True,
+                )
+            )
+        children: list[ft.Control] = [
+            ui_helpers.subtitle("Apa kesibukan kamu saat ini?", 12),
+            ft.Text(
+                "Biar KALEM tahu gambaran ritme hari-harimu. Boleh pilih maksimal 3 ya.",
+                size=11,
+                color=theme.MUTED,
+            ),
+            ft.Row(chips, spacing=6, wrap=True, run_spacing=6),
+        ]
+        if state["status_input_open"] and len(state["status"]) < storage.MAX_STATUS:
+            children.append(
+                ft.Row(
+                    [
+                        status_field,
+                        ft.IconButton(
+                            icon=ft.Icons.CHECK,
+                            icon_color=theme.PRIMARY,
+                            icon_size=20,
+                            on_click=add_custom_status,
+                        ),
+                    ],
+                    spacing=4,
+                )
+            )
+        status_holder.content = ft.Column(children, spacing=6)
 
     def toggle_status(value: str):
         current = state["status"]
@@ -129,6 +222,26 @@ def build(page: ft.Page, navigate) -> ft.Control:
             current.remove(value)
         elif len(current) < storage.MAX_STATUS:
             current.append(value)
+        render_status()
+        page.update()
+
+    def open_status_input():
+        state["status_input_open"] = True
+        render_status()
+        page.update()
+
+    def add_custom_status(e):
+        text = (status_field.value or "").strip()[:32]
+        if text and text not in state["status"] and len(state["status"]) < storage.MAX_STATUS:
+            state["status"].append(text)
+        status_field.value = ""
+        state["status_input_open"] = False
+        render_status()
+        page.update()
+
+    def drop_custom_status(value: str):
+        if value in state["status"]:
+            state["status"].remove(value)
         render_status()
         page.update()
 
@@ -142,7 +255,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ]
         sleep_holder.content = ft.Column(
             [
-                ui_helpers.subtitle("Kondisi tidur belakangan", 12),
+                ui_helpers.subtitle("Pola tidur kamu akhir-akhir ini gimana?", 12),
+                ft.Text(
+                    "Biar KALEM tahu seberapa ramah target hari ini buat energi kamu.",
+                    size=11,
+                    color=theme.MUTED,
+                ),
                 ft.Row(chips, spacing=6, wrap=True, run_spacing=6),
             ],
             spacing=6,
@@ -156,10 +274,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def render_hours():
         rows: list[ft.Control] = [
-            ui_helpers.subtitle("Jam Produktif", 12),
+            ui_helpers.subtitle("Kapan biasanya kamu paling enak buat fokus?", 12),
             ft.Text(
-                "Geser buat nentuin jamnya sendiri. Boleh lebih dari satu rentang — "
-                "mis. pagi 06:00–11:00 dan malam 20:00–01:00.",
+                "Biar KALEM tahu kapan harus bantu kamu fokus atau nurunin ekspektasi "
+                "pas kamu lagi capek.",
                 size=11,
                 color=theme.MUTED,
             ),
@@ -168,7 +286,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         if not state["productive_hours"]:
             rows.append(
                 ft.Text(
-                    "Belum diatur. Kalem nggak bakal nebak-nebak jam produktif kamu.",
+                    "Belum diatur. KALEM nggak bakal nebak-nebak jam produktif kamu.",
                     size=11.5,
                     color=theme.MUTED,
                     italic=True,
@@ -283,12 +401,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
 
         children: list[ft.Control] = [
-            ui_helpers.subtitle(
-                f"Yang paling sering bikin kewalahan (maks {storage.MAX_TRIGGERS})", 12
-            ),
+            ui_helpers.subtitle("Hal apa yang paling sering bikin kamu overwhelm?", 12),
             ft.Text(
-                "Ini yang nentuin opsi mana yang muncul duluan di halaman jeda "
-                "pas kamu lagi kewalahan.",
+                "Biar KALEM paham pemicunya dan bisa bantu kasih penenang yang tepat "
+                "pas kamu butuh. (Pilih maks. 4)",
                 size=11,
                 color=theme.MUTED,
             ),
@@ -359,8 +475,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 "productive_hours": state["productive_hours"],
             }
         )
-        saved_note.value = "Tersimpan 🤍"
-        page.update()
+        navigate("settings")
 
     render_age()
     render_status()
@@ -368,61 +483,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
     render_hours()
     render_triggers()
 
-    def confirm_reset(e):
-        ui_helpers.show_reset_confirm(page, lambda: (storage.reset_all_data(), navigate("home")))
-
-    cloud_user = getattr(page, "_focusbuddy_cloud_user", None)
-    cloud_status = getattr(page, "_focusbuddy_cloud_status", "Status sinkronisasi belum tersedia")
-    logout_handler = getattr(page, "_focusbuddy_logout", None)
-
-    akun_card = ui_helpers.card(
-        ft.Column(
-            [
-                ui_helpers.section_header("Akun & Cloud"),
-                ft.Text(
-                    (cloud_user.name or cloud_user.email)
-                    if cloud_user
-                    else "Belum terhubung",
-                    size=13,
-                    weight=ft.FontWeight.BOLD,
-                    color=theme.ON_BACKGROUND,
-                ),
-                ft.Text(
-                    cloud_user.email if cloud_user else "",
-                    size=11,
-                    color=theme.MUTED,
-                    visible=bool(cloud_user and cloud_user.name and cloud_user.email),
-                ),
-                ft.Row(
-                    [
-                        ft.Icon(ft.Icons.CLOUD_DONE_OUTLINED, size=15, color=theme.PRIMARY),
-                        ft.Text(cloud_status, size=11, color=theme.MUTED, expand=True),
-                    ],
-                    spacing=7,
-                ),
-                ft.TextButton(
-                    content=ft.Text("Keluar dari akun", color=theme.DANGER),
-                    icon=ft.Icons.LOGOUT,
-                    icon_color=theme.DANGER,
-                    on_click=logout_handler,
-                    visible=logout_handler is not None,
-                ),
-            ],
-            spacing=7,
-        ),
-        padding=16,
-    )
-
     return ft.Column(
         [
-            ui_helpers.page_header("Pengaturan", on_back=lambda e: navigate("home")),
+            ui_helpers.page_header(
+                "Pengaturan Profil", on_back=lambda e: navigate("settings")
+            ),
             ui_helpers.card(
                 ft.Column(
                     [
-                        ui_helpers.section_header("Profil"),
-                        ui_helpers.subtitle(
-                            "Situasi berubah, jawabannya boleh diubah juga.", 12
-                        ),
                         name_field,
                         age_holder,
                         status_holder,
@@ -430,62 +498,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         sleep_holder,
                         triggers_holder,
                         ui_helpers.wide_button("Simpan Profil", save_profile, icon=ft.Icons.SAVE),
-                        saved_note,
                     ],
                     spacing=14,
                 )
-            ),
-            _med_link_card(navigate),
-            ui_helpers.nav_link_card(
-                ft.Icons.FAVORITE_BORDER,
-                theme.TERTIARY,
-                "Favorit Kamu",
-                f"{storage.favorites_filled()}/{len(storage.FAVORITE_FIELDS)} terisi.",
-                lambda e: navigate("favorites"),
-            ),
-            _kartu_model(),
-            akun_card,
-            ui_helpers.card(
-                ft.Column(
-                    [
-                        ui_helpers.section_header("Privasi & Data"),
-                        ft.Text(
-                            "Data (profil, tugas, mood, diary, favorit, dan obat) disimpan "
-                            "di database akun kamu. Cache sementara setiap sesi browser "
-                            "dipisahkan, dan setiap akun hanya boleh membaca row miliknya "
-                            "melalui Row Level Security. "
-                            "Isi tugas yang perlu disusun dapat diproses Kalem; kredensial "
-                            "Google dan isi diary tidak dikirim ke model penyusun.",
-                            size=12,
-                            color=theme.MUTED,
-                        ),
-                        ft.TextButton(
-                            content=ft.Text("Hapus semua data", color=theme.DANGER),
-                            icon=ft.Icons.DELETE_OUTLINE,
-                            icon_color=theme.DANGER,
-                            on_click=confirm_reset,
-                        ),
-                    ],
-                    spacing=8,
-                ),
-                padding=16,
-            ),
-            ui_helpers.card(
-                ft.Column(
-                    [
-                        ui_helpers.section_header("Tentang FocusBuddy"),
-                        ft.Text(
-                            "FocusBuddy bukan alat diagnosis ADHD dan bukan pengganti tenaga "
-                            "medis. Ini alat bantu micro-planning harian, bukan penilaian "
-                            "klinis.",
-                            size=12,
-                            color=theme.MUTED,
-                        ),
-                        ft.Text(f"Versi {APP_VERSION}", size=11, color=theme.MUTED),
-                    ],
-                    spacing=8,
-                ),
-                padding=16,
             ),
         ],
         spacing=14,
@@ -542,7 +557,7 @@ def _kartu_model() -> ft.Control:
          else f"Butuh {o['min_hari']} hari check-in dulu")
 
     k = st["kalem"]
-    item("Kalem belajar cara memulai", k["siap"],
+    item("KALEM belajar cara memulai", k["siap"],
          f"Belajar dari {k['n_latih']} keputusan fokus"
          if k["siap"] else f"Butuh {k['min_records']} keputusan fokus dulu")
 
@@ -556,7 +571,7 @@ def _kartu_model() -> ft.Control:
         baris.append(
             ft.Text(
                 f"Catatan: sesi kamu biasanya {arah} dari yang diperkirakan "
-                f"(faktor {ringkas['kalibrasi']}). Kalem udah nyesuain.",
+                f"(faktor {ringkas['kalibrasi']}). KALEM udah nyesuain.",
                 size=10.5,
                 color=theme.MUTED,
             )
@@ -565,7 +580,7 @@ def _kartu_model() -> ft.Control:
     return ui_helpers.card(
         ft.Column(
             [
-                ui_helpers.section_header("Yang Kalem pelajari"),
+                ui_helpers.section_header("Yang KALEM Pelajari"),
                 ft.Text(
                     "Semua ini dipelajari dari pemakaian akun kamu sendiri, tidak "
                     "dicampur dengan akun lain. Makin sering dipakai, makin nyesuain.",
@@ -580,7 +595,11 @@ def _kartu_model() -> ft.Control:
     )
 
 
-def _med_link_card(navigate) -> ft.Container:
+def _med_link_card(page: ft.Page, navigate) -> ft.Container:
+    def open_medication(e) -> None:
+        setattr(page, "_focusbuddy_med_setup_return", "settings")
+        navigate("med_setup")
+
     return ft.Container(
         content=ft.Row(
             [
@@ -601,6 +620,6 @@ def _med_link_card(navigate) -> ft.Container:
         border=ft.Border.all(1, theme.BORDER),
         border_radius=theme.CARD_RADIUS,
         padding=16,
-        on_click=lambda e: navigate("med_setup"),
+        on_click=open_medication,
         ink=True,
     )

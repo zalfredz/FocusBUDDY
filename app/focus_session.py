@@ -163,6 +163,48 @@ def finish(outcome: str, reflection: str = "") -> Optional[dict]:
     return record
 
 
+def complete_and_continue(
+    expected_started_at: str = "",
+) -> tuple[Optional[dict], bool]:
+    """Selesaikan step aktif dan lanjut otomatis jika parent task masih sama."""
+    if not is_active():
+        return None, False
+    if expected_started_at and _state().started_at != expected_started_at:
+        return None, False
+
+    from app import storage
+    from app.core import kalem_engine
+
+    current = snapshot()
+    record = finish("completed")
+    pending = storage.next_pending_task_step(
+        current["task_id"], current["occurrence_date"] or None
+    )
+    if pending is None:
+        return record, False
+
+    task, step_index, step = pending
+    minutes, _ = kalem_engine.task_focus_minutes(
+        task,
+        step_index,
+        current["energi"],
+        storage.get_focus_records(),
+    )
+    start(
+        minutes,
+        label=step.get("text", task.get("title", "Sesi fokus")),
+        task_title=task.get("title", current["task_title"]),
+        kategori=task.get("kategori", current["kategori"]),
+        jumlah_unit=task.get("jumlah_unit", current["jumlah_unit"]),
+        energi=current["energi"],
+        task_id=current["task_id"],
+        step_id=str(step.get("id", "")),
+        occurrence_date=current["occurrence_date"],
+        step_index=step_index,
+    )
+    return record, True
+
+
 def _clear() -> None:
     state = _state()
     state.total_seconds = 0
@@ -233,6 +275,7 @@ def snapshot() -> dict[str, Any]:
     return {
         "kategori": state.kategori,
         "jumlah_unit": state.jumlah_unit,
+        "energi": state.energi,
         "total_seconds": state.total_seconds,
         "remaining": left,
         "label": state.label,

@@ -255,6 +255,130 @@ def scenario_focus_ui_has_done_and_is_compact() -> None:
               "smoke Home → Focus → DONE menyimpan Tracker lalu kembali memilih action")
 
 
+def scenario_done_continues_next_step_same_task() -> None:
+    print("\n=== DONE melanjutkan step berikutnya dari parent task yang sama ===")
+    today = clock.today().isoformat()
+    parent = storage.add_task(
+        "Kerjakan latihan", today, menit_est=30, difficulty_est=1,
+        steps=[
+            {"id": "step-parent-1", "text": "Buka soal", "done": False},
+            {"id": "step-parent-2", "text": "Kerjakan nomor satu", "done": False},
+        ],
+    )
+    other = storage.add_task(
+        "Tugas berbeda", today, menit_est=5, difficulty_est=3,
+        steps=[{"id": "step-other", "text": "Mulai tugas lain", "done": False}],
+    )
+    focus_session.start(
+        15,
+        label="Buka soal",
+        task_title=parent["title"],
+        task_id=parent["id"],
+        step_id="step-parent-1",
+        step_index=0,
+        energi=4,
+    )
+
+    routes: list[str] = []
+    first_root = home.build(FakePage(), routes.append)
+    first_done = button(first_root, "DONE")
+    check(first_done is not None, "DONE tersedia untuk step pertama")
+    if first_done is None:
+        return
+    first_done.on_click(SimpleNamespace(control=None))
+
+    stored_parent = next(item for item in storage.get_tasks() if item["id"] == parent["id"])
+    continued = focus_session.snapshot()
+    check(stored_parent["steps"][0]["done"] and not stored_parent["steps"][1]["done"],
+          "DONE hanya menyelesaikan step aktif")
+    check(
+        continued["active"]
+        and continued["task_id"] == parent["id"]
+        and continued["step_id"] == "step-parent-2"
+        and continued["label"] == "Kerjakan nomor satu",
+        "Focus otomatis lanjut ke step berikutnya dari parent task yang sama",
+    )
+    check(continued["task_id"] != other["id"],
+          "task lain tidak diselipkan di tengah rangkaian parent task")
+    first_done.on_click(SimpleNamespace(control=None))
+    after_stale_tap = focus_session.snapshot()
+    stored_parent = next(item for item in storage.get_tasks() if item["id"] == parent["id"])
+    check(
+        after_stale_tap["active"]
+        and after_stale_tap["step_id"] == "step-parent-2"
+        and not stored_parent["steps"][1]["done"],
+        "double-tap dari tombol DONE lama tidak ikut menyelesaikan step baru",
+    )
+
+    second_root = home.build(FakePage(), routes.append)
+    second_done = button(second_root, "DONE")
+    check(second_done is not None, "DONE tersedia untuk step kedua")
+    if second_done is not None:
+        second_done.on_click(SimpleNamespace(control=None))
+    stored_parent = next(item for item in storage.get_tasks() if item["id"] == parent["id"])
+    check(storage.task_is_done(stored_parent) and not focus_session.is_active(),
+          "setelah seluruh parent selesai, Focus ditutup seperti behavior sebelumnya")
+    next_decision = decide(kalem_engine.snapshot()[1])
+    check(next_decision.task and next_decision.task["id"] == other["id"],
+          "task berbeda baru ditampilkan sebagai next action setelah parent selesai")
+
+    records = [
+        record for record in storage.get_focus_records()
+        if record.get("task_id") == parent["id"] and record.get("outcome") == "completed"
+    ]
+    check(
+        len(records) == 2
+        and {record.get("step_id") for record in records}
+        == {"step-parent-1", "step-parent-2"},
+        "setiap step menyimpan focus record sendiri tanpa kehilangan identity",
+    )
+
+
+def scenario_done_continues_recurring_occurrence() -> None:
+    print("\n=== Continuation menjaga identity recurring occurrence ===")
+    today = clock.today().isoformat()
+    recurring = storage.add_task(
+        "Rutinitas mingguan",
+        today,
+        repeat="weekly",
+        menit_est=20,
+        steps=[
+            {"id": "repeat-step-1", "text": "Bagian pertama", "done": False},
+            {"id": "repeat-step-2", "text": "Bagian kedua", "done": False},
+        ],
+    )
+    focus_session.start(
+        10,
+        label="Bagian pertama",
+        task_title=recurring["title"],
+        task_id=recurring["id"],
+        step_id="repeat-step-1",
+        occurrence_date=today,
+        step_index=0,
+    )
+    root = home.build(FakePage(), lambda route: None)
+    done = button(root, "DONE")
+    check(done is not None, "DONE tersedia pada recurring occurrence")
+    if done is None:
+        return
+    done.on_click(SimpleNamespace(control=None))
+    continued = focus_session.snapshot()
+    check(
+        continued["active"]
+        and continued["task_id"] == recurring["id"]
+        and continued["occurrence_date"] == today
+        and continued["step_id"] == "repeat-step-2",
+        "step recurring berikutnya tetap memakai parent dan occurrence yang sama",
+    )
+    next_week = (clock.today() + timedelta(days=7)).isoformat()
+    future = next(
+        task for task in storage.tasks_for(next_week)
+        if task["id"] == recurring["id"]
+    )
+    check(not any(step.get("done") for step in future["steps"]),
+          "continuation minggu ini tidak mengubah occurrence minggu depan")
+
+
 def scenario_timer_finished_offers_outcomes() -> None:
     print("\n=== Timer selesai meminta outcome, bukan menebak completion ===")
     today = clock.today().isoformat()
@@ -298,7 +422,7 @@ def scenario_tracker_start_uses_same_pomodoro_rule() -> None:
 
 
 def scenario_multiple_diary_and_quick_capture() -> None:
-    print("\n=== Quick capture masuk Diary atau Tracker ===")
+    print("\n=== Quick capture tersimpan sebagai note sebelum dijadikan task ===")
     add_entry = getattr(storage, "add_diary_entry", None)
     check(callable(add_entry), "storage menyediakan diary multi-entry")
     if callable(add_entry):
@@ -310,31 +434,6 @@ def scenario_multiple_diary_and_quick_capture() -> None:
         ]
         check(len(today_entries) == 2, "dua cerita pada hari yang sama tidak saling overwrite")
 
-    try:
-        from app.core import capture_logic
-    except ImportError:
-        capture_logic = None
-    check(capture_logic is not None, "quick capture mempunyai classifier deterministik")
-    if capture_logic is None:
-        return
-
-    story = capture_logic.save_capture("Hari ini aku capek banget setelah kelas")
-    task_result = capture_logic.save_capture("Kirim revisi laporan besok jam 17:00")
-    no_deadline = capture_logic.save_capture("Beli kabel charger")
-    check(story.route == "diary" and story.kind == "diary",
-          "cerita pribadi langsung diarahkan ke Diary")
-    check(bool(story.record_id), "quick capture Diary mengembalikan ID record yang tersimpan")
-    check(task_result.route == "tracker" and task_result.kind == "task",
-          "actionable item langsung dibuat sebagai task Tracker")
-    saved_task = next(item for item in storage.get_tasks() if item["id"] == task_result.record_id)
-    check(bool(saved_task.get("deadline")) and saved_task.get("deadline_time") == "17:00",
-          "deadline dari quick capture ikut menentukan urgency task")
-    saved_no_deadline = next(item for item in storage.get_tasks() if item["id"] == no_deadline.record_id)
-    check(saved_no_deadline.get("deadline") == "" and not storage.is_urgent(saved_no_deadline),
-          "task tanpa deadline tidak dianggap urgent secara palsu")
-    check(any(item["id"] == saved_no_deadline["id"] for item in storage.tasks_actionable_today()),
-          "task tanpa deadline tetap masuk kandidat Tracker/decision hari ini")
-
     routes: list[str] = []
     page = FakePage()
     root = home.build(page, routes.append)
@@ -345,17 +444,53 @@ def scenario_multiple_diary_and_quick_capture() -> None:
         dialog = page.dialogs[-1]
         field = next(control for control in walk(dialog) if isinstance(control, ft.TextField))
         save = button(dialog, "Simpan")
-        field.value = "Aku merasa lega setelah presentasi tadi"
+        note_text = "Balas email dosen setelah makan siang"
+        diary_count = len(storage.diary_entries())
+        field.value = note_text
         save.on_click(SimpleNamespace(control=None))
-        check(routes[-1] == "diary", "smoke Home → quick capture cerita → Diary")
+        notes = storage.get_inbox()
+        check(
+            routes[-1] == "home"
+            and len(notes) == 1
+            and notes[0]["text"] == note_text,
+            "Home → quick capture menyimpan isi mentah sebagai note lalu tetap di Home",
+        )
+        check(
+            len(storage.diary_entries()) == diary_count and not storage.get_tasks(),
+            "note tidak otomatis masuk Diary atau menjadi task",
+        )
 
-        capture.on_click(SimpleNamespace(control=None))
-        dialog = page.dialogs[-1]
-        field = next(control for control in walk(dialog) if isinstance(control, ft.TextField))
-        save = button(dialog, "Simpan")
-        field.value = "Balas email dosen"
-        save.on_click(SimpleNamespace(control=None))
-        check(routes[-1] == "tracker", "smoke Home → quick capture task → Tracker")
+        refreshed_home = home.build(page, routes.append)
+        open_notes = button(refreshed_home, "Buka 1 catatan")
+        check(open_notes is not None, "Home menampilkan akses untuk membuka note tersimpan")
+        if open_notes is not None:
+            open_notes.on_click(SimpleNamespace(control=None))
+            check(routes[-1] == "inbox", "note dibuka melalui halaman Yang Keinget")
+
+        from app.views import inbox
+
+        inbox_root = inbox.build(page, routes.append)
+        check(note_text in texts(inbox_root), "halaman note menampilkan isi yang user tulis")
+        convert = button(inbox_root, "Jadiin tugas")
+        check(convert is not None, "note menyediakan opsi Jadiin tugas")
+        if convert is not None:
+            convert.on_click(SimpleNamespace(control=None))
+            task_dialog = page.dialogs[-1]
+            split = next(
+                control for control in walk(task_dialog)
+                if isinstance(control, ft.Checkbox)
+                and str(control.label).startswith("Pecah otomatis")
+            )
+            split.value = False
+            submit = button(task_dialog, "Jadiin tugas")
+            submit.on_click(SimpleNamespace(control=None))
+            tasks = storage.get_tasks()
+            check(
+                len(tasks) == 1
+                and tasks[0]["title"] == note_text
+                and not storage.get_inbox(),
+                "note baru menjadi task setelah user memilih konversi",
+            )
 
 
 def scenario_navigation_is_locked_while_active() -> None:
@@ -391,6 +526,8 @@ def main() -> int:
                 scenario_home_message_is_state_based,
                 scenario_timer_and_done_update_real_task,
                 scenario_focus_ui_has_done_and_is_compact,
+                scenario_done_continues_next_step_same_task,
+                scenario_done_continues_recurring_occurrence,
                 scenario_timer_finished_offers_outcomes,
                 scenario_tracker_start_uses_same_pomodoro_rule,
                 scenario_multiple_diary_and_quick_capture,

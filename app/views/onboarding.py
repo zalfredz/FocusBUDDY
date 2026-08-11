@@ -48,7 +48,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
         preset = storage.PRODUCTIVE_PRESETS.get(answers.get("productive_time", ""))
         answers["productive_hours"] = [[preset[0], preset[1]]] if preset else []
         storage.save_profile(answers)
-        navigate("med_setup" if answers.get("on_medication") == "ya" else "home")
+        if answers.get("on_medication") == "ya":
+            setattr(page, "_focusbuddy_med_setup_return", "home")
+            navigate("med_setup")
+        else:
+            navigate("home")
 
     QUESTIONS = [
         ("age_range", "Berapa usia kamu sekarang?", {a: a for a in AGE_OPTIONS}, False, 1),

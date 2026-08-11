@@ -46,6 +46,7 @@ ROUTES = {
     "onboarding": onboarding.build,
     "favorites": favorites.build,
     "settings": settings.build,
+    "profile_settings": settings.build_profile,
     "subscription": subscription.build,
     "morning_brief": morning_brief.build,
     "inbox": inbox.build,

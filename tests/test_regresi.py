@@ -308,12 +308,14 @@ def tes_halaman_kebangun():
         ("home", home), ("demo_tools", demo_tools), ("tracker", tracker),
         ("mood", mood), ("diary", diary),
         ("reset", reset), ("med_setup", med_setup), ("favorites", favorites),
-        ("settings", settings), ("morning_brief", morning_brief),
+        ("settings", settings), ("profile_settings", settings),
+        ("morning_brief", morning_brief),
         ("subscription", subscription), ("inbox", inbox),
         ("onboarding", onboarding),
     ]:
         try:
-            modul.build(p, lambda r: None)
+            builder = settings.build_profile if nama == "profile_settings" else modul.build
+            builder(p, lambda r: None)
             ok(True, nama)
         except Exception as exc:                       # noqa: BLE001
             ok(False, f"{nama}: {type(exc).__name__}: {exc}")

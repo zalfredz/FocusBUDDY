@@ -35,6 +35,7 @@ PRIVACY_NOTE = {
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
+    back_route = getattr(page, "_focusbuddy_favorites_return", "mood")
     current = storage.get_favorites()
     fields: dict[str, ft.TextField] = {}
     saved_note = ft.Text("", size=12, color=theme.PRIMARY)
@@ -174,7 +175,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     return ft.Column(
         [
-            ui_helpers.page_header("Favorit Kamu", on_back=lambda e: navigate("mood")),
+            ui_helpers.page_header("Favorit Kamu", on_back=lambda e: navigate(back_route)),
             ft.Row(
                 [
                     buddy.face("semangat", 64),

@@ -164,7 +164,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ui_helpers.page_header("Yang Keinget", on_back=lambda e: navigate("home")),
         ui_helpers.subtitle(
             "Catatan mentah yang belum jadi tugas. Nggak usah rapi -- "
-            "nanti Kalem yang bantu mecahin jadi langkah kecil."
+            "nanti KALEM yang bantu mecahin jadi langkah kecil."
         ),
         notes_column,
         ui_helpers.disclaimer(
