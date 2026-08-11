@@ -32,146 +32,6 @@ def _ticker_state() -> dict:
     )
 
 
-def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
-    if not config.DEMO_MODE:
-        return []
-
-    def next_day(e):
-        storage.advance_day(1)
-        navigate("home")
-
-    def lompat_malam(e):
-        if storage.hour_offset():
-            storage.clear_hour_offset()
-        else:
-            storage.jump_to_hour(storage.MEAL_ASK_HOUR)
-        navigate("home")
-
-    def buka_ulang_app(e):
-        storage.clear_last_brief_date()
-        storage.touch_last_open()
-        navigate("home")
-
-    def open_auto_feel(e):
-        try:
-            from app import demo_scenarios
-        except ImportError:
-            demo_scenarios = None
-
-        if demo_scenarios is None:
-            page.show_dialog(
-                ft.AlertDialog(
-                    modal=True,
-                    title=ft.Text("Skenario demo nggak ketemu", size=16),
-                    content=ft.Text(
-                        "File app/demo_scenarios.py harus tersedia.",
-                        size=13,
-                    ),
-                    actions=[
-                        ft.TextButton(content=ft.Text("Oke"), on_click=lambda ev: page.pop_dialog())
-                    ],
-                )
-            )
-            return
-
-        def pick(key: str):
-            demo_scenarios.apply_scenario_overlay(key)
-            page.pop_dialog()
-            navigate("home")
-
-        def clear_demo(e):
-            demo_scenarios.clear_demo_overlay()
-            page.pop_dialog()
-            navigate("home")
-
-        rows: list[ft.Control] = [
-            ft.Text(
-                "Pilih kondisi yang mau ditunjukin. Ini cuma menambahkan overlay "
-                "demo; nama, profil, favorit, obat, diary, tugas, dan catatan "
-                "aslimu tetap aman.",
-                size=12,
-                color=theme.MUTED,
-            )
-        ]
-        for key, label, desc, judul_demo, wow in demo_scenarios.list_scenarios():
-            objective = demo_scenarios.DEMO_OBJECTIVES.get(key, {})
-            isi: list[ft.Control] = [
-                ft.Text(judul_demo, size=13, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND),
-            ]
-            if objective.get("story"):
-                isi.append(ft.Text(objective["story"], size=11.5, color=theme.ON_BACKGROUND))
-            if objective.get("tests"):
-                isi.append(ft.Text(
-                    "Yang diuji: " + ", ".join(objective["tests"]),
-                    size=10.5, color=theme.MUTED,
-                ))
-            if wow:
-                isi.append(ft.Text(f"Demo point: {wow}", size=10.5,
-                                    color=theme.PRIMARY, italic=True))
-            isi.append(ft.Text(f"{label} — {desc}", size=9.5, color=theme.MUTED))
-            rows.append(
-                ft.Container(
-                    content=ft.Column(isi, spacing=3),
-                    bgcolor=theme.BACKGROUND,
-                    border_radius=12,
-                    padding=12,
-                    on_click=lambda e, k=key: pick(k),
-                    ink=True,
-                )
-            )
-
-        page.show_dialog(
-            ft.AlertDialog(
-                modal=True,
-                title=ft.Text("Auto Feel — data demo", size=16),
-                content=ft.Column(rows, spacing=8, tight=True, scroll=ft.ScrollMode.AUTO),
-                actions=[
-                    ft.TextButton(
-                        content=ft.Text("Hapus data demo"),
-                        on_click=clear_demo,
-                        disabled=not demo_scenarios.demo_overlay_active(),
-                    ),
-                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog())
-                ],
-            )
-        )
-
-    return [
-        ft.IconButton(
-            icon=ft.Icons.SKIP_NEXT,
-            icon_color=theme.TERTIARY if clock.is_simulated() else theme.MUTED,
-            icon_size=20,
-            tooltip=f"Maju 1 hari (testing) — sekarang {clock.today().strftime('%a, %d %b')}",
-            on_click=next_day,
-        ),
-        ft.IconButton(
-            icon=ft.Icons.WB_SUNNY if storage.hour_offset() else ft.Icons.BEDTIME,
-            icon_color=theme.TERTIARY if storage.hour_offset() else theme.MUTED,
-            icon_size=20,
-            tooltip=(
-                f"Balikin ke jam asli (demo) — sekarang {clock.now().strftime('%H:%M')}"
-                if storage.hour_offset()
-                else f"Lompat ke malam (demo) — sekarang {clock.now().strftime('%H:%M')}"
-            ),
-            on_click=lompat_malam,
-        ),
-        ft.IconButton(
-            icon=ft.Icons.LOGOUT,
-            icon_color=theme.MUTED,
-            icon_size=20,
-            tooltip="Tutup & buka lagi app (demo) — ngulang alur pembukaan",
-            on_click=buka_ulang_app,
-        ),
-        ft.IconButton(
-            icon=ft.Icons.AUTO_FIX_HIGH,
-            icon_color=theme.MUTED,
-            icon_size=20,
-            tooltip="Auto Feel — overlay data demo (data asli tetap aman)",
-            on_click=open_auto_feel,
-        ),
-    ]
-
-
 def _popup_checkin(page: ft.Page, navigate) -> None:
     pilih = {"mood": buddy.DEFAULT_MOOD, "energi": 0}
     isi = ft.Column(spacing=14, tight=True)
@@ -428,7 +288,24 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 spacing=2,
                 expand=True,
             ),
-            *_dev_buttons(page, navigate),
+            *(
+                [
+                    ft.IconButton(
+                        icon=ft.Icons.SCIENCE_OUTLINED,
+                        icon_color=(
+                            theme.TERTIARY
+                            if clock.is_simulated()
+                            or storage.hour_offset()
+                            else theme.MUTED
+                        ),
+                        icon_size=20,
+                        tooltip="Alat Demo",
+                        on_click=lambda e: navigate("demo_tools"),
+                    )
+                ]
+                if config.DEMO_MODE
+                else []
+            ),
             ft.IconButton(
                 icon=ft.Icons.WORKSPACE_PREMIUM,
                 icon_color=theme.TERTIARY if storage.is_premium() else theme.MUTED,

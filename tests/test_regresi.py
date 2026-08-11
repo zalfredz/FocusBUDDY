@@ -292,7 +292,7 @@ def tes_fungsi_murni():
 def tes_halaman_kebangun():
     bagian("Semua halaman kebangun")
     import models as ml
-    from app.views import (diary, favorites, home, inbox, med_setup, mood,
+    from app.views import (demo_tools, diary, favorites, home, inbox, med_setup, mood,
                            morning_brief, onboarding, reset, settings,
                            subscription, tracker)
 
@@ -304,7 +304,8 @@ def tes_halaman_kebangun():
 
     p = HalamanPalsu()
     for nama, modul in [
-        ("home", home), ("tracker", tracker), ("mood", mood), ("diary", diary),
+        ("home", home), ("demo_tools", demo_tools), ("tracker", tracker),
+        ("mood", mood), ("diary", diary),
         ("reset", reset), ("med_setup", med_setup), ("favorites", favorites),
         ("settings", settings), ("morning_brief", morning_brief),
         ("subscription", subscription), ("inbox", inbox),
@@ -341,6 +342,56 @@ def tes_langganan_demo():
         cari_tombol_berteks(root, "Subs Off - Untuk DEMO") is not None,
         "Premium aktif menampilkan tombol untuk mematikan simulasi",
     )
+
+
+def tes_alat_demo_terpusat():
+    bagian("Kontrol presentasi terpusat di Alat Demo")
+    import flet as ft
+    import app.main as main_mod
+    from app.views import demo_tools, home
+
+    storage_baru("demo_tools_")
+    tujuan: list[str] = []
+    root = demo_tools.build(HalamanPalsu(), tujuan.append)
+
+    ok("demo_tools" in main_mod.ROUTES, "Alat Demo terdaftar saat DEMO_MODE aktif")
+    maju = cari_kontrol(
+        root,
+        lambda control: getattr(control, "on_click", None) is not None
+        and punya_teks(control, "Maju 1 hari"),
+    )
+    ok(maju is not None, "kontrol maju hari tersedia di halaman terpusat")
+    if maju is not None:
+        maju.on_click(None)
+    ok(storage.day_offset() == 1, "maju hari tetap bekerja dari Alat Demo")
+
+    root = demo_tools.build(HalamanPalsu(), tujuan.append)
+    pulihkan = cari_kontrol(
+        root,
+        lambda control: getattr(control, "on_click", None) is not None
+        and punya_teks(control, "Kembali ke waktu asli"),
+    )
+    ok(pulihkan is not None, "waktu simulasi punya aksi pemulihan yang jelas")
+    if pulihkan is not None:
+        pulihkan.on_click(None)
+    ok(storage.day_offset() == 0 and storage.hour_offset() == 0,
+       "pemulihan mengembalikan tanggal dan jam asli")
+
+    home_root = home.build(HalamanPalsu(), tujuan.append)
+    demo_icons = [
+        item for item in jalan_tree(home_root)
+        if isinstance(item, ft.IconButton) and item.tooltip == "Alat Demo"
+    ]
+    old_icons = [
+        item for item in jalan_tree(home_root)
+        if isinstance(item, ft.IconButton)
+        and isinstance(item.tooltip, str)
+        and any(label in item.tooltip for label in (
+            "Maju 1 hari", "Lompat ke malam", "Tutup & buka lagi app", "Auto Feel"
+        ))
+    ]
+    ok(len(demo_icons) == 1, "header hanya menampilkan satu ikon Alat Demo")
+    ok(not old_icons, "empat shortcut demo lama sudah tidak memenuhi header")
 
 
 def tes_komponen_baru():
@@ -938,6 +989,7 @@ def main() -> int:
         tes_pecah_tugas_judul_kembar,
         tes_onboarding_entry_dan_status_custom,
         tes_langganan_demo,
+        tes_alat_demo_terpusat,
         tes_halaman_kebangun,
     ):
         tes()
