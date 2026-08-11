@@ -29,6 +29,10 @@ _PREMIUM_BENEFITS = (
     ),
 )
 
+_DEMO_CARD_NUMBER = "4242424242424242"
+_DEMO_GOPAY_NUMBER = "081200000000"
+_DEMO_PRICE = "Rp29.000 / bulan"
+
 
 def _benefit(icon: str, title: str, description: str) -> ft.Control:
     return ft.Row(
@@ -63,9 +67,223 @@ def _benefit(icon: str, title: str, description: str) -> ft.Control:
 def build(page: ft.Page, navigate) -> ft.Control:
     premium = storage.is_premium()
 
-    def toggle_demo(e) -> None:
-        storage.set_premium(not storage.is_premium())
+    def deactivate_demo(e) -> None:
+        storage.set_premium(False)
         navigate("subscription")
+
+    def open_demo_checkout(e) -> None:
+        payment_state = {"method": "card", "masked": ""}
+        card_field = ft.TextField(
+            label="Nomor kartu demo",
+            hint_text="4242 4242 4242 4242",
+            helper="Gunakan nomor dummy di atas. Jangan masukkan kartu asli.",
+            keyboard_type=ft.KeyboardType.NUMBER,
+            max_length=19,
+            password=True,
+            can_reveal_password=False,
+            autofocus=True,
+        )
+        gopay_field = ft.TextField(
+            label="Nomor GoPay demo",
+            hint_text="0812 0000 0000",
+            helper="Gunakan nomor dummy di atas. Tidak ada OTP yang dikirim.",
+            keyboard_type=ft.KeyboardType.PHONE,
+            max_length=15,
+            visible=False,
+        )
+        consent = ft.Checkbox(
+            label="Saya paham ini hanya simulasi dan tidak memproses pembayaran nyata.",
+            value=False,
+        )
+        error = ft.Text("", size=10.5, color=theme.DANGER, visible=False)
+        method = ft.RadioGroup(
+            value="card",
+            content=ft.Row(
+                [
+                    ft.Radio(value="card", label="Kartu"),
+                    ft.Radio(value="gopay", label="GoPay"),
+                ],
+                spacing=4,
+            ),
+        )
+
+        def digits(value: str) -> str:
+            return "".join(character for character in value if character.isdigit())
+
+        def change_method(ev) -> None:
+            payment_state["method"] = method.value or "card"
+            card_field.visible = payment_state["method"] == "card"
+            gopay_field.visible = payment_state["method"] == "gopay"
+            error.visible = False
+            page.update()
+
+        method.on_change = change_method
+
+        def activate_demo(ev) -> None:
+            page.pop_dialog()
+            storage.set_premium(True)
+            navigate("subscription")
+
+        def show_confirmation(ev) -> None:
+            selected_method = method.value or "card"
+            number = digits(
+                card_field.value if selected_method == "card" else gopay_field.value
+            )
+            expected = (
+                _DEMO_CARD_NUMBER if selected_method == "card" else _DEMO_GOPAY_NUMBER
+            )
+            if number != expected:
+                error.value = (
+                    "Gunakan nomor kartu demo 4242 4242 4242 4242."
+                    if selected_method == "card"
+                    else "Gunakan nomor GoPay demo 0812 0000 0000."
+                )
+                error.visible = True
+                page.update()
+                return
+            if not consent.value:
+                error.value = "Centang persetujuan simulasi sebelum lanjut."
+                error.visible = True
+                page.update()
+                return
+
+            payment_state["masked"] = (
+                "•••• •••• •••• 4242"
+                if selected_method == "card"
+                else "0812 •••• 0000"
+            )
+            page.pop_dialog()
+            page.show_dialog(
+                ft.AlertDialog(
+                    modal=True,
+                    title=ft.Text("Konfirmasi pembayaran demo", size=17),
+                    content=ft.Column(
+                        [
+                            ft.Container(
+                                content=ft.Icon(
+                                    ft.Icons.VERIFIED_OUTLINED,
+                                    size=36,
+                                    color=theme.TERTIARY,
+                                ),
+                                alignment=ft.Alignment.CENTER,
+                            ),
+                            ft.Text(
+                                "Tidak ada transaksi nyata yang akan dilakukan.",
+                                size=11.5,
+                                color=theme.MUTED,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                            ft.Divider(color=theme.BORDER, height=1),
+                            ft.Row(
+                                [
+                                    ft.Text("Paket", size=11.5, color=theme.MUTED),
+                                    ft.Text(
+                                        "KALEM Premium",
+                                        size=11.5,
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            ),
+                            ft.Row(
+                                [
+                                    ft.Text("Metode", size=11.5, color=theme.MUTED),
+                                    ft.Text(
+                                        "Kartu" if selected_method == "card" else "GoPay",
+                                        size=11.5,
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            ),
+                            ft.Row(
+                                [
+                                    ft.Text("Akun", size=11.5, color=theme.MUTED),
+                                    ft.Text(
+                                        payment_state["masked"],
+                                        size=11.5,
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            ),
+                            ft.Row(
+                                [
+                                    ft.Text("Total", size=11.5, color=theme.MUTED),
+                                    ft.Text(
+                                        _DEMO_PRICE,
+                                        size=12,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=theme.PRIMARY,
+                                    ),
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            ),
+                        ],
+                        spacing=10,
+                        tight=True,
+                    ),
+                    actions=[
+                        ft.TextButton(
+                            content=ft.Text("Batal"),
+                            on_click=lambda event: page.pop_dialog(),
+                        ),
+                        ui_helpers.primary_button(
+                            "Konfirmasi demo",
+                            activate_demo,
+                            icon=ft.Icons.CHECK_CIRCLE_OUTLINE,
+                        ),
+                    ],
+                )
+            )
+
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Checkout Premium — DEMO", size=17),
+                content=ft.Column(
+                    [
+                        ui_helpers.banner(
+                            "SIMULASI SAJA — jangan masukkan data pembayaran asli.",
+                            theme.WARN,
+                            ft.Icons.SCIENCE_OUTLINED,
+                        ),
+                        ft.Row(
+                            [
+                                ft.Text("KALEM Premium", size=13, weight=ft.FontWeight.BOLD),
+                                ft.Text(
+                                    _DEMO_PRICE,
+                                    size=12,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=theme.PRIMARY,
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        ),
+                        ft.Text("Metode pembayaran demo", size=11, color=theme.MUTED),
+                        method,
+                        card_field,
+                        gopay_field,
+                        consent,
+                        error,
+                    ],
+                    spacing=8,
+                    tight=True,
+                    scroll=ft.ScrollMode.AUTO,
+                ),
+                actions=[
+                    ft.TextButton(
+                        content=ft.Text("Batal"),
+                        on_click=lambda event: page.pop_dialog(),
+                    ),
+                    ui_helpers.primary_button(
+                        "Lanjut konfirmasi",
+                        show_confirmation,
+                        icon=ft.Icons.ARROW_FORWARD,
+                    ),
+                ],
+            )
+        )
 
     status = ft.Container(
         content=ft.Row(
@@ -110,8 +328,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                             spacing=7,
                         ),
                         ft.Text(
-                            "Tombol ini hanya menyimulasikan langganan untuk presentasi. "
-                            "Tidak ada pembayaran atau transaksi yang diproses.",
+                            "Checkout ini hanya simulasi presentasi. Input pembayaran "
+                            "tidak disimpan dan tidak ada transaksi yang diproses.",
                             size=11.5,
                             color=theme.MUTED,
                         ),
@@ -121,7 +339,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                     content=ft.Text(
                                         "Subs Off - Untuk DEMO"
                                         if premium
-                                        else "Subs On - Untuk DEMO",
+                                        else "Coba pembayaran demo",
                                         weight=ft.FontWeight.BOLD,
                                     ),
                                     icon=(
@@ -131,7 +349,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                     ),
                                     bgcolor=theme.TERTIARY if not premium else theme.SURFACE,
                                     color=theme.ON_BACKGROUND,
-                                    on_click=toggle_demo,
+                                    on_click=deactivate_demo if premium else open_demo_checkout,
                                     elevation=0,
                                 )
                             ]

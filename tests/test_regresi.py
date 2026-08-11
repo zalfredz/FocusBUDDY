@@ -78,6 +78,10 @@ def cari_tombol_berteks(kontrol, awalan_label: str):
         hasil = cari_tombol_berteks(anak, awalan_label)
         if hasil is not None:
             return hasil
+    for aksi in (getattr(kontrol, "actions", None) or []):
+        hasil = cari_tombol_berteks(aksi, awalan_label)
+        if hasil is not None:
+            return hasil
     isi = getattr(kontrol, "content", None)
     if isi is not None:
         hasil = cari_tombol_berteks(isi, awalan_label)
@@ -92,6 +96,10 @@ def jalan_tree(kontrol):
     yield kontrol
     for anak in (getattr(kontrol, "controls", None) or []):
         yield from jalan_tree(anak)
+    for aksi in (getattr(kontrol, "actions", None) or []):
+        yield from jalan_tree(aksi)
+    yield from jalan_tree(getattr(kontrol, "title", None))
+    yield from jalan_tree(getattr(kontrol, "subtitle", None))
     yield from jalan_tree(getattr(kontrol, "content", None))
 
 
@@ -324,22 +332,81 @@ def tes_halaman_kebangun():
 
 def tes_langganan_demo():
     bagian("Halaman langganan & aktivasi demo")
+    import json
+    import flet as ft
     import app.main as main_mod
     from app.views import subscription
 
+    class HalamanPembayaran(HalamanPalsu):
+        def __init__(self):
+            self.dialogs = []
+
+        def show_dialog(self, dialog):
+            self.dialogs.append(dialog)
+
+        def pop_dialog(self):
+            if self.dialogs:
+                self.dialogs.pop()
+
     storage_baru("subs_demo_")
     tujuan: list[str] = []
-    root = subscription.build(HalamanPalsu(), tujuan.append)
+    page = HalamanPembayaran()
+    root = subscription.build(page, tujuan.append)
 
     ok("subscription" in main_mod.ROUTES, "halaman langganan terdaftar di router")
-    tombol_on = cari_tombol_berteks(root, "Subs On - Untuk DEMO")
-    ok(tombol_on is not None, "paket Free menampilkan tombol Subs On khusus demo")
+    tombol_on = cari_tombol_berteks(root, "Coba pembayaran demo")
+    ok(tombol_on is not None, "paket Free membuka checkout pembayaran demo")
     if tombol_on is None:
         return
 
     tombol_on.on_click(None)
-    ok(storage.is_premium(), "tombol demo mengaktifkan Premium pada akun aktif")
+    checkout = page.dialogs[-1] if page.dialogs else None
+    ok(checkout is not None and punya_teks(checkout, "Checkout Premium — DEMO"),
+       "checkout demo tampil sebelum Premium diaktifkan")
+    ok(not storage.is_premium(), "membuka checkout belum mengaktifkan Premium")
+
+    fields = [control for control in jalan_tree(checkout) if isinstance(control, ft.TextField)]
+    card = next((field for field in fields if field.label == "Nomor kartu demo"), None)
+    gopay = next((field for field in fields if field.label == "Nomor GoPay demo"), None)
+    consent = next(
+        (control for control in jalan_tree(checkout)
+         if isinstance(control, ft.Checkbox) and "simulasi" in (control.label or "")),
+        None,
+    )
+    payment_method = next(
+        (control for control in jalan_tree(checkout)
+         if isinstance(control, ft.RadioGroup) and control.value == "card"),
+        None,
+    )
+    lanjut = cari_tombol_berteks(checkout, "Lanjut konfirmasi")
+    ok(card is not None and gopay is not None and consent is not None
+       and payment_method is not None and lanjut is not None,
+       "checkout menyediakan pilihan Kartu/GoPay dan persetujuan simulasi")
+    if card is None or gopay is None or consent is None or payment_method is None or lanjut is None:
+        return
+    payment_method.value = "gopay"
+    payment_method.on_change(None)
+    ok(gopay.visible and not card.visible,
+       "memilih GoPay mengganti input tanpa mengaktifkan Premium")
+    payment_method.value = "card"
+    payment_method.on_change(None)
+    card.value = "4242 4242 4242 4242"
+    consent.value = True
+    lanjut.on_click(None)
+    confirmation = page.dialogs[-1] if page.dialogs else None
+    ok(confirmation is not None and punya_teks(confirmation, "Konfirmasi pembayaran demo"),
+       "data dummy harus melewati layar konfirmasi kedua")
+    ok(not storage.is_premium(), "Premium belum aktif sebelum konfirmasi akhir")
+
+    confirm = cari_tombol_berteks(confirmation, "Konfirmasi demo")
+    if confirm is not None:
+        confirm.on_click(None)
+    ok(confirm is not None and storage.is_premium(),
+       "konfirmasi akhir baru mengaktifkan Premium pada akun aktif")
     ok(tujuan == ["subscription"], "halaman dirender ulang setelah status berubah")
+    serialized = json.dumps(storage.load_state())
+    ok("4242424242424242" not in serialized and "081200000000" not in serialized,
+       "nomor pembayaran demo tidak pernah disimpan ke state/Supabase")
 
     root = subscription.build(HalamanPalsu(), tujuan.append)
     ok(
