@@ -46,7 +46,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ft.Container(
                 content=ft.Column(
                     [
-                        ui_helpers.section_header("Kenapa Kalem mikir gitu"),
+                        ui_helpers.section_header("Kenapa KALEM mikir gitu"),
                         *[
                             ft.Row(
                                 [
@@ -109,7 +109,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     elif brief.ready and not storage.is_premium():
         card_children.append(
             ui_helpers.upgrade_hint(
-                "Premium: Kalem nyambungin pola berminggu-minggu, bukan cuma hari ini."
+                "Premium: KALEM nyambungin pola berminggu-minggu, bukan cuma hari ini."
             )
         )
 

@@ -228,7 +228,7 @@ def _obat_take_log(
 def _skenario_baru() -> dict:
     return {
         "label": "0 — User baru",
-        "description": "Belum ada histori sama sekali. Nunjukin Kalem jujur pas datanya kosong.",
+        "description": "Belum ada histori sama sekali. Nunjukin KALEM jujur pas datanya kosong.",
         "premium": False,
         "profile": {
             "name": "Alfredo", "age_range": "18-24", "status": ["mahasiswa"],
@@ -662,7 +662,7 @@ SCENARIOS: dict[str, dict] = {
 
 DEMO_OBJECTIVES: dict[str, dict] = {
     "baru": {
-        "demo_title": "Kalem Belum Mengenalmu",
+        "demo_title": "KALEM Belum Mengenalmu",
         "story": (
             "User baru pertama kali memakai FocusBuddy. "
             "Belum ada cukup histori untuk membuat kesimpulan personal."
@@ -681,7 +681,7 @@ DEMO_OBJECTIVES: dict[str, dict] = {
                 "still_offer_one_concrete_next_action",
             ],
         },
-        "wow": "Kalem tetap membantu meskipun belum punya data dan tidak berpura-pura mengenal user.",
+        "wow": "KALEM tetap membantu meskipun belum punya data dan tidak berpura-pura mengenal user.",
     },
     "deadline_stack": {
         "demo_title": "Tiga Deadline, Waktu Cuma 30 Menit",
@@ -860,7 +860,7 @@ DEMO_OBJECTIVES: dict[str, dict] = {
         "wow": "Tugas overdue tidak otomatis berarti tugas terbesar harus dikerjakan.",
     },
     "learning_from_history": {
-        "demo_title": "Kalem Mulai Mengenal Polamu",
+        "demo_title": "KALEM Mulai Mengenal Polamu",
         "story": "User sudah menggunakan aplikasi selama beberapa bulan. Histori menunjukkan pola yang cukup konsisten.",
         "tests": ["personal_history", "mood_prediction", "energy_prediction", "overwhelm_pattern"],
         "expected": {
@@ -875,7 +875,7 @@ DEMO_OBJECTIVES: dict[str, dict] = {
                 "prediction_uses_users_own_history_not_a_generic_default",
             ],
         },
-        "wow": "Setelah punya histori yang cukup, respons Kalem mulai menggunakan pola personal user.",
+        "wow": "Setelah punya histori yang cukup, respons KALEM mulai menggunakan pola personal user.",
     },
     "large_task_decomposition": {
         "demo_title": "Task Besar Menjadi Satu Langkah",

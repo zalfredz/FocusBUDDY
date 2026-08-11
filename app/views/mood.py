@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import flet as ft
 
-from app import buddy, storage, theme, ui_helpers
+from app import buddy, clock, storage, theme, ui_helpers
 from app.core import recommendations
 from app.core.energy_predictor import (
     predict_workload,
@@ -11,6 +11,7 @@ from app.core.energy_predictor import (
 )
 from app.core.medication_model import missed_streak
 from app.core.mood_model import (
+    QUICK_TAGS,
     analyse,
     checkin_streak,
     neglect_streak,
@@ -35,8 +36,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         setattr(page, "_focusbuddy_favorites_return", "mood")
         navigate("favorites")
 
-    latest = storage.latest_mood()
     today_log = storage.today_mood()
+    latest = today_log or storage.latest_mood()
     state = {
         "mood": latest["mood"] if latest else buddy.DEFAULT_MOOD,
         "quick_tags": list(today_log.get("quick_tags", [])) if today_log else [],
@@ -51,6 +52,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
             or _energy_from_score(buddy.score_for(latest["mood"] if latest else buddy.DEFAULT_MOOD))
         ),
         "energy_touched": bool(today_log and today_log.get("energy")),
+        "has_checkin": today_log is not None,
+        "editing": today_log is None,
     }
 
     kalem_face = buddy.face(state["mood"], 130)
@@ -59,7 +62,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
     )
     picker_holder = ft.Container()
     energy_holder = ft.Container()
+    quick_tags_holder = ft.Container()
     care_holder = ft.Container()
+    checkin_holder = ft.Container()
     result_holder = ft.Container(visible=False)
 
     def pick_mood(mood: str):
@@ -114,6 +119,37 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
 
+    def toggle_quick_tag(key: str):
+        selected = state["quick_tags"]
+        if key in selected:
+            selected.remove(key)
+        else:
+            selected.append(key)
+        render_quick_tags()
+        page.update()
+
+    def render_quick_tags():
+        quick_tags_holder.content = ft.Column(
+            [
+                ui_helpers.subtitle("Apa yang paling ngaruh hari ini? (opsional)", 12),
+                ft.Row(
+                    [
+                        ui_helpers.choice_chip(
+                            label,
+                            key in state["quick_tags"],
+                            lambda e, value=key: toggle_quick_tag(value),
+                        )
+                        for key, label in QUICK_TAGS.items()
+                    ],
+                    spacing=6,
+                    wrap=True,
+                    run_spacing=6,
+                ),
+            ],
+            spacing=7,
+        )
+
+
     def cycle_care(key: str):
         current = state["care"][key]
         state["care"][key] = {None: True, True: False, False: None}[current]
@@ -162,30 +198,19 @@ def build(page: ft.Page, navigate) -> ft.Control:
             spacing=4,
         )
 
-    def save_checkin(e):
-        mood = state["mood"]
-        score = buddy.score_for(mood)
-        energy = int(state["energy"])
-        existing = storage.today_mood()
-        storage.add_mood_log(
-            mood=mood,
-            score=score,
-            energy=energy,
-            diary=existing.get("diary", "") if existing else "",
-            tags=existing.get("tags", []) if existing else None,
-            quick_tags=state["quick_tags"],
-            ate_today=state["care"]["ate_today"],
-            rested_enough=state["care"]["rested_enough"],
-        )
-        storage.set_today_energy(energy)
-
+    def render_condition():
+        current = storage.today_mood()
+        if not current:
+            result_holder.visible = False
+            result_holder.content = None
+            return
         sleep_condition = storage.get_profile().get("sleep_condition", "")
         logs_now = storage.get_mood_logs()
         neglect_days = neglect_streak(logs_now)
         prediction = predict_workload(
             sleep_hours=sleep_hours_for(sleep_condition),
-            mood_score=score,
-            energy_level=energy,
+            mood_score=int(current.get("score", 3)),
+            energy_level=int(current.get("energy", 3)),
             streak=checkin_streak(logs_now),
             neglect_days=neglect_days,
             missed_med_days=missed_streak(storage.get_medication()),
@@ -210,17 +235,160 @@ def build(page: ft.Page, navigate) -> ft.Control:
             spacing=10,
         )
         result_holder.visible = True
+
+    def load_today_into_state():
+        current = storage.today_mood()
+        if not current:
+            return
+        state["mood"] = current.get("mood", buddy.DEFAULT_MOOD)
+        state["energy"] = int(current.get("energy", 3) or 3)
+        state["energy_touched"] = True
+        state["quick_tags"] = list(current.get("quick_tags") or [])
+        state["care"] = {
+            "ate_today": current.get("ate_today"),
+            "rested_enough": current.get("rested_enough"),
+        }
+        kalem_face.src = buddy.asset_for(state["mood"])
+        kalem_words.value = buddy.greeting_for(state["mood"])
+        render_picker()
+        render_energy()
+        render_quick_tags()
+        render_care()
+
+    def begin_edit(e):
+        load_today_into_state()
+        state["editing"] = True
+        render_checkin()
+        page.update()
+
+    def cancel_edit(e):
+        load_today_into_state()
+        state["editing"] = False
+        render_checkin()
+        page.update()
+
+    def render_checkin():
+        if state["has_checkin"] and not state["editing"]:
+            tag_labels = [
+                QUICK_TAGS.get(key, key) for key in state.get("quick_tags", [])
+            ]
+            summary: list[ft.Control] = [
+                kalem_face,
+                ft.Text(
+                    f"{buddy.MOOD_LABELS.get(state['mood'], state['mood'].title())} "
+                    f"· Energi {state['energy']}/6",
+                    size=14,
+                    weight=ft.FontWeight.BOLD,
+                    color=theme.ON_BACKGROUND,
+                ),
+            ]
+            if tag_labels:
+                summary.append(
+                    ft.Text(
+                        "Yang ngaruh: " + ", ".join(tag_labels),
+                        size=11.5,
+                        color=theme.MUTED,
+                        text_align=ft.TextAlign.CENTER,
+                    )
+                )
+            summary.extend(
+                [
+                    ft.Row(
+                        [
+                            ft.ElevatedButton(
+                                content=ft.Text("Sudah check-in", weight=ft.FontWeight.BOLD),
+                                icon=ft.Icons.CHECK_CIRCLE,
+                                disabled=True,
+                                expand=True,
+                            )
+                        ],
+                        spacing=0,
+                    ),
+                    ft.TextButton(
+                        content=ft.Text("Ubah check-in"),
+                        icon=ft.Icons.EDIT_OUTLINED,
+                        on_click=begin_edit,
+                    ),
+                ]
+            )
+            checkin_holder.content = ui_helpers.card(
+                ft.Column(
+                    summary,
+                    spacing=10,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                )
+            )
+            return
+
+        actions: list[ft.Control] = [
+            ui_helpers.wide_button(
+                "Simpan perubahan" if state["has_checkin"] else "Simpan check-in",
+                save_checkin,
+            )
+        ]
+        if state["has_checkin"]:
+            actions.append(
+                ft.TextButton(content=ft.Text("Batal"), on_click=cancel_edit)
+            )
+        checkin_holder.content = ui_helpers.card(
+            ft.Column(
+                [
+                    kalem_face,
+                    kalem_words,
+                    ft.Divider(color=theme.BORDER, height=1),
+                    ui_helpers.subtitle("Hari ini kamu ngerasa gimana?"),
+                    picker_holder,
+                    energy_holder,
+                    quick_tags_holder,
+                    care_holder,
+                    *actions,
+                ],
+                spacing=12,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            )
+        )
+
+    def save_checkin(e):
+        was_existing = bool(state["has_checkin"])
+        mood = state["mood"]
+        score = buddy.score_for(mood)
+        energy = int(state["energy"])
+        existing = storage.today_mood()
+        storage.add_mood_log(
+            mood=mood,
+            score=score,
+            energy=energy,
+            diary=existing.get("diary", "") if existing else "",
+            tags=existing.get("tags", []) if existing else None,
+            quick_tags=state["quick_tags"],
+            ate_today=state["care"]["ate_today"],
+            rested_enough=state["care"]["rested_enough"],
+        )
+        storage.set_today_energy(energy)
+        state["has_checkin"] = True
+        state["editing"] = False
+        render_checkin()
+        render_condition()
         render_insight()
         render_history()
+        rec_state["cards"] = None
+        rec_state["index"] = 0
+        render_rec()
         page.update()
         if storage.ready_for_morning_brief():
             navigate("home")
             return
-        offer_diary(mood)
+        if not was_existing:
+            offer_diary(mood)
 
     def offer_diary(mood: str):
         today_entry = storage.today_mood()
-        if today_entry and (today_entry.get("diary") or "").strip():
+        has_story = any(
+            entry.get("date") == clock.today().isoformat()
+            and (entry.get("diary") or "").strip()
+            for entry in storage.diary_entries()
+        )
+        if has_story or (today_entry and (today_entry.get("diary") or "").strip()):
             return
 
         def go(ev):
@@ -269,7 +437,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     render_picker()
     render_energy()
+    render_quick_tags()
     render_care()
+    render_checkin()
+    render_condition()
 
     rec_state = {"cards": None, "index": 0}
     rec_holder = ft.Container()
@@ -281,7 +452,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     [
                         ft.Icon(ft.Icons.AUTO_AWESOME, color=theme.TERTIARY, size=20),
                         ft.Text(
-                            "Kalem punya rekomendasi personal buat kamu",
+                            "KALEM punya rekomendasi personal buat kamu",
                             size=12.5,
                             color=theme.ON_BACKGROUND,
                             expand=True,
@@ -351,7 +522,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             cards = await ui_helpers.jalankan_dengan_progres(
                 page, rec_holder,
                 lambda: recommendations.build_cards(favorites, energy_level),
-                "Kalem lagi mikir rekomendasi buat kamu...",
+                "KALEM lagi mikir rekomendasi buat kamu...",
             )
             if not (len(cards) == 1 and cards[0].kind == "empty"):
                 storage.record_reco_card()
@@ -374,10 +545,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
     insight_holder = ft.Container()
 
     def render_insight():
-        insight = analyse(storage.get_mood_logs())
+        insight = analyse(
+            storage.get_mood_logs(),
+            focus_records=storage.get_focus_records(),
+            diary_entries=storage.diary_entries(),
+        )
         children: list[ft.Control] = [
             ui_helpers.premium_header(
-                "Yang Kalem pelajari tentang kamu", not storage.is_premium()
+                "Yang KALEM pelajari tentang kamu", not storage.is_premium()
             ),
             ft.Text(insight.headline, size=13, weight=ft.FontWeight.BOLD,
                     color=theme.ON_BACKGROUND),
@@ -425,13 +600,17 @@ def build(page: ft.Page, navigate) -> ft.Control:
     history_holder = ft.Container()
 
     def render_history():
+        logs = storage.get_mood_logs()
         children: list[ft.Control] = [
             ui_helpers.section_header("Grafik bulanan"),
             mood_chart.month_nav(
                 history_state["year"], history_state["month"], shift_month(-1), shift_month(1)
             ),
             mood_chart.build_month_chart(
-                storage.get_mood_logs(), history_state["year"], history_state["month"], SCORE_COLORS
+                logs, history_state["year"], history_state["month"], SCORE_COLORS
+            ),
+            mood_chart.build_month_summary(
+                logs, history_state["year"], history_state["month"]
             ),
         ]
         if not storage.is_premium():
@@ -485,7 +664,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 icon_color=theme.TERTIARY,
                 icon_size=20,
                 tooltip=f"Favorit kamu — {terisi}/{total_favorit} terisi · "
-                        "bikin saran Kalem lebih personal",
+                        "bikin saran KALEM lebih personal",
                 on_click=open_favorites,
             ),
         ],
@@ -495,22 +674,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     return ft.Column(
         [
             header_row,
-            ui_helpers.card(
-                ft.Column(
-                    [
-                        kalem_face,
-                        kalem_words,
-                        ft.Divider(color=theme.BORDER, height=1),
-                        ui_helpers.subtitle("Hari ini kamu ngerasa gimana?"),
-                        picker_holder,
-                        energy_holder,
-                        care_holder,
-                        ui_helpers.wide_button("Simpan check-in", save_checkin),
-                    ],
-                    spacing=12,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                )
-            ),
+            checkin_holder,
             result_holder,
             ui_helpers.nav_link_card(
                 ft.Icons.MENU_BOOK,
@@ -520,8 +684,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 lambda e: navigate("diary"),
             ),
             ui_helpers.card(insight_holder),
-            rec_holder,
             ui_helpers.card(history_holder),
+            rec_holder,
             ui_helpers.disclaimer(
                 "Pola di atas dipelajari dari catatan kamu sendiri, bukan diagnosis. "
                 "Makin sering diisi, makin akurat -- dan tetap bukan penilaian klinis."

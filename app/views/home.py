@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import math
+from datetime import datetime, timedelta
 
 import flet as ft
 
@@ -22,6 +24,42 @@ _TICKER_SESSION_KEY = "focusbuddy.home_ticker.v1"
 _DAILY_FLOW_SESSION_KEY = "focusbuddy.daily_flow.v1"
 _FALLBACK_TICKER: dict = {"running": False, "refresh": None}
 _FALLBACK_DAILY_FLOW: dict = {"checkin_snoozed_date": ""}
+
+
+def deadline_cue(task: dict, now: datetime | None = None) -> tuple[str, str]:
+    """Buat penanda deadline pasif tanpa mengubah keputusan atau membuka modal."""
+    deadline = storage.deadline_at(task)
+    if deadline is None:
+        return "", theme.MUTED
+    now = now or clock.now()
+    seconds = (deadline - now).total_seconds()
+    time_label = deadline.strftime("%H:%M")
+    if seconds < 0:
+        overdue_minutes = max(1, math.ceil(abs(seconds) / 60))
+        if overdue_minutes < 60:
+            return f"Deadline lewat {overdue_minutes} menit", theme.DANGER
+        overdue_hours = math.ceil(overdue_minutes / 60)
+        if overdue_hours < 24:
+            return f"Deadline lewat {overdue_hours} jam", theme.DANGER
+        return f"Deadline lewat {math.ceil(overdue_hours / 24)} hari", theme.DANGER
+    if deadline.date() == now.date():
+        return f"Deadline hari ini · {time_label}", theme.WARN
+    if deadline.date() == (now + timedelta(days=1)).date():
+        return f"Deadline besok · {time_label}", theme.WARN
+    return f"Deadline {deadline.strftime('%d %b')} · {time_label}", theme.MUTED
+
+
+def _focus_stat(label: str, value: ft.Text) -> ft.Control:
+    return ft.Container(
+        content=ft.Column(
+            [value, ft.Text(label, size=10.5, color=theme.MUTED)], spacing=1
+        ),
+        expand=True,
+        padding=10,
+        bgcolor=theme.BACKGROUND,
+        border_radius=10,
+        alignment=ft.Alignment.CENTER,
+    )
 
 
 def _ticker_state() -> dict:
@@ -89,7 +127,7 @@ def _popup_checkin(page: ft.Page, navigate) -> None:
             ft.Text("Tenaga kamu sekarang? (1-6)", size=12.5, color=theme.ON_BACKGROUND),
             chip_energi,
             ft.Text(
-                "Dua tap aja. Ini yang nentuin seberat apa Kalem naruh target "
+                "Dua tap aja. Ini yang nentuin seberat apa KALEM naruh target "
                 "buat kamu hari ini.",
                 size=10.5,
                 color=theme.MUTED,
@@ -174,7 +212,7 @@ def _popup_makan(page: ft.Page, navigate) -> None:
                         color=theme.ON_BACKGROUND,
                     ),
                     ft.Text(
-                        "Kalem nanya ini cuma malem, buat tau kamu keurus apa "
+                        "KALEM nanya ini cuma malem, buat tau kamu keurus apa "
                         "nggak — bukan buat nilai kamu.",
                         size=10.5,
                         color=theme.MUTED,
@@ -411,7 +449,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     modal=True,
                     title=ft.Text("Stoknya udah abis", size=16),
                     content=ft.Text(
-                        "Kalem nggak bisa nyatet absen obat kalau stoknya 0. "
+                        "KALEM nggak bisa nyatet absen obat kalau stoknya 0. "
                         "Update dulu stoknya di setelan obat.",
                         size=13,
                     ),
@@ -453,6 +491,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
             occurrence_date=occurrence,
             step_index=step_index,
             decision_id=decision_record_id or "",
+            task_estimate_minutes=(
+                decision.remaining_minutes
+                or int(task.get("menit_est", 0) or 0)
+            ),
         )
         navigate("home")
 
@@ -524,6 +566,17 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 color=theme.MUTED,
             ),
         ]
+        cue, cue_color = deadline_cue(decision.task or {})
+        if cue:
+            card_children.append(
+                ft.Row(
+                    [
+                        ft.Icon(ft.Icons.EVENT_OUTLINED, size=14, color=cue_color),
+                        ft.Text(cue, size=11, color=cue_color, expand=True),
+                    ],
+                    spacing=6,
+                )
+            )
     elif decision.detail:
         card_children = [ft.Text(decision.detail, size=13.5, color=theme.ON_BACKGROUND)]
 
@@ -560,7 +613,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
     task_title_text = ft.Text(
         "", size=11.5, color=theme.MUTED, text_align=ft.TextAlign.CENTER
     )
-    controls_row = ft.Row(alignment=ft.MainAxisAlignment.CENTER, spacing=8)
+    task_estimate_value = ft.Text(
+        "—", size=15, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND
+    )
+    session_duration_value = ft.Text(
+        "—", size=15, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND
+    )
+    controls_row = ft.Row(
+        alignment=ft.MainAxisAlignment.CENTER,
+        spacing=8,
+        wrap=True,
+        run_spacing=6,
+    )
 
     def toggle_pause(e):
         if focus_session.is_running():
@@ -611,6 +675,47 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
+    def ask_duration(e) -> None:
+        current = focus_session.snapshot()
+        current_minutes = max(1, current["total_seconds"] // 60)
+        duration = ft.TextField(
+            label="Durasi sesi (menit)",
+            value=str(current_minutes),
+            keyboard_type=ft.KeyboardType.NUMBER,
+            autofocus=True,
+            helper="Boleh 1–120 menit dan harus lebih panjang dari waktu yang sudah lewat.",
+        )
+
+        def submit(ev) -> None:
+            try:
+                minutes = int((duration.value or "").strip())
+            except ValueError:
+                duration.error = "Masukkan angka menit yang valid"
+                page.update()
+                return
+            if not focus_session.update_duration(minutes):
+                duration.error = (
+                    "Pilih 1–120 menit dan jangan lebih pendek dari waktu yang sudah berjalan"
+                )
+                page.update()
+                return
+            page.pop_dialog()
+            refresh_focus()
+
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Ubah durasi fokus", size=16),
+                content=duration,
+                actions=[
+                    ft.TextButton(
+                        content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()
+                    ),
+                    ui_helpers.primary_button("Simpan durasi", submit),
+                ],
+            )
+        )
+
     def outcome_buttons(*, close_dialog: bool = False) -> list[ft.Control]:
         def resolve(outcome: str):
             def handler(e) -> None:
@@ -634,6 +739,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 on_click=resolve("incomplete"),
             ),
             ft.OutlinedButton(content=ft.Text("Terhambat"), on_click=blocked),
+            ft.OutlinedButton(
+                content=ft.Text("Butuh istirahat"),
+                icon=ft.Icons.BEDTIME_OUTLINED,
+                on_click=resolve("rest"),
+            ),
             ft.TextButton(
                 content=ft.Text("Lanjut nanti"),
                 on_click=resolve("later"),
@@ -665,6 +775,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
         step_text.value = s["label"] or "Sesi fokus"
         task_title_text.value = f"dari: {s['task_title']}" if s["task_title"] else ""
         total = s["total_seconds"] // 60
+        estimate = int(s.get("task_estimate_minutes", 0) or 0)
+        task_estimate_value.value = f"~{estimate} menit" if estimate else "Belum ada"
+        session_duration_value.value = f"{total} menit"
         done_min = (s["total_seconds"] - s["remaining"] + 59) // 60
         elapsed_text.value = f"{done_min} dari {total} menit"
         total_text.value = f"{round((1 - s['progress']) * 100)}%"
@@ -700,6 +813,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
             buttons.append(
                 ft.TextButton(
+                    content=ft.Text("Ubah durasi", size=12),
+                    icon=ft.Icons.EDIT_CALENDAR_OUTLINED,
+                    on_click=ask_duration,
+                )
+            )
+            buttons.append(
+                ft.TextButton(
                     content=ft.Text("Akhiri sesi", size=12, color=theme.MUTED),
                     on_click=finish_session,
                 )
@@ -728,6 +848,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ui_helpers.section_header("Sesi fokus"),
                 step_text,
                 task_title_text,
+                ft.Row(
+                    [
+                        _focus_stat("Estimasi sisa task", task_estimate_value),
+                        _focus_stat("Durasi sesi", session_duration_value),
+                    ],
+                    spacing=8,
+                ),
                 ft.Container(
                     content=ft.Stack(
                         [

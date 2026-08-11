@@ -53,7 +53,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             value=True,
         )
         note_text = ft.Text(
-            "" if can_use_ai else "Kuota penyusunan Kalem habis: tetap coba pola lokal; "
+            "" if can_use_ai else "Kuota penyusunan KALEM habis: tetap coba pola lokal; "
             "kalau nggak cocok, dipakai template sederhana.",
             size=11,
             color=theme.MUTED,

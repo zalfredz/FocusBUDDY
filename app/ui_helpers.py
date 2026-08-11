@@ -273,7 +273,7 @@ class ProgresAI:
 
     PLAFON = 0.92
 
-    def __init__(self, label: str = "Kalem lagi nyusun..."):
+    def __init__(self, label: str = "KALEM lagi nyusun..."):
         from app.core import ai_client
 
         self.perkiraan = ai_client.perkiraan_lama()

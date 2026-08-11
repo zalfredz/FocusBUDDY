@@ -14,6 +14,9 @@ from app import clock
 MIN_LOGS_FOR_PATTERN = 5
 MIN_LOGS_FOR_MODEL = 10
 MIN_PER_DAYTYPE = 2
+MIN_PER_WEEKDAY = 2
+MIN_TAG_COUNT = 2
+MIN_FOCUS_PER_ENERGY_GROUP = 3
 
 DAY_NAMES = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 
@@ -122,13 +125,21 @@ def extract_tags(diary_text: str, limit: int = 5) -> list[str]:
     return [w for w, _ in Counter(meaningful).most_common(limit)]
 
 
-def _weekday_averages(logs: list[dict]) -> dict[int, float]:
+def _weekday_groups(logs: list[dict]) -> dict[int, list[int]]:
     grouped: dict[int, list[int]] = defaultdict(list)
     for log in logs:
         weekday = log.get("weekday")
         if weekday is None:
-            weekday = date.fromisoformat(log["date"]).weekday()
+            try:
+                weekday = date.fromisoformat(log["date"]).weekday()
+            except (KeyError, TypeError, ValueError):
+                continue
         grouped[weekday].append(log["score"])
+    return grouped
+
+
+def _weekday_averages(logs: list[dict]) -> dict[int, float]:
+    grouped = _weekday_groups(logs)
     return {day: sum(scores) / len(scores) for day, scores in grouped.items()}
 
 
@@ -147,27 +158,34 @@ def _is_weekend(log: dict) -> bool:
 
 
 def _predict_today(logs: list[dict]) -> Optional[float]:
+    if len(logs) < MIN_LOGS_FOR_MODEL:
+        return None
     today = clock.today()
     weekday = today.weekday()
 
-    if len(logs) >= MIN_LOGS_FOR_MODEL:
-        X = []
-        y = []
-        for log in logs:
-            wd = log.get("weekday")
-            if wd is None:
+    X = []
+    y = []
+    for log in logs:
+        wd = log.get("weekday")
+        if wd is None:
+            try:
                 wd = date.fromisoformat(log["date"]).weekday()
-            X.append([wd, 1 if _is_weekend(log) else 0, log.get("energy") or 3])
-            y.append(log["score"])
-        model = DecisionTreeRegressor(max_depth=3, random_state=42).fit(X, y)
-        recent_energy = logs[0].get("energy") or 3
-        return float(model.predict([[weekday, 1 if weekday >= 5 else 0, recent_energy]])[0])
+            except (KeyError, TypeError, ValueError):
+                continue
+        X.append([wd, 1 if _is_weekend(log) else 0, log.get("energy") or 3])
+        y.append(log["score"])
+    if len(X) < MIN_LOGS_FOR_MODEL:
+        return None
+    model = DecisionTreeRegressor(max_depth=3, random_state=42).fit(X, y)
+    recent_energy = logs[0].get("energy") or 3
+    return float(model.predict([[weekday, 1 if weekday >= 5 else 0, recent_energy]])[0])
 
-    averages = _weekday_averages(logs)
-    return averages.get(weekday)
 
-
-def analyse(logs: list[dict]) -> MoodInsight:
+def analyse(
+    logs: list[dict],
+    focus_records: Optional[list[dict]] = None,
+    diary_entries: Optional[list[dict]] = None,
+) -> MoodInsight:
     logs = [l for l in logs if l.get("score") is not None]
     count = len(logs)
 
@@ -176,15 +194,20 @@ def analyse(logs: list[dict]) -> MoodInsight:
         return MoodInsight(
             ready=False,
             log_count=count,
-            headline=f"Kalem masih belajar pola kamu ({count}/{MIN_LOGS_FOR_PATTERN} catatan).",
+            headline=f"KALEM masih belajar pola kamu ({count}/{MIN_LOGS_FOR_PATTERN} catatan).",
             details=[
-                f"Isi check-in {remaining} hari lagi biar Kalem mulai bisa lihat polanya.",
+                f"Isi check-in {remaining} hari lagi biar KALEM mulai bisa lihat polanya.",
                 "Makin sering kamu cerita, makin akurat pola yang kebaca.",
             ],
         )
 
     details: list[str] = []
-    averages = _weekday_averages(logs)
+    groups = _weekday_groups(logs)
+    averages = {
+        day: sum(scores) / len(scores)
+        for day, scores in groups.items()
+        if len(scores) >= MIN_PER_WEEKDAY
+    }
 
     best_day = hardest_day = None
     if averages:
@@ -211,16 +234,66 @@ def analyse(logs: list[dict]) -> MoodInsight:
             details.append("Mood kamu relatif stabil antara hari kerja dan weekend.")
 
     tag_counter: Counter[str] = Counter()
+    diary_entries = diary_entries or []
+    diary_dates = {
+        entry.get("date") for entry in diary_entries if entry.get("tags")
+    }
     for log in logs:
         tag_counter.update(QUICK_TAGS.get(t, t) for t in (log.get("quick_tags") or []))
-        tag_counter.update(log.get("tags") or [])
-    top_tags = tag_counter.most_common(3)
+        if log.get("date") not in diary_dates:
+            tag_counter.update(log.get("tags") or [])
+    for entry in diary_entries:
+        tag_counter.update(entry.get("tags") or [])
+    top_tags = [item for item in tag_counter.most_common(3) if item[1] >= MIN_TAG_COUNT]
     if top_tags:
         details.append("Hal yang paling sering muncul di catatan kamu: " + ", ".join(t for t, _ in top_tags) + ".")
 
     follow_up = recurring_tag_prompt(logs)
     if follow_up:
         details.append(follow_up)
+
+    low_energy_mood = [
+        float(log["score"])
+        for log in logs
+        if isinstance(log.get("energy"), (int, float)) and float(log["energy"]) <= 2
+    ]
+    higher_energy_mood = [
+        float(log["score"])
+        for log in logs
+        if isinstance(log.get("energy"), (int, float)) and float(log["energy"]) >= 4
+    ]
+    if len(low_energy_mood) >= 2 and len(higher_energy_mood) >= 2:
+        difference = (
+            sum(higher_energy_mood) / len(higher_energy_mood)
+            - sum(low_energy_mood) / len(low_energy_mood)
+        )
+        if difference >= 0.5:
+            details.append("Mood kamu cenderung lebih rendah saat energi berada di level 1–2.")
+
+    low_energy_focus: list[float] = []
+    higher_energy_focus: list[float] = []
+    for record in focus_records or []:
+        try:
+            minutes = float(
+                record.get("actual_focus_minutes", record.get("menit", 0)) or 0
+            )
+            energy = int(record.get("energi", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if minutes <= 0:
+            continue
+        if energy <= 2:
+            low_energy_focus.append(minutes)
+        elif energy >= 4:
+            higher_energy_focus.append(minutes)
+    if (
+        len(low_energy_focus) >= MIN_FOCUS_PER_ENERGY_GROUP
+        and len(higher_energy_focus) >= MIN_FOCUS_PER_ENERGY_GROUP
+    ):
+        low_average = sum(low_energy_focus) / len(low_energy_focus)
+        high_average = sum(higher_energy_focus) / len(higher_energy_focus)
+        if high_average - low_average >= 3:
+            details.append("Saat energi rendah, sesi fokusmu cenderung lebih pendek.")
 
     predicted = _predict_today(logs)
     if predicted is not None:

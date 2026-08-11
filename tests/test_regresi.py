@@ -293,7 +293,7 @@ def tes_fungsi_murni():
 def tes_halaman_kebangun():
     bagian("Semua halaman kebangun")
     import models as ml
-    from app.views import (demo_tools, diary, favorites, home, inbox, med_setup, mood,
+    from app.views import (demo_model, demo_tools, diary, favorites, home, inbox, med_setup, mood,
                            morning_brief, onboarding, reset, settings,
                            subscription, tracker)
 
@@ -305,7 +305,8 @@ def tes_halaman_kebangun():
 
     p = HalamanPalsu()
     for nama, modul in [
-        ("home", home), ("demo_tools", demo_tools), ("tracker", tracker),
+        ("home", home), ("demo_tools", demo_tools), ("demo_model", demo_model),
+        ("tracker", tracker),
         ("mood", mood), ("diary", diary),
         ("reset", reset), ("med_setup", med_setup), ("favorites", favorites),
         ("settings", settings), ("profile_settings", settings),
@@ -359,6 +360,13 @@ def tes_alat_demo_terpusat():
     root = demo_tools.build(HalamanPalsu(), tujuan.append)
 
     ok("demo_tools" in main_mod.ROUTES, "Alat Demo terdaftar saat DEMO_MODE aktif")
+    ok("demo_model" in main_mod.ROUTES, "placeholder Demo Model terdaftar")
+    model_button = cari_kontrol(
+        root,
+        lambda control: getattr(control, "on_click", None) is not None
+        and punya_teks(control, "DEMO MODEL"),
+    )
+    ok(model_button is not None, "tombol DEMO MODEL tersedia di Alat Demo")
     maju = cari_kontrol(
         root,
         lambda control: getattr(control, "on_click", None) is not None

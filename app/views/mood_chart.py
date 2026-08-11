@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import calendar
+from dataclasses import dataclass, field
+from datetime import date
 
 import flet as ft
 import flet.canvas as cv
@@ -19,6 +21,188 @@ MONTH_NAMES = [
     "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ]
 
+MIN_CHECKINS_FOR_COMPARISON = 3
+MIN_PER_GROUP = 2
+
+
+@dataclass(frozen=True)
+class MonthSummary:
+    checkin_days: int
+    average: float | None
+    previous_days: int
+    previous_average: float | None
+    comparison: str = ""
+    insights: list[str] = field(default_factory=list)
+
+
+def _logs_for_month(logs: list[dict], year: int, month: int) -> list[dict]:
+    by_day: dict[str, dict] = {}
+    for log in logs:
+        raw_date = str(log.get("date", ""))
+        try:
+            parsed_date = date.fromisoformat(raw_date)
+        except ValueError:
+            continue
+        if (
+            parsed_date.year == year
+            and parsed_date.month == month
+            and isinstance(log.get("score"), (int, float))
+        ):
+            by_day.setdefault(raw_date, log)
+    return sorted(by_day.values(), key=lambda log: str(log["date"]))
+
+
+def analyse_month(logs: list[dict], year: int, month: int) -> MonthSummary:
+    current = _logs_for_month(logs, year, month)
+    previous_year, previous_month = shift_month(year, month, -1)
+    previous = _logs_for_month(logs, previous_year, previous_month)
+    average = (
+        sum(float(log["score"]) for log in current) / len(current)
+        if current
+        else None
+    )
+    previous_average = (
+        sum(float(log["score"]) for log in previous) / len(previous)
+        if previous
+        else None
+    )
+
+    comparison = ""
+    if (
+        average is not None
+        and previous_average is not None
+        and len(current) >= MIN_CHECKINS_FOR_COMPARISON
+        and len(previous) >= MIN_CHECKINS_FOR_COMPARISON
+    ):
+        difference = average - previous_average
+        previous_name = MONTH_NAMES[previous_month - 1]
+        if abs(difference) < 0.25:
+            comparison = f"Rata-ratanya relatif sama dengan {previous_name}."
+        elif difference > 0:
+            comparison = (
+                f"Rata-rata {difference:.1f} poin lebih tinggi dibanding {previous_name}."
+            )
+        else:
+            comparison = (
+                f"Rata-rata {abs(difference):.1f} poin lebih rendah dibanding {previous_name}."
+            )
+
+    insights: list[str] = []
+    if len(current) >= 2:
+        highest = max(current, key=lambda log: float(log["score"]))
+        lowest = min(current, key=lambda log: float(log["score"]))
+        if float(highest["score"]) > float(lowest["score"]):
+            insights.append(
+                f"Mood tertinggi tercatat tanggal {int(str(highest['date'])[-2:])} "
+                f"({float(highest['score']):g}/5), terendah tanggal "
+                f"{int(str(lowest['date'])[-2:])} ({float(lowest['score']):g}/5)."
+            )
+
+    weekday = [float(log["score"]) for log in current if not _is_weekend(log)]
+    weekend = [float(log["score"]) for log in current if _is_weekend(log)]
+    if len(weekday) >= MIN_PER_GROUP and len(weekend) >= MIN_PER_GROUP:
+        gap = sum(weekend) / len(weekend) - sum(weekday) / len(weekday)
+        if gap >= 0.5:
+            insights.append("Mood bulan ini cenderung lebih tinggi saat weekend.")
+        elif gap <= -0.5:
+            insights.append("Mood bulan ini cenderung lebih tinggi saat hari kerja.")
+        else:
+            insights.append("Mood bulan ini relatif serupa antara hari kerja dan weekend.")
+
+    low_energy = [
+        float(log["score"])
+        for log in current
+        if isinstance(log.get("energy"), (int, float)) and float(log["energy"]) <= 2
+    ]
+    high_energy = [
+        float(log["score"])
+        for log in current
+        if isinstance(log.get("energy"), (int, float)) and float(log["energy"]) >= 4
+    ]
+    if len(low_energy) >= MIN_PER_GROUP and len(high_energy) >= MIN_PER_GROUP:
+        gap = sum(high_energy) / len(high_energy) - sum(low_energy) / len(low_energy)
+        if gap >= 0.5:
+            insights.append("Mood tercatat lebih rendah saat energi berada di level 1–2.")
+
+    return MonthSummary(
+        checkin_days=len(current),
+        average=average,
+        previous_days=len(previous),
+        previous_average=previous_average,
+        comparison=comparison,
+        insights=insights,
+    )
+
+
+def _is_weekend(log: dict) -> bool:
+    if log.get("is_weekend") is not None:
+        return bool(log["is_weekend"])
+    try:
+        return date.fromisoformat(str(log.get("date", ""))).weekday() >= 5
+    except ValueError:
+        return False
+
+
+def build_month_summary(logs: list[dict], year: int, month: int) -> ft.Control:
+    summary = analyse_month(logs, year, month)
+    average = f"{summary.average:.1f}/5" if summary.average is not None else "—"
+    children: list[ft.Control] = [
+        ft.Row(
+            [
+                _stat("Rata-rata mood", average),
+                _stat("Hari check-in", str(summary.checkin_days)),
+            ],
+            spacing=8,
+        )
+    ]
+    if summary.checkin_days < MIN_CHECKINS_FOR_COMPARISON:
+        children.append(
+            ft.Text(
+                "Belum cukup data untuk melihat pola bulan ini. Minimal 3 hari check-in.",
+                size=11.5,
+                color=theme.MUTED,
+            )
+        )
+    elif summary.comparison:
+        children.append(ft.Text(summary.comparison, size=11.5, color=theme.ON_BACKGROUND))
+    else:
+        children.append(
+            ft.Text(
+                "Perbandingan periode sebelumnya muncul setelah masing-masing punya "
+                "minimal 3 hari check-in.",
+                size=11.5,
+                color=theme.MUTED,
+            )
+        )
+    for insight in summary.insights:
+        children.append(
+            ft.Row(
+                [
+                    ft.Icon(ft.Icons.CIRCLE, size=6, color=theme.PRIMARY),
+                    ft.Text(insight, size=11.5, color=theme.MUTED, expand=True),
+                ],
+                spacing=7,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+            )
+        )
+    return ft.Column(children, spacing=7)
+
+
+def _stat(label: str, value: str) -> ft.Control:
+    return ft.Container(
+        content=ft.Column(
+            [
+                ft.Text(value, size=17, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND),
+                ft.Text(label, size=10.5, color=theme.MUTED),
+            ],
+            spacing=1,
+        ),
+        expand=True,
+        padding=10,
+        bgcolor=theme.BACKGROUND,
+        border_radius=10,
+    )
+
 
 def _y_for_score(score: float) -> float:
     plot_h = CHART_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM
@@ -35,10 +219,7 @@ def _x_for_day(day: int, days_in_month: int) -> float:
 
 def build_month_chart(logs: list[dict], year: int, month: int, score_colors: dict) -> ft.Control:
     days_in_month = calendar.monthrange(year, month)[1]
-    month_logs = sorted(
-        (log for log in logs if log["date"].startswith(f"{year:04d}-{month:02d}")),
-        key=lambda log: log["date"],
-    )
+    month_logs = _logs_for_month(logs, year, month)
 
     if not month_logs:
         return ft.Container(

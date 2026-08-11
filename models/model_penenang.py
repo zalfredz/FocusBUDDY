@@ -123,7 +123,7 @@ def peringkat(
     if jumlah.get(atas, 0) >= 2:
         catatan = (
             f"Biasanya '{OPTIONS[atas]['label']}' yang kamu pilih — "
-            "Kalem taruh paling atas."
+            "KALEM taruh paling atas."
         )
     return Peringkat(urutan=urut, sumber="frekuensi", catatan=catatan, jumlah=jumlah)
 

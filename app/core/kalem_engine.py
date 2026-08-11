@@ -179,11 +179,28 @@ def pick_next_action(
     tasks: list[dict], available_minutes: Optional[int] = None,
     now: Optional[datetime] = None,
 ) -> Optional[tuple[dict, int, str]]:
+    pending = rank_actionable_tasks(tasks, available_minutes, now)
+    if not pending:
+        return None
+
+    chosen = pending[0]
+
+    for i, step in enumerate(chosen.get("steps", [])):
+        if not step.get("done"):
+            return chosen, i, step.get("text", chosen["title"])
+
+    return chosen, -1, f"Buka bahan yang dibutuhkan untuk {chosen['title']}"
+
+
+def rank_actionable_tasks(
+    tasks: list[dict],
+    available_minutes: Optional[int] = None,
+    now: Optional[datetime] = None,
+) -> list[dict]:
+    """Urutkan task dengan prioritas canonical yang sama seperti next action KALEM."""
     from app import storage
 
     pending = [t for t in tasks if not storage.task_is_done(t)]
-    if not pending:
-        return None
 
     def sort_key(task: dict):
         quadrant = storage.quadrant_of(task, now=now)
@@ -198,13 +215,7 @@ def pick_next_action(
         )
 
     pending.sort(key=sort_key)
-    chosen = pending[0]
-
-    for i, step in enumerate(chosen.get("steps", [])):
-        if not step.get("done"):
-            return chosen, i, step.get("text", chosen["title"])
-
-    return chosen, -1, f"Buka bahan yang dibutuhkan untuk {chosen['title']}"
+    return pending
 
 
 def _pending_reset_followup(events: list[dict]) -> Optional[dict]:
@@ -260,11 +271,6 @@ def _decision_context_message(
     if in_productive_window(profile, now) is False:
         return "Sekarang di luar jam fokus pilihanmu, jadi targetnya dibuat lebih ringan."
     return ""
-
-
-def _task_done(task: dict) -> bool:
-    steps = task.get("steps", [])
-    return bool(steps) and all(step.get("done") for step in steps)
 
 
 def predicted_mood(mood_logs: list[dict], default: str = "tenang") -> str:
@@ -511,7 +517,7 @@ def build_morning_brief(
             ready=False,
             greeting=greeting,
             forecast=(
-                f"Kalem belum cukup data buat meramal hari kamu "
+                f"KALEM belum cukup data buat meramal hari kamu "
                 f"({ramalan.n_data}/{model_mood.MIN_POLA} catatan)."
             ),
             plan=(

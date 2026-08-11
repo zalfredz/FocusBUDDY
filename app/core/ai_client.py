@@ -9,10 +9,10 @@ from typing import Any, Optional
 
 _log = logging.getLogger(__name__)
 
-PESAN_BELUM_DIKONFIGURASI = "penyusunan Kalem belum dikonfigurasi"
-PESAN_KUOTA_PENUH = "penyusunan Kalem lagi kebanyakan dipakai, coba lagi nanti"
-PESAN_JARINGAN = "nggak bisa nyambung buat penyusunan Kalem, coba lagi kalau internetnya udah oke"
-PESAN_GAGAL_UMUM = "penyusunan Kalem lagi nggak bisa diproses, coba lagi nanti"
+PESAN_BELUM_DIKONFIGURASI = "penyusunan KALEM belum dikonfigurasi"
+PESAN_KUOTA_PENUH = "penyusunan KALEM lagi kebanyakan dipakai, coba lagi nanti"
+PESAN_JARINGAN = "nggak bisa nyambung buat penyusunan KALEM, coba lagi kalau internetnya udah oke"
+PESAN_GAGAL_UMUM = "penyusunan KALEM lagi nggak bisa diproses, coba lagi nanti"
 
 GEMINI_MODEL = "gemini-flash-lite-latest"
 
@@ -235,12 +235,12 @@ def _panggil_gemini(
     if not text:
         blocked = getattr(getattr(response, "prompt_feedback", None), "block_reason", None)
         if blocked:
-            return None, "permintaan ditahan filter keamanan Kalem"
-        return None, "balasan Kalem kosong"
+            return None, "permintaan ditahan filter keamanan KALEM"
+        return None, "balasan KALEM kosong"
 
     parsed = _urai_json(text, akar_array=(schema.get("type") == "array"))
     if parsed is None:
-        return None, "balasan Kalem nggak kebaca dengan benar"
+        return None, "balasan KALEM nggak kebaca dengan benar"
     return parsed, ""
 
 
@@ -304,15 +304,15 @@ def _panggil_estilo_openai(
     if response.choices:
         text = (response.choices[0].message.content or "").strip()
     if not text:
-        return None, "balasan Kalem kosong"
+        return None, "balasan KALEM kosong"
 
     parsed = _urai_json(text, akar_array=False)
     if parsed is None:
-        return None, "balasan Kalem nggak kebaca dengan benar"
+        return None, "balasan KALEM nggak kebaca dengan benar"
     if akar_array:
         parsed = _ambil_array(parsed)
         if parsed is None:
-            return None, "balasan Kalem nggak sesuai format yang diharapkan"
+            return None, "balasan KALEM nggak sesuai format yang diharapkan"
     return parsed, ""
 
 

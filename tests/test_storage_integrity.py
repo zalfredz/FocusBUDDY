@@ -87,6 +87,21 @@ def scenario_interrupted_write_and_migration() -> None:
               "schema lama dimigrasikan tanpa membuang profil atau tugas")
         check("decision_records" in migrated and "decompose_records" in migrated,
               "schema lama mendapat field baru yang diperlukan")
+        check(migrated["tasks"][0]["scheduled_date"] == "2026-08-10",
+              "task lama memakai deadline lamanya sebagai tanggal kerja awal")
+
+    with TemporaryStorage():
+        current = storage._default_state()
+        current["tasks"] = [{
+            "id": "task-current",
+            "title": "Task sebelum scheduled_date",
+            "deadline": "2026-08-12",
+            "steps": [{"text": "Mulai", "done": False}],
+        }]
+        write_json(storage.DATA_FILE, current)
+        loaded = storage.load_state()
+        check(loaded["tasks"][0]["scheduled_date"] == "2026-08-12",
+              "state schema saat ini juga dinormalisasi tanpa kehilangan jadwal task")
 
     with TemporaryStorage():
         malformed = storage._default_state()

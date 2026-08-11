@@ -151,14 +151,31 @@ TRIGGER_OPTIONS = {
 
 FAVORITE_FIELDS = {
     "musik": "Musik / genre yang nenangin",
+    "suara_alam": "Suara alam / background yang membantu fokus",
     "snack": "Comfort food / minuman favorit",
+    "kondisi_ruangan": "Kondisi ruangan yang bikin fokus",
+    "tempat_fokus": "Tempat tertentu yang membantu fokus",
+    "fokus_lainnya": "Hal lain yang membantu fokus",
     "hobi": "Hobi santai kamu",
     "tempat": "Tempat yang bikin nyaman",
     "penyemangat": "Kalimat penyemangat versi kamu sendiri",
     "warna": "Warna favorit",
     "orang": "Orang yang biasa jadi tempat cerita",
     "gerak": "Gerak / olahraga ringan favorit",
+    "overwhelm_lainnya": "Hal lain yang membantu saat overwhelmed",
+    "preferensi_kerja": "Cara kerja yang paling nyaman",
+    "preferensi_lainnya": "Preferensi kerja lainnya",
+    "kembali_fokus": "Hal yang biasanya bikin kamu kembali fokus",
+    "rasa_aman": "Hal yang biasanya bikin kamu merasa aman / nyaman",
     "jam_capek": "Jam kamu biasanya paling capek",
+}
+
+FAVORITE_WORK_STYLES = {
+    "sendiri": "Sendiri",
+    "ditemani": "Ditemani",
+    "tenang": "Tempat tenang",
+    "background": "Ada suara / background",
+    "lainnya": "Lainnya",
 }
 
 FAVORITE_COLORS = {
@@ -238,6 +255,9 @@ def _migrate(state: dict[str, Any]) -> dict[str, Any]:
             {
                 "id": old_task.get("id", str(uuid.uuid4())),
                 "title": old_task.get("title", "Tugas"),
+                "scheduled_date": old_task.get(
+                    "scheduled_date", old_task.get("deadline", clock.today().isoformat())
+                ),
                 "deadline": old_task.get("deadline", clock.today().isoformat()),
                 "deadline_time": old_task.get("deadline_time", ""),
                 "important": old_task.get("important", True),
@@ -399,6 +419,27 @@ def load_state() -> dict[str, Any]:
         if not isinstance(migrated.get(key), list):
             migrated[key] = []
             changed = True
+
+    for task in migrated["tasks"]:
+        if not isinstance(task, dict):
+            continue
+        if "scheduled_date" not in task:
+            task["scheduled_date"] = task.get("deadline", "")
+            changed = True
+
+    decision_defaults = {
+        "outcome": "",
+        "outcome_at": "",
+        "actual_focus_minutes": None,
+        "planned_focus_minutes": None,
+    }
+    for record in migrated["decision_records"]:
+        if not isinstance(record, dict):
+            continue
+        for key, value in decision_defaults.items():
+            if key not in record:
+                record[key] = value
+                changed = True
 
     favorites = migrated.setdefault("favorites", {})
     for key in FAVORITE_FIELDS:
@@ -782,11 +823,17 @@ def add_task(
     description: str = "",
     repeat: str = "none",
     custom_steps: Optional[list[str]] = None,
+    scheduled_date: Optional[str] = None,
 ) -> dict:
     state = load_state()
     task = {
         "id": str(uuid.uuid4()),
         "title": title,
+        "scheduled_date": (
+            scheduled_date
+            if scheduled_date is not None
+            else (deadline or clock.today().isoformat())
+        ),
         "deadline": deadline,
         "deadline_time": deadline_time,
         "important": important,
@@ -821,12 +868,11 @@ def tasks_for(day: str) -> list[dict]:
 
     tampil: list[dict] = []
     for task in get_tasks():
-        if not (task.get("deadline") or "").strip():
-            if target == clock.today() and task.get("repeat", "none") == "none":
-                tampil.append(dict(task))
-            continue
+        anchor = (task.get("scheduled_date") or task.get("deadline") or "").strip()
+        if not anchor:
+            anchor = clock.today().isoformat()
         try:
-            mulai = date.fromisoformat(task["deadline"])
+            mulai = date.fromisoformat(anchor)
         except (KeyError, TypeError, ValueError):
             continue
         repeat = task.get("repeat", "none")
@@ -843,6 +889,9 @@ def tasks_for(day: str) -> list[dict]:
             saved_steps = task.get("occurrences", {}).get(day, task.get("steps", []))
             shown["steps"] = [dict(step) for step in saved_steps]
             shown["_occurrence_date"] = day
+            shown["scheduled_date"] = day
+            if (task.get("deadline") or "").strip():
+                shown["deadline"] = day
         tampil.append(shown)
     return tampil
 
@@ -864,10 +913,12 @@ def tasks_actionable_today() -> list[dict]:
         ):
             continue
         try:
-            deadline = date.fromisoformat(task["deadline"])
+            scheduled = date.fromisoformat(
+                task.get("scheduled_date") or task.get("deadline") or ""
+            )
         except (KeyError, TypeError, ValueError):
             continue
-        if deadline < today or is_urgent(task):
+        if scheduled < today or is_urgent(task):
             carry_over.append(task)
     return current + carry_over
 
@@ -930,6 +981,107 @@ def set_step_done(
             steps[step_index]["done"] = done
             break
     save_state(state)
+
+
+def add_task_step(
+    task_id: str, text: str, occurrence_date: Optional[str] = None
+) -> bool:
+    clean = (text or "").strip()
+    if not clean:
+        return False
+    state = load_state()
+    for task in state["tasks"]:
+        if task.get("id") != task_id:
+            continue
+        if occurrence_date and task.get("repeat", "none") != "none":
+            steps = task.setdefault("occurrences", {}).setdefault(
+                occurrence_date, [dict(step) for step in task.get("steps", [])]
+            )
+        else:
+            steps = task.setdefault("steps", [])
+        steps.append({"id": str(uuid.uuid4()), "text": clean, "done": False})
+        save_state(state)
+        return True
+    return False
+
+
+def update_task_step(
+    task_id: str,
+    step_index: int,
+    text: str,
+    occurrence_date: Optional[str] = None,
+) -> bool:
+    clean = (text or "").strip()
+    if not clean:
+        return False
+    state = load_state()
+    for task in state["tasks"]:
+        if task.get("id") != task_id:
+            continue
+        if occurrence_date and task.get("repeat", "none") != "none":
+            steps = task.setdefault("occurrences", {}).setdefault(
+                occurrence_date, [dict(step) for step in task.get("steps", [])]
+            )
+        else:
+            steps = task.get("steps", [])
+        if 0 <= step_index < len(steps):
+            steps[step_index]["text"] = clean
+            save_state(state)
+            return True
+        return False
+    return False
+
+
+def delete_task_step(
+    task_id: str, step_index: int, occurrence_date: Optional[str] = None
+) -> bool:
+    state = load_state()
+    for task in state["tasks"]:
+        if task.get("id") != task_id:
+            continue
+        if occurrence_date and task.get("repeat", "none") != "none":
+            steps = task.setdefault("occurrences", {}).setdefault(
+                occurrence_date, [dict(step) for step in task.get("steps", [])]
+            )
+        else:
+            steps = task.get("steps", [])
+        if 0 <= step_index < len(steps):
+            steps.pop(step_index)
+            save_state(state)
+            return True
+        return False
+    return False
+
+
+def set_task_done(
+    task_id: str, done: bool = True, occurrence_date: Optional[str] = None
+) -> bool:
+    state = load_state()
+    for task in state["tasks"]:
+        if task.get("id") != task_id:
+            continue
+        if occurrence_date and task.get("repeat", "none") != "none":
+            steps = task.setdefault("occurrences", {}).setdefault(
+                occurrence_date, [dict(step) for step in task.get("steps", [])]
+            )
+        else:
+            steps = task.setdefault("steps", [])
+        if not steps:
+            if not done:
+                return False
+            steps.append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "text": task.get("title", "Tugas"),
+                    "done": True,
+                }
+            )
+        else:
+            for step in steps:
+                step["done"] = bool(done)
+        save_state(state)
+        return True
+    return False
 
 
 def ensure_focus_step(
@@ -1032,7 +1184,8 @@ def task_step_id(
 
 
 def task_is_done(task: dict) -> bool:
-    return bool(task["steps"]) and all(s.get("done") for s in task["steps"])
+    steps = task.get("steps", [])
+    return bool(steps) and all(s.get("done") for s in steps)
 
 
 def quadrant_of(task: dict, now: Optional[Any] = None) -> str:
@@ -1071,6 +1224,7 @@ def add_focus_record(
     energi: int = 4,
     task_title: str = "",
     menit_est: int = 0,
+    task_estimate_minutes: int = 0,
     selesai: bool = False,
     outcome: str = "",
     task_id: str = "",
@@ -1092,6 +1246,7 @@ def add_focus_record(
         "jumlah_unit": float(jumlah_unit),
         "menit": round(float(menit), 1),
         "menit_est": int(menit_est),
+        "task_estimate_minutes": int(task_estimate_minutes or 0),
         "selesai": bool(selesai),
         "energi": int(energi),
         "task_title": task_title,
@@ -1228,6 +1383,10 @@ def record_decision_shown(
         "started_at": "",
         "completed": False,
         "completed_at": "",
+        "outcome": "",
+        "outcome_at": "",
+        "actual_focus_minutes": None,
+        "planned_focus_minutes": None,
         "helpful": None,
         "fitur": _fitur_ringkas(fitur),
     }
@@ -1269,7 +1428,9 @@ def record_decision_acted_by_id(record_id: Optional[str]) -> bool:
     return False
 
 
-def record_decision_started(record_id: Optional[str]) -> bool:
+def record_decision_started(
+    record_id: Optional[str], *, planned_focus_minutes: Optional[int] = None
+) -> bool:
     if not record_id:
         return False
     state = load_state()
@@ -1278,6 +1439,8 @@ def record_decision_started(record_id: Optional[str]) -> bool:
             continue
         record["started"] = True
         record["started_at"] = record.get("started_at") or clock.now().isoformat()
+        if planned_focus_minutes is not None:
+            record["planned_focus_minutes"] = max(int(planned_focus_minutes), 0)
         save_state(state)
         return True
     return False
@@ -1287,7 +1450,10 @@ def record_decision_outcome(
     record_id: Optional[str],
     *,
     completed: bool,
+    outcome: str = "",
     helpful: Optional[bool] = None,
+    actual_focus_minutes: Optional[float] = None,
+    planned_focus_minutes: Optional[int] = None,
 ) -> bool:
     if not record_id:
         return False
@@ -1295,8 +1461,18 @@ def record_decision_outcome(
     for record in state.get("decision_records", []):
         if record.get("id") != record_id:
             continue
+        timestamp = clock.now().isoformat()
+        resolved_outcome = outcome or ("completed" if completed else "incomplete")
+        record["outcome"] = resolved_outcome
+        record["outcome_at"] = timestamp
         record["completed"] = bool(completed)
-        record["completed_at"] = clock.now().isoformat()
+        record["completed_at"] = timestamp if completed else ""
+        if actual_focus_minutes is not None:
+            record["actual_focus_minutes"] = round(
+                max(float(actual_focus_minutes), 0.0), 1
+            )
+        if planned_focus_minutes is not None:
+            record["planned_focus_minutes"] = max(int(planned_focus_minutes), 0)
         if helpful is not None:
             record["helpful"] = bool(helpful)
         save_state(state)

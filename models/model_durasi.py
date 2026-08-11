@@ -222,7 +222,7 @@ def perkirakan(
                          n_personal=n, catatan=catatan, faktor_personal=geser)
 
     catatan = (
-        "Perkiraan umum — Kalem belum punya catatan kecepatan kamu di sini. "
+        "Perkiraan umum — KALEM belum punya catatan kecepatan kamu di sini. "
         "Makin sering dipakai, makin nyesuain."
     )
     if abs(geser - 1.0) >= 0.08:

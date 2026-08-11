@@ -13,6 +13,7 @@ import flet as ft
 from app import config, focus_session, storage, theme, ui_helpers
 from app.cloud import CloudUnavailable, FocusBuddyCloud, oauth_code_from_url
 from app.views import (
+    demo_model,
     demo_tools,
     diary,
     favorites,
@@ -54,6 +55,7 @@ ROUTES = {
 
 if config.DEMO_MODE:
     ROUTES["demo_tools"] = demo_tools.build
+    ROUTES["demo_model"] = demo_model.build
 
 FULLSCREEN_ROUTES = {"onboarding", "morning_brief"}
 

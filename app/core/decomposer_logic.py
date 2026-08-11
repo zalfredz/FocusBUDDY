@@ -66,6 +66,12 @@ class PlanResult:
     n_ai: int = 0
 
 
+def task_plan_key(task: dict, fallback: str = "") -> str:
+    task_id = str(task.get("id") or fallback)
+    occurrence = str(task.get("_occurrence_date") or "")
+    return f"{task_id}::{occurrence}" if occurrence else task_id
+
+
 def _fmt(dt: datetime) -> str:
     return dt.strftime("%H:%M")
 
@@ -103,9 +109,15 @@ def perkiraan_menit(tasks: list[dict], energy_level: int) -> dict[str, int]:
         if t.get("menit_est"):
             hasil[t["title"]] = int(t["menit_est"])
             continue
+        batas = storage.deadline_at(t)
+        tempo_hari = (
+            max(0, int((batas - clock.now()).total_seconds() // 86_400))
+            if batas is not None
+            else 7
+        )
         est = model_durasi.perkirakan(
             t["title"],
-            tempo_hari=0,
+            tempo_hari=tempo_hari,
             penting=8 if t.get("important") else 4,
             kategori=t.get("kategori", ""),
             jumlah=t.get("jumlah_unit", 0),
@@ -135,10 +147,18 @@ def _ai_steps(
     menit_per_tugas = perkiraan_menit(tasks, energy_level)
 
     def _baris_tugas(t: dict) -> str:
+        from app import storage
+
         baris = f"- {t['title']} (~{menit_per_tugas.get(t['title'], 30)} menit)"
         deskripsi = (t.get("description") or "").strip()
         if deskripsi:
             baris += f"\n  Deskripsi: {deskripsi}"
+        batas = storage.deadline_at(t)
+        if batas is not None:
+            status = "sudah lewat" if batas < clock.now() else "belum lewat"
+            baris += f"\n  Deadline: {batas.strftime('%Y-%m-%d %H:%M')} ({status})"
+        else:
+            baris += "\n  Deadline: tidak ada"
         return baris
 
     task_lines = "\n".join(_baris_tugas(t) for t in tasks)
@@ -303,7 +323,7 @@ def plan_today(
         parts = [plan_today([task], energy_level, start_at, allow_ai) for task in tasks]
         steps = [step for part in parts for step in part.steps]
         task_steps = {
-            str(task.get("id", f"plan-{index}")): [
+            task_plan_key(task, f"plan-{index}"): [
                 {"text": step, "done": False}
                 for _title, step, _minutes in part.steps
             ]
@@ -389,7 +409,7 @@ def plan_today(
         blocks=blocks, source=source, total_minutes=total, reason=reason,
         steps=steps,
         task_steps={
-            str(task.get("id", f"plan-{index}")): [
+            task_plan_key(task, f"plan-{index}"): [
                 {"text": step, "done": False}
                 for _title, step, _minutes in per_judul.get(task["title"], [])
             ]

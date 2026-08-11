@@ -13,6 +13,7 @@ _SESSION_KEY = "focusbuddy.focus_session.v1"
 @dataclass
 class _FocusState:
     total_seconds: int = 0
+    task_estimate_minutes: int = 0
     label: str = ""
     task_title: str = ""
     ends_at: Optional[datetime] = None
@@ -49,9 +50,11 @@ def start(
     occurrence_date: str = "",
     step_index: int = -1,
     decision_id: str = "",
+    task_estimate_minutes: int = 0,
 ) -> None:
     state = _state()
     state.total_seconds = max(int(minutes), 1) * 60
+    state.task_estimate_minutes = max(int(task_estimate_minutes or 0), 0)
     state.label = label
     state.task_title = task_title
     state.ends_at = datetime.now() + timedelta(seconds=state.total_seconds)
@@ -70,7 +73,9 @@ def start(
     if decision_id:
         from app import storage
 
-        storage.record_decision_started(decision_id)
+        storage.record_decision_started(
+            decision_id, planned_focus_minutes=state.total_seconds // 60
+        )
 
 
 def elapsed_minutes() -> float:
@@ -95,6 +100,7 @@ def record_if_worthwhile(
         energi=state.energi,
         task_title=state.task_title,
         menit_est=state.total_seconds // 60,
+        task_estimate_minutes=state.task_estimate_minutes,
         selesai=outcome == "completed",
         outcome=outcome,
         task_id=state.task_id,
@@ -134,6 +140,35 @@ def reset() -> None:
     state.finished = False
 
 
+def update_duration(minutes: int) -> bool:
+    """Ubah durasi sesi aktif tanpa mengulang waktu yang sudah dijalani."""
+    state = _state()
+    if not is_active() or state.finished:
+        return False
+    try:
+        new_total = int(minutes) * 60
+    except (TypeError, ValueError):
+        return False
+    if not 60 <= new_total <= 120 * 60:
+        return False
+
+    left = remaining()
+    elapsed = max(0, state.total_seconds - left)
+    if new_total <= elapsed:
+        return False
+
+    new_left = new_total - elapsed
+    running = state.ends_at is not None
+    state.total_seconds = new_total
+    if running:
+        state.ends_at = datetime.now() + timedelta(seconds=new_left)
+        state.paused_left = None
+    else:
+        state.ends_at = None
+        state.paused_left = new_left
+    return True
+
+
 def stop() -> None:
     """Buang sesi tanpa menyimpulkan outcome; dipakai logout dan cleanup."""
     _clear()
@@ -141,7 +176,7 @@ def stop() -> None:
 
 def finish(outcome: str, reflection: str = "") -> Optional[dict]:
     """Simpan outcome eksplisit lalu tutup sesi fokus."""
-    allowed = {"completed", "incomplete", "blocked", "later"}
+    allowed = {"completed", "incomplete", "blocked", "later", "rest"}
     if outcome not in allowed or not is_active():
         return None
     from app import storage
@@ -157,7 +192,10 @@ def finish(outcome: str, reflection: str = "") -> Optional[dict]:
     record = record_if_worthwhile(outcome, reflection)
     storage.record_decision_outcome(
         state.decision_id,
+        outcome=outcome,
         completed=outcome == "completed",
+        actual_focus_minutes=(record or {}).get("actual_focus_minutes", 0),
+        planned_focus_minutes=state.total_seconds // 60,
     )
     _clear()
     return record
@@ -184,7 +222,7 @@ def complete_and_continue(
         return record, False
 
     task, step_index, step = pending
-    minutes, _ = kalem_engine.task_focus_minutes(
+    minutes, remaining_estimate = kalem_engine.task_focus_minutes(
         task,
         step_index,
         current["energi"],
@@ -201,6 +239,7 @@ def complete_and_continue(
         step_id=str(step.get("id", "")),
         occurrence_date=current["occurrence_date"],
         step_index=step_index,
+        task_estimate_minutes=remaining_estimate,
     )
     return record, True
 
@@ -208,6 +247,7 @@ def complete_and_continue(
 def _clear() -> None:
     state = _state()
     state.total_seconds = 0
+    state.task_estimate_minutes = 0
     state.label = ""
     state.task_title = ""
     state.ends_at = None
@@ -277,6 +317,7 @@ def snapshot() -> dict[str, Any]:
         "jumlah_unit": state.jumlah_unit,
         "energi": state.energi,
         "total_seconds": state.total_seconds,
+        "task_estimate_minutes": state.task_estimate_minutes,
         "remaining": left,
         "label": state.label,
         "task_title": state.task_title,

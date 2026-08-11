@@ -16,8 +16,8 @@ PROMPTS = [
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
-    latest = storage.latest_mood()
-    mood = latest["mood"] if latest else buddy.DEFAULT_MOOD
+    today_log = storage.today_mood()
+    mood = today_log["mood"] if today_log else buddy.DEFAULT_MOOD
 
     prompt = recurring_tag_prompt(storage.get_mood_logs()) or PROMPTS[
         clock.today().toordinal() % len(PROMPTS)
@@ -118,12 +118,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         current_mood = current["mood"] if current else mood
         keywords = extract_keywords(text)
         tags = keywords + [tag for tag in extract_tags(text) if tag not in keywords]
-        if current is None:
-            storage.add_mood_log(
-                mood=current_mood,
-                score=buddy.score_for(current_mood),
-                energy=3,
-            )
         storage.add_diary_entry(text, mood=current_mood, tags=tags[:6])
         story_field.value = ""
         saved_note.value = "Tersimpan. Makasih udah cerita 🤍"

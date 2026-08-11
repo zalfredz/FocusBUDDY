@@ -164,7 +164,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     [
                         ft.Icon(ft.Icons.INFO_OUTLINE, color=theme.WARN, size=16),
                         ft.Text(
-                            f"{missed} hari terakhir belum keabsen — Kalem nganggapnya "
+                            f"{missed} hari terakhir belum keabsen — KALEM nganggapnya "
                             "belum diminum, jadi ekspektasi hari ini diturunin dikit. "
                             "Kalau ternyata udah diminum, stok di atas boleh dibenerin.",
                             size=11.5,

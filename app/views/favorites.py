@@ -1,4 +1,4 @@
-"""Halaman preferensi penenang personal."""
+"""Preferensi personal yang dipakai KALEM untuk rekomendasi dan recovery."""
 from __future__ import annotations
 
 import flet as ft
@@ -6,32 +6,74 @@ import flet as ft
 from app import buddy, storage, theme, ui_helpers
 
 HINTS = {
-    "musik": "mis. lo-fi, Tulus, hujan-hujanan",
-    "snack": "mis. es kopi susu, indomie, coklat",
+    "musik": "mis. lo-fi, Tulus, instrumental",
+    "suara_alam": "mis. suara hujan, ombak, white noise",
+    "snack": "mis. es kopi susu, teh hangat, coklat",
+    "kondisi_ruangan": "mis. lampu redup, meja kosong, ruangan dingin",
+    "tempat_fokus": "mis. perpustakaan, meja dekat jendela",
+    "fokus_lainnya": "mis. timer visual, pakai headphone",
     "hobi": "mis. gambar, main gitar, jalan sore",
-    "tempat": "mis. balkon, kamar, kafe deket kos",
-    "penyemangat": "mis. pelan-pelan juga tetep jalan",
+    "tempat": "mis. balkon, kamar, kafe dekat kos",
+    "penyemangat": "mis. pelan-pelan juga tetap jalan",
     "orang": "mis. Rani, Bang Dito — nama panggilan aja",
     "gerak": "mis. jalan keliling kos, stretching leher",
+    "overwhelm_lainnya": "mis. mandi air hangat, matikan notifikasi",
+    "preferensi_lainnya": "mis. harus pakai headphone",
+    "kembali_fokus": "mis. minum air lalu tulis satu langkah kecil",
+    "rasa_aman": "mis. selimut, kamar rapi, ngobrol dengan teman",
 }
 
 USED_FOR = {
-    "musik": "Dipakai buat opsi 'dengerin musik' di halaman jeda.",
-    "snack": "Ditawarin di halaman jeda pas kamu lagi kewalahan — aksi paling gampang.",
-    "hobi": "Jadi saran kegiatan 60 detik pas kamu lagi kewalahan.",
-    "tempat": "Jadi saran tempat pas kamu butuh pindah suasana.",
-    "penyemangat": "Kalem bakal ngutip balik kalimat ini pas kamu lagi berat.",
-    "warna": "Jadi aksen di kartu Kalem punya kamu.",
-    "orang": "Kalau kamu lagi sering kewalahan, Kalem bakal ngingetin buat cerita ke dia.",
-    "gerak": "Jadi saran gerak 60 detik, bukan 'stretching' generik.",
-    "jam_capek": "Kalem nurunin ekspektasi otomatis di jam ini.",
+    "musik": "Bisa dipakai KALEM saat kamu butuh teman fokus atau menenangkan diri.",
+    "suara_alam": "Menjadi alternatif background saat musik terasa terlalu ramai.",
+    "snack": "Bisa diingatkan saat energi turun dan kebutuhan dasar mulai terlewat.",
+    "kondisi_ruangan": "Membantu rekomendasi persiapan sebelum mulai Focus.",
+    "tempat_fokus": "Menjadi pilihan tempat ketika kamu perlu mulai mengerjakan tugas.",
+    "fokus_lainnya": "Melengkapi bantuan fokus yang belum tercakup pilihan lain.",
+    "hobi": "Menjadi pilihan aktivitas ringan ketika kamu perlu jeda.",
+    "tempat": "Menjadi saran pindah suasana ketika kamu mulai kewalahan.",
+    "penyemangat": "KALEM bisa mengingatkan kalimat ini saat harimu terasa berat.",
+    "warna": "Menjadi aksen di kartu KALEM milikmu.",
+    "orang": "KALEM hanya mengingatkan kamu untuk menghubunginya; tidak mengirim pesan.",
+    "gerak": "Menjadi saran gerak singkat yang memang kamu sukai.",
+    "overwhelm_lainnya": "Melengkapi penenang personal yang belum tercakup pilihan lain.",
+    "preferensi_kerja": "Membantu KALEM menyarankan suasana kerja yang lebih cocok.",
+    "preferensi_lainnya": "Melengkapi pilihan cara kerja yang belum ada di atas.",
+    "kembali_fokus": "Menjadi pengingat personal ketika perhatianmu mulai lepas.",
+    "rasa_aman": "Menjadi pilihan penenang personal ketika kamu kewalahan.",
+    "jam_capek": "KALEM menurunkan ekspektasi otomatis pada jam ini.",
 }
 
 PRIVACY_NOTE = {
-    "orang": "Cukup nama panggilan. Kalem nggak nyimpen kontak dan nggak akan "
-             "ngehubungin siapa pun otomatis — ini cuma pengingat buat kamu.",
-    "penyemangat": "Tulis pakai kalimat kamu sendiri ya, bukan kutipan orang lain.",
+    "orang": "Cukup nama panggilan. KALEM tidak menyimpan kontak atau menghubungi siapa pun.",
+    "penyemangat": "Tulis dengan kalimat kamu sendiri, bukan kutipan panjang milik orang lain.",
 }
+
+GROUPS = [
+    (
+        "A. Hal yang membantu fokus",
+        "Isi yang memang terasa membantu. Nggak harus semuanya.",
+        (
+            "musik", "suara_alam", "tempat_fokus", "snack",
+            "kondisi_ruangan", "fokus_lainnya",
+        ),
+    ),
+    (
+        "B. Saat sedang overwhelmed",
+        "Hal sederhana yang biasanya membuat keadaan sedikit lebih ringan.",
+        ("tempat", "hobi", "gerak", "penyemangat", "overwhelm_lainnya"),
+    ),
+    (
+        "C. Preferensi mengerjakan tugas",
+        "Waktu fokus terbaik tetap mengikuti Profil agar datanya tidak ganda.",
+        ("preferensi_kerja", "preferensi_lainnya", "jam_capek", "warna"),
+    ),
+    (
+        "D. Personal support",
+        "Dukungan yang terasa aman dan nyata buat kamu.",
+        ("orang", "kembali_fokus", "rasa_aman"),
+    ),
+]
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
@@ -41,13 +83,28 @@ def build(page: ft.Page, navigate) -> ft.Control:
     saved_note = ft.Text("", size=12, color=theme.PRIMARY)
     progress_holder = ft.Container()
 
-    def render_progress():
+    picks: dict[str, str] = {
+        "warna": str(current.get("warna", "")),
+        "jam_capek": str(current.get("jam_capek", "")),
+    }
+    work_styles = {
+        value
+        for value in str(current.get("preferensi_kerja", "")).split(",")
+        if value in storage.FAVORITE_WORK_STYLES
+    }
+    pick_holders = {
+        "warna": ft.Container(),
+        "jam_capek": ft.Container(),
+        "preferensi_kerja": ft.Container(),
+    }
+
+    def render_progress() -> None:
         filled = storage.favorites_filled()
         total = len(storage.FAVORITE_FIELDS)
         progress_holder.content = ft.Column(
             [
                 ft.Text(
-                    f"Kalem makin kenal kamu — {filled}/{total} favorit terisi.",
+                    f"KALEM makin kenal kamu — {filled}/{total} preferensi terisi.",
                     size=13,
                     weight=ft.FontWeight.BOLD,
                     color=theme.ON_BACKGROUND,
@@ -59,7 +116,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     bar_height=6,
                 ),
                 ft.Text(
-                    "Nggak ada yang wajib diisi. Boleh dilengkapi kapan aja.",
+                    "Nggak ada yang wajib diisi. Boleh dilengkapi sedikit demi sedikit.",
                     size=11,
                     color=theme.MUTED,
                 ),
@@ -67,98 +124,94 @@ def build(page: ft.Page, navigate) -> ft.Control:
             spacing=8,
         )
 
-    def save(e):
-        for key, field in fields.items():
-            storage.set_favorite(key, field.value or "")
-        for key, value in picks.items():
-            storage.set_favorite(key, value)
-        saved_note.value = "Tersimpan 🤍"
-        render_progress()
-        page.update()
-
-    picks: dict[str, str] = {
-        "warna": current.get("warna", ""),
-        "jam_capek": current.get("jam_capek", ""),
-    }
-    pick_holders = {key: ft.Container() for key in picks}
-
-    def choose(key: str, value: str):
+    def choose(key: str, value: str) -> None:
         picks[key] = "" if picks[key] == value else value
         render_picks()
         page.update()
 
-    def render_picks():
-        swatches = []
+    def toggle_work_style(value: str) -> None:
+        if value in work_styles:
+            work_styles.remove(value)
+        else:
+            work_styles.add(value)
+        render_picks()
+        page.update()
+
+    def render_picks() -> None:
+        swatches: list[ft.Control] = []
         for value, (label, hex_code) in storage.FAVORITE_COLORS.items():
-            on = picks["warna"] == value
+            active = picks["warna"] == value
             swatches.append(
                 ft.Container(
                     content=ft.Row(
                         [
                             ft.Container(width=14, height=14, bgcolor=hex_code, border_radius=7),
-                            ft.Text(label, size=11.5,
-                                    color=theme.ON_BACKGROUND if not on else "#FFFFFF"),
+                            ft.Text(label, size=11.5, color="#FFFFFF" if active else theme.ON_BACKGROUND),
                         ],
                         spacing=6,
                         tight=True,
                     ),
-                    bgcolor=hex_code if on else theme.SURFACE,
-                    border=ft.Border.all(1, hex_code if on else theme.BORDER),
+                    bgcolor=hex_code if active else theme.SURFACE,
+                    border=ft.Border.all(1, hex_code if active else theme.BORDER),
                     border_radius=12,
                     padding=ft.Padding.symmetric(vertical=7, horizontal=10),
-                    on_click=lambda e, v=value: choose("warna", v),
+                    on_click=lambda e, selected=value: choose("warna", selected),
                     ink=True,
                 )
             )
-        pick_holders["warna"].content = ft.Column(
-            [
-                ft.Text(storage.FAVORITE_FIELDS["warna"], size=12.5, color=theme.ON_BACKGROUND),
-                ft.Row(swatches, spacing=6, wrap=True, run_spacing=6),
-                ft.Text(USED_FOR["warna"], size=11, color=theme.MUTED),
-            ],
-            spacing=8,
+        pick_holders["warna"].content = _preference_block(
+            storage.FAVORITE_FIELDS["warna"],
+            ft.Row(swatches, spacing=6, wrap=True, run_spacing=6),
+            USED_FOR["warna"],
         )
 
         hour_chips = [
             ui_helpers.choice_chip(
-                label, picks["jam_capek"] == value, lambda e, v=value: choose("jam_capek", v)
+                label,
+                picks["jam_capek"] == value,
+                lambda e, selected=value: choose("jam_capek", selected),
             )
             for value, (label, _) in storage.FAVORITE_TIRED_HOURS.items()
         ]
-        pick_holders["jam_capek"].content = ft.Column(
-            [
-                ft.Text(storage.FAVORITE_FIELDS["jam_capek"], size=12.5, color=theme.ON_BACKGROUND),
-                ft.Text("Ini titik TERENDAH kamu — beda dari jam produktif di onboarding.",
-                        size=11, color=theme.MUTED),
-                ft.Row(hour_chips, spacing=6, wrap=True, run_spacing=6),
-                ft.Text(USED_FOR["jam_capek"], size=11, color=theme.MUTED),
-            ],
-            spacing=8,
+        pick_holders["jam_capek"].content = _preference_block(
+            storage.FAVORITE_FIELDS["jam_capek"],
+            ft.Row(hour_chips, spacing=6, wrap=True, run_spacing=6),
+            USED_FOR["jam_capek"],
         )
 
-    cards: list[ft.Control] = []
-    for key, label in storage.FAVORITE_FIELDS.items():
-        if key in picks:
-            cards.append(ui_helpers.card(pick_holders[key], padding=14))
-            continue
+        style_chips = [
+            ui_helpers.choice_chip(
+                label,
+                value in work_styles,
+                lambda e, selected=value: toggle_work_style(selected),
+            )
+            for value, label in storage.FAVORITE_WORK_STYLES.items()
+        ]
+        pick_holders["preferensi_kerja"].content = _preference_block(
+            storage.FAVORITE_FIELDS["preferensi_kerja"],
+            ft.Row(style_chips, spacing=6, wrap=True, run_spacing=6),
+            USED_FOR["preferensi_kerja"],
+        )
 
+    def field_control(key: str) -> ft.Control:
+        if key in pick_holders:
+            return pick_holders[key]
         field = ft.TextField(
-            label=label,
-            value=current.get(key, ""),
+            label=storage.FAVORITE_FIELDS[key],
+            value=str(current.get(key, "")),
             hint_text=HINTS.get(key, ""),
             border_color=theme.BORDER,
             focused_border_color=theme.PRIMARY,
-            multiline=key == "penyemangat",
-            max_lines=2 if key == "penyemangat" else 1,
+            multiline=key in {"penyemangat", "kembali_fokus", "rasa_aman"},
+            max_lines=2 if key in {"penyemangat", "kembali_fokus", "rasa_aman"} else 1,
         )
         fields[key] = field
-
-        card_items: list[ft.Control] = [
+        children: list[ft.Control] = [
             field,
             ft.Text(USED_FOR.get(key, ""), size=11, color=theme.MUTED),
         ]
         if key in PRIVACY_NOTE:
-            card_items.append(
+            children.append(
                 ft.Row(
                     [
                         ft.Icon(ft.Icons.LOCK_OUTLINE, size=12, color=theme.SECONDARY),
@@ -168,10 +221,43 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     vertical_alignment=ft.CrossAxisAlignment.START,
                 )
             )
-        cards.append(ui_helpers.card(ft.Column(card_items, spacing=6), padding=14))
+        return ft.Container(
+            content=ft.Column(children, spacing=6),
+            padding=ft.Padding.symmetric(vertical=8, horizontal=14),
+        )
+
+    def save(e) -> None:
+        for key, field in fields.items():
+            storage.set_favorite(key, field.value or "")
+        for key, value in picks.items():
+            storage.set_favorite(key, value)
+        storage.set_favorite("preferensi_kerja", ",".join(sorted(work_styles)))
+        saved_note.value = "Tersimpan 🤍"
+        render_progress()
+        page.update()
 
     render_picks()
     render_progress()
+
+    groups = [
+        ui_helpers.card(
+            ft.ExpansionTile(
+                title=ft.Text(title, size=13.5, weight=ft.FontWeight.BOLD),
+                subtitle=ft.Text(subtitle, size=10.5, color=theme.MUTED),
+                controls=[field_control(key) for key in keys],
+                controls_padding=ft.Padding.only(bottom=8),
+                tile_padding=ft.Padding.symmetric(vertical=4, horizontal=14),
+                expanded=index == 0,
+                maintain_state=True,
+                text_color=theme.ON_BACKGROUND,
+                collapsed_text_color=theme.ON_BACKGROUND,
+                icon_color=theme.PRIMARY,
+                collapsed_icon_color=theme.MUTED,
+            ),
+            padding=0,
+        )
+        for index, (title, subtitle, keys) in enumerate(GROUPS)
+    ]
 
     return ft.Column(
         [
@@ -181,8 +267,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     buddy.face("semangat", 64),
                     ft.Container(
                         content=buddy.speech_bubble(
-                            "Cerita dikit dong soal hal-hal yang kamu suka. "
-                            "Nanti aku pakai pas kamu lagi butuh."
+                            "Isi sedikit demi sedikit. KALEM pakai ini untuk memilih "
+                            "saran yang lebih dekat dengan kebiasaanmu."
                         ),
                         expand=True,
                     ),
@@ -191,14 +277,28 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             ui_helpers.card(progress_holder, padding=16),
-            *cards,
+            *groups,
             ui_helpers.wide_button("Simpan", save, icon=ft.Icons.SAVE),
             saved_note,
             ui_helpers.disclaimer(
-                "Semua isian di sini disimpan lokal di perangkat kamu aja."
+                "Semua isian tersimpan di ruang akun kamu dan boleh diubah kapan pun."
             ),
         ],
         spacing=14,
         scroll=ft.ScrollMode.AUTO,
         expand=True,
+    )
+
+
+def _preference_block(label: str, control: ft.Control, explanation: str) -> ft.Control:
+    return ft.Container(
+        content=ft.Column(
+            [
+                ft.Text(label, size=12.5, color=theme.ON_BACKGROUND),
+                control,
+                ft.Text(explanation, size=11, color=theme.MUTED),
+            ],
+            spacing=8,
+        ),
+        padding=ft.Padding.symmetric(vertical=8, horizontal=14),
     )
