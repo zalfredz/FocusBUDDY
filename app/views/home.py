@@ -52,10 +52,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
         storage.touch_last_open()
         navigate("home")
 
-    def toggle_subs(e):
-        storage.set_premium(not storage.is_premium())
-        navigate("home")
-
     def open_auto_feel(e):
         try:
             from app import demo_scenarios
@@ -165,13 +161,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             icon_size=20,
             tooltip="Tutup & buka lagi app (demo) — ngulang alur pembukaan",
             on_click=buka_ulang_app,
-        ),
-        ft.IconButton(
-            icon=ft.Icons.WORKSPACE_PREMIUM,
-            icon_color=theme.TERTIARY if storage.is_premium() else theme.MUTED,
-            icon_size=20,
-            tooltip="SUBS ON (demo)" if storage.is_premium() else "SUBS OFF (demo)",
-            on_click=toggle_subs,
         ),
         ft.IconButton(
             icon=ft.Icons.AUTO_FIX_HIGH,
@@ -440,6 +429,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 expand=True,
             ),
             *_dev_buttons(page, navigate),
+            ft.IconButton(
+                icon=ft.Icons.WORKSPACE_PREMIUM,
+                icon_color=theme.TERTIARY if storage.is_premium() else theme.MUTED,
+                icon_size=20,
+                tooltip="Langganan KALEM",
+                on_click=lambda e: navigate("subscription"),
+            ),
             ft.IconButton(
                 icon=ft.Icons.SETTINGS,
                 icon_color=theme.MUTED,

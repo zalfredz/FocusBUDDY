@@ -23,6 +23,7 @@ from app.views import (
     onboarding,
     reset,
     settings,
+    subscription,
     tracker,
 )
 
@@ -44,6 +45,7 @@ ROUTES = {
     "onboarding": onboarding.build,
     "favorites": favorites.build,
     "settings": settings.build,
+    "subscription": subscription.build,
     "morning_brief": morning_brief.build,
     "inbox": inbox.build,
 }

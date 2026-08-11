@@ -293,7 +293,8 @@ def tes_halaman_kebangun():
     bagian("Semua halaman kebangun")
     import models as ml
     from app.views import (diary, favorites, home, inbox, med_setup, mood,
-                           morning_brief, onboarding, reset, settings, tracker)
+                           morning_brief, onboarding, reset, settings,
+                           subscription, tracker)
 
     storage_baru("ui_")
     pasang_logs(skor=4, n=30, energi=4)
@@ -306,13 +307,40 @@ def tes_halaman_kebangun():
         ("home", home), ("tracker", tracker), ("mood", mood), ("diary", diary),
         ("reset", reset), ("med_setup", med_setup), ("favorites", favorites),
         ("settings", settings), ("morning_brief", morning_brief),
-        ("inbox", inbox), ("onboarding", onboarding),
+        ("subscription", subscription), ("inbox", inbox),
+        ("onboarding", onboarding),
     ]:
         try:
             modul.build(p, lambda r: None)
             ok(True, nama)
         except Exception as exc:                       # noqa: BLE001
             ok(False, f"{nama}: {type(exc).__name__}: {exc}")
+
+
+def tes_langganan_demo():
+    bagian("Halaman langganan & aktivasi demo")
+    import app.main as main_mod
+    from app.views import subscription
+
+    storage_baru("subs_demo_")
+    tujuan: list[str] = []
+    root = subscription.build(HalamanPalsu(), tujuan.append)
+
+    ok("subscription" in main_mod.ROUTES, "halaman langganan terdaftar di router")
+    tombol_on = cari_tombol_berteks(root, "Subs On - Untuk DEMO")
+    ok(tombol_on is not None, "paket Free menampilkan tombol Subs On khusus demo")
+    if tombol_on is None:
+        return
+
+    tombol_on.on_click(None)
+    ok(storage.is_premium(), "tombol demo mengaktifkan Premium pada akun aktif")
+    ok(tujuan == ["subscription"], "halaman dirender ulang setelah status berubah")
+
+    root = subscription.build(HalamanPalsu(), tujuan.append)
+    ok(
+        cari_tombol_berteks(root, "Subs Off - Untuk DEMO") is not None,
+        "Premium aktif menampilkan tombol untuk mematikan simulasi",
+    )
 
 
 def tes_komponen_baru():
@@ -909,6 +937,7 @@ def main() -> int:
         tes_fokus_pakai_decision_task_tugas_berulang,
         tes_pecah_tugas_judul_kembar,
         tes_onboarding_entry_dan_status_custom,
+        tes_langganan_demo,
         tes_halaman_kebangun,
     ):
         tes()
