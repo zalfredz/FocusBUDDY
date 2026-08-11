@@ -149,13 +149,19 @@ def bangun_fitur(
     jarak_checkin = storage.hari_sejak_checkin(semua_log)
     data_basi = jarak_checkin is not None and jarak_checkin > storage.STALE_AFTER_DAYS
 
-    belum = [t for t in tugas_hari_ini if not storage.task_is_done(t)]
+    belum = [
+        task
+        for task in tugas_hari_ini
+        if storage.is_recommendable_task(task) and not storage.task_is_done(task)
+    ]
     mendesak = [t for t in belum if storage.is_urgent(t, now)]
     beban_menit = sum(float(t.get("menit_est") or 0) for t in belum)
 
     tugas7 = [
-        t for t in tugas_semua
-        if (d := _aman_tanggal(t.get("deadline", ""))) and 0 <= (hari_ini - d).days < 7
+        task for task in tugas_semua
+        if storage.is_recommendable_task(task)
+        and (d := _aman_tanggal(task.get("deadline", "")))
+        and 0 <= (hari_ini - d).days < 7
     ]
     selesai7 = [t for t in tugas7 if storage.task_is_done(t)]
     rasio_selesai = len(selesai7) / len(tugas7) if tugas7 else 0.5
@@ -163,7 +169,7 @@ def bangun_fitur(
 
     umur_tertua = 0
     for t in tugas_semua:
-        if storage.task_is_done(t):
+        if not storage.is_recommendable_task(t) or storage.task_is_done(t):
             continue
         dibuat = _aman_tanggal((t.get("created_at") or "")[:10])
         if dibuat:

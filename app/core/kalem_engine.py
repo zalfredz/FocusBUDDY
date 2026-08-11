@@ -200,7 +200,11 @@ def rank_actionable_tasks(
     """Urutkan task dengan prioritas canonical yang sama seperti next action KALEM."""
     from app import storage
 
-    pending = [t for t in tasks if not storage.task_is_done(t)]
+    pending = [
+        task
+        for task in tasks
+        if storage.is_recommendable_task(task) and not storage.task_is_done(task)
+    ]
 
     def sort_key(task: dict):
         quadrant = storage.quadrant_of(task, now=now)
@@ -252,6 +256,8 @@ def _decision_context_message(
     reset_followup: Optional[dict],
     now: datetime,
 ) -> str:
+    from app import storage
+
     if reset_followup and reset_followup.get("improved") is True:
         return "Kalau sudah sedikit lebih enak, cukup satu langkah kecil ini."
     if risk_level == "waspada":
@@ -259,7 +265,11 @@ def _decision_context_message(
     if energy <= 2:
         return "Energi kamu lagi rendah, jadi sesi ini dibuat lebih pendek."
 
-    open_tasks = [task for task in day.tasks_today if not _task_done(task)]
+    open_tasks = [
+        task
+        for task in day.tasks_today
+        if storage.is_recommendable_task(task) and not _task_done(task)
+    ]
     workload_minutes = 0
     for task in open_tasks:
         try:
@@ -488,7 +498,13 @@ def build_morning_brief(
     else:
         greeting = f"Malam, {name}!"
 
-    task_count = len([t for t in day.tasks_today if not _task_done(t)])
+    task_count = len(
+        [
+            task
+            for task in day.tasks_today
+            if storage.is_recommendable_task(task) and not _task_done(task)
+        ]
+    )
 
     f = kfitur.bangun_fitur(now, day=day, profil=profile)
     ramalan = model_mood.ramal(f)

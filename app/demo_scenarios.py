@@ -620,10 +620,10 @@ SCENARIOS: dict[str, dict] = {
     ),
     "recurring_identity": _skenario_alur(
         "Tugas berulang — occurrence tetap terpisah",
-        "Menyelesaikan occurrence hari ini tidak boleh menyelesaikan occurrence minggu depan.",
+        "Menyelesaikan occurrence hari ini tidak boleh menyelesaikan occurrence berikutnya.",
         "recurring_identity",
-        [{"title": "Review mingguan", "important": True, "difficulty": 1,
-          "estimated_minutes": 15, "repeat": "weekly", "steps": ["Buka catatan minggu ini"]}],
+        [{"title": "Review harian", "important": True, "difficulty": 1,
+          "estimated_minutes": 15, "repeat": "daily", "steps": ["Buka catatan hari ini"]}],
     ),
     "duplicate_title": _skenario_alur(
         "Judul kembar — update berdasarkan ID",

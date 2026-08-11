@@ -11,7 +11,6 @@ from app.core.energy_predictor import (
 )
 from app.core.medication_model import missed_streak
 from app.core.mood_model import (
-    QUICK_TAGS,
     analyse,
     checkin_streak,
     neglect_streak,
@@ -40,7 +39,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     latest = today_log or storage.latest_mood()
     state = {
         "mood": latest["mood"] if latest else buddy.DEFAULT_MOOD,
-        "quick_tags": list(today_log.get("quick_tags", [])) if today_log else [],
         "care": {
             "ate_today": today_log.get("ate_today") if today_log else None,
             "rested_enough": today_log.get("rested_enough") if today_log else None,
@@ -62,7 +60,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     )
     picker_holder = ft.Container()
     energy_holder = ft.Container()
-    quick_tags_holder = ft.Container()
     care_holder = ft.Container()
     checkin_holder = ft.Container()
     result_holder = ft.Container(visible=False)
@@ -116,37 +113,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.Row(chips, spacing=6),
             ],
             spacing=8,
-        )
-
-
-    def toggle_quick_tag(key: str):
-        selected = state["quick_tags"]
-        if key in selected:
-            selected.remove(key)
-        else:
-            selected.append(key)
-        render_quick_tags()
-        page.update()
-
-    def render_quick_tags():
-        quick_tags_holder.content = ft.Column(
-            [
-                ui_helpers.subtitle("Apa yang paling ngaruh hari ini? (opsional)", 12),
-                ft.Row(
-                    [
-                        ui_helpers.choice_chip(
-                            label,
-                            key in state["quick_tags"],
-                            lambda e, value=key: toggle_quick_tag(value),
-                        )
-                        for key, label in QUICK_TAGS.items()
-                    ],
-                    spacing=6,
-                    wrap=True,
-                    run_spacing=6,
-                ),
-            ],
-            spacing=7,
         )
 
 
@@ -243,7 +209,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         state["mood"] = current.get("mood", buddy.DEFAULT_MOOD)
         state["energy"] = int(current.get("energy", 3) or 3)
         state["energy_touched"] = True
-        state["quick_tags"] = list(current.get("quick_tags") or [])
         state["care"] = {
             "ate_today": current.get("ate_today"),
             "rested_enough": current.get("rested_enough"),
@@ -252,7 +217,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         kalem_words.value = buddy.greeting_for(state["mood"])
         render_picker()
         render_energy()
-        render_quick_tags()
         render_care()
 
     def begin_edit(e):
@@ -269,9 +233,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def render_checkin():
         if state["has_checkin"] and not state["editing"]:
-            tag_labels = [
-                QUICK_TAGS.get(key, key) for key in state.get("quick_tags", [])
-            ]
             summary: list[ft.Control] = [
                 kalem_face,
                 ft.Text(
@@ -282,15 +243,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     color=theme.ON_BACKGROUND,
                 ),
             ]
-            if tag_labels:
-                summary.append(
-                    ft.Text(
-                        "Yang ngaruh: " + ", ".join(tag_labels),
-                        size=11.5,
-                        color=theme.MUTED,
-                        text_align=ft.TextAlign.CENTER,
-                    )
-                )
             summary.extend(
                 [
                     ft.Row(
@@ -339,7 +291,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ui_helpers.subtitle("Hari ini kamu ngerasa gimana?"),
                     picker_holder,
                     energy_holder,
-                    quick_tags_holder,
                     care_holder,
                     *actions,
                 ],
@@ -360,7 +311,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             energy=energy,
             diary=existing.get("diary", "") if existing else "",
             tags=existing.get("tags", []) if existing else None,
-            quick_tags=state["quick_tags"],
+            quick_tags=existing.get("quick_tags", []) if existing else [],
             ate_today=state["care"]["ate_today"],
             rested_enough=state["care"]["rested_enough"],
         )
@@ -437,7 +388,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     render_picker()
     render_energy()
-    render_quick_tags()
     render_care()
     render_checkin()
     render_condition()

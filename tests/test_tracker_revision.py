@@ -50,6 +50,8 @@ def walk(control):
         yield from walk(child)
     for action in getattr(control, "actions", []) or []:
         yield from walk(action)
+    yield from walk(getattr(control, "title", None))
+    yield from walk(getattr(control, "subtitle", None))
     yield from walk(getattr(control, "content", None))
 
 
@@ -133,7 +135,8 @@ def scenario_calendar_modes_and_done() -> None:
           "mode Mingguan menampilkan seluruh task dalam minggu terpilih")
     check(monthly["title"] not in visible,
           "mode Mingguan tidak mencampur task di luar minggu terpilih")
-    check("DONE" in visible and "Tugas sudah selesai" in visible,
+    check(any("selesai" in value.lower() for value in visible)
+          and "Tugas sudah selesai" in visible,
           "Sebaran dan card memakai status task yang benar-benar selesai")
 
     target_cell = calendar_cell(root, another_weekday.day)
@@ -369,6 +372,113 @@ def scenario_focus_outcomes_keep_task_identity() -> None:
           "task yang selesai dari Focus tidak direkomendasikan KALEM lagi")
 
 
+def scenario_weekly_schedule_is_not_recommended_and_ui_is_compact() -> None:
+    print("\n=== S-T: Jadwal mingguan terpisah dan Tracker tetap ringkas ===")
+    today = clock.today()
+    routine = storage.add_task(
+        "Kelas rutin mingguan",
+        today.isoformat(),
+        repeat="weekly",
+        deadline_time="09:00",
+        menit_est=90,
+        steps=[{"text": "Masuk kelas", "done": False}],
+    )
+    real_task = add_task("Kirim tugas kelas", today, deadline=today)
+    period_tasks = storage.tasks_for(today.isoformat())
+
+    ranked = kalem_engine.rank_actionable_tasks(period_tasks)
+    check(
+        [task["id"] for task in ranked] == [real_task["id"]],
+        "jadwal mingguan tidak masuk ranking, sedangkan tugas nyata tetap masuk",
+    )
+    check(
+        kalem_engine.pick_next_action([routine]) is None,
+        "jadwal mingguan saja tidak dibuat menjadi next action KALEM",
+    )
+    from models import fitur as feature_builder
+
+    _, day = kalem_engine.snapshot()
+    features = feature_builder.bangun_fitur(day=day)
+    check(
+        features["n_belum_selesai"] == 1
+        and features["beban_menit"] == real_task["menit_est"],
+        "jadwal mingguan tidak menggelembungkan jumlah dan beban tugas model",
+    )
+    weekly_task = storage.add_task(
+        "Tugas rumah mingguan",
+        today.isoformat(),
+        repeat="weekly",
+        item_type="task",
+        menit_est=25,
+        steps=[{"text": "Mulai tugas rumah", "done": False}],
+    )
+    check(
+        any(
+            task["id"] == weekly_task["id"]
+            for task in kalem_engine.rank_actionable_tasks(
+                storage.tasks_for(today.isoformat())
+            )
+        ),
+        "tugas mingguan sungguhan tetap boleh masuk rekomendasi",
+    )
+
+    page = FakePage()
+    root = tracker.build(page, lambda route: None)
+    shown = texts(root)
+    check(
+        routine["title"] in shown
+        and any(value.lower() == "jadwal rutin (1)" for value in shown),
+        "jadwal mingguan tetap terlihat di kelompok Jadwal rutin Tracker",
+    )
+    check(
+        any("tidak masuk saran KALEM" in value for value in shown),
+        "Tracker menjelaskan jadwal rutin tidak memengaruhi rekomendasi",
+    )
+    collapsed = [
+        control
+        for control in walk(root)
+        if isinstance(control, ft.ExpansionTile) and control.expanded is False
+    ]
+    check(
+        len(collapsed) >= 4,
+        "detail tugas, Focus History, dan sebaran tugas ringkas secara default",
+    )
+
+
+def scenario_recurring_task_has_end_date() -> None:
+    print("\n=== U: Tugas berulang berhenti pada tanggal yang dipilih ===")
+    today = clock.today()
+    repeat_end = today + timedelta(days=14)
+    recurring = storage.add_task(
+        "Jadwal dengan batas akhir",
+        today.isoformat(),
+        repeat="weekly",
+        repeat_end_date=repeat_end.isoformat(),
+        steps=[{"text": "Datang", "done": False}],
+    )
+    for offset in (0, 7, 14):
+        occurrence = storage.tasks_for((today + timedelta(days=offset)).isoformat())
+        check(
+            any(task["id"] == recurring["id"] for task in occurrence),
+            f"occurrence hari ke-{offset} masih dibuat sampai batas inklusif",
+        )
+    after_end = storage.tasks_for((today + timedelta(days=21)).isoformat())
+    check(
+        not any(task["id"] == recurring["id"] for task in after_end),
+        "occurrence setelah tanggal akhir tidak dibuat",
+    )
+    check(
+        storage.get_tasks()[0]["repeat_end_date"] == repeat_end.isoformat(),
+        "tanggal akhir tersimpan pada parent task",
+    )
+
+    root = tracker.build(FakePage(), lambda route: None)
+    check(
+        any(f"sampai {repeat_end.isoformat()}" in value for value in texts(root)),
+        "batas akhir terlihat pada ringkasan item Tracker",
+    )
+
+
 def main() -> int:
     original = storage.DATA_DIR, storage.DATA_FILE, storage.BACKUP_FILE
     with tempfile.TemporaryDirectory(prefix="focusbuddy_tracker_revision_") as directory:
@@ -382,6 +492,8 @@ def main() -> int:
                 scenario_decomposition_identity_and_persistence,
                 scenario_step_crud_and_done,
                 scenario_focus_outcomes_keep_task_identity,
+                scenario_weekly_schedule_is_not_recommended_and_ui_is_compact,
+                scenario_recurring_task_has_end_date,
             ):
                 storage.reset_all_data()
                 focus_session.stop()

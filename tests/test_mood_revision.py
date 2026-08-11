@@ -125,22 +125,22 @@ def scenario_checkin_upsert_and_recompute() -> None:
     root = mood.build(page, routes.append)
     check("Simpan check-in" in texts(root), "form awal memakai tombol Simpan check-in")
     check("Sudah check-in" not in texts(root), "status selesai belum muncul sebelum simpan")
+    check(not any("paling ngaruh hari ini" in value.lower() for value in texts(root)),
+          "pertanyaan faktor yang paling berpengaruh tidak tampil di Check-in")
 
     energy_one = clickable(root, "1")
-    kuliah = clickable(root, "Kuliah")
     save = clickable(root, "Simpan check-in")
-    check(energy_one is not None and kuliah is not None and save is not None,
-          "energi, quick tag, dan tombol simpan tersedia")
+    check(energy_one is not None and save is not None,
+          "energi dan tombol simpan tersedia")
     if energy_one is not None:
         energy_one.on_click(None)
-    if kuliah is not None:
-        kuliah.on_click(None)
     if save is not None:
         save.on_click(None)
 
     first = storage.today_mood() or {}
     check(first.get("energy") == 1, "energi check-in tersimpan")
-    check(first.get("quick_tags") == ["kuliah"], "quick tag tersimpan di mood hari ini")
+    check(first.get("quick_tags") == [],
+          "field quick tag lama tetap kompatibel tanpa input di Check-in")
     check(sum(log.get("date") == clock.today().isoformat()
               for log in storage.get_mood_logs()) == 1,
           "hanya ada satu record mood untuk hari ini")
@@ -153,14 +153,11 @@ def scenario_checkin_upsert_and_recompute() -> None:
     if edit is not None:
         edit.on_click(None)
     energy_five = clickable(root, "5")
-    rest_tag = clickable(root, "Istirahat")
     update = clickable(root, "Simpan perubahan")
-    check(energy_five is not None and rest_tag is not None and update is not None,
-          "mode edit memuat ulang semua input hari ini")
+    check(energy_five is not None and update is not None,
+          "mode edit memuat ulang input Check-in hari ini")
     if energy_five is not None:
         energy_five.on_click(None)
-    if rest_tag is not None:
-        rest_tag.on_click(None)
     if update is not None:
         update.on_click(None)
 
@@ -168,8 +165,8 @@ def scenario_checkin_upsert_and_recompute() -> None:
     old = next((log for log in storage.get_mood_logs() if log.get("date") == yesterday), {})
     check(updated.get("energy") == 5 and storage.today_energy() == 5,
           "edit menyinkronkan mood log dan energi aktif KALEM")
-    check(set(updated.get("quick_tags", [])) == {"kuliah", "istirahat"},
-          "edit mempertahankan tag lama dan menyimpan pilihan baru")
+    check(updated.get("quick_tags") == [],
+          "edit tidak membuat quick tag baru dari Check-in")
     check(sum(log.get("date") == clock.today().isoformat()
               for log in storage.get_mood_logs()) == 1,
           "edit melakukan upsert, bukan menambah record kedua")

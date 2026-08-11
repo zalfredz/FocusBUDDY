@@ -18,6 +18,7 @@ MONTH_NAMES = [
     "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ]
 DAY_INITIALS = ["S", "S", "R", "K", "J", "S", "M"]
+DAY_NAMES = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 
 QUADRANT_META = {
     "lakukan": ("Lakukan sekarang", theme.DANGER),
@@ -43,7 +44,7 @@ def _history_stat(value: str, label: str) -> ft.Control:
             [
                 ft.Text(
                     value,
-                    size=18,
+                    size=16,
                     weight=ft.FontWeight.BOLD,
                     color=theme.ON_BACKGROUND,
                 ),
@@ -52,7 +53,7 @@ def _history_stat(value: str, label: str) -> ft.Control:
             spacing=1,
         ),
         expand=True,
-        padding=10,
+        padding=8,
         bgcolor=theme.BACKGROUND,
         border_radius=10,
     )
@@ -289,33 +290,55 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
     def render_eisenhower():
-        tasks = tasks_in_filter()
+        tasks = [
+            task
+            for task in tasks_in_filter()
+            if storage.is_recommendable_task(task)
+        ]
         pending = [task for task in tasks if not storage.task_is_done(task)]
         done = [task for task in tasks if storage.task_is_done(task)]
         buckets = {key: [] for key in QUADRANT_META}
         for task in pending:
             buckets[storage.quadrant_of(task)].append(task)
-        eisenhower_column.controls = [
-            ui_helpers.section_header("Sebaran tugas"),
-            ft.Row([quadrant_chip(k, len(buckets[k])) for k in ["lakukan", "jadwalkan"]], spacing=10),
-            ft.Row([quadrant_chip(k, len(buckets[k])) for k in ["delegasikan", "nanti"]], spacing=10),
-            ft.Container(
-                content=ft.Row(
-                    [
-                        ft.Icon(ft.Icons.CHECK_CIRCLE, color=theme.SUCCESS, size=18),
-                        ft.Text("DONE", size=10, weight=ft.FontWeight.BOLD,
-                                color=theme.MUTED),
-                        ft.Text(str(len(done)), size=20, weight=ft.FontWeight.BOLD,
-                                color=theme.SUCCESS),
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
+        details = ft.Column(
+            [
+                ft.Row(
+                    [quadrant_chip(k, len(buckets[k])) for k in ["lakukan", "jadwalkan"]],
                     spacing=8,
                 ),
-                padding=ft.Padding.symmetric(vertical=10, horizontal=12),
-                bgcolor=theme.SURFACE,
-                border=ft.Border.all(1, theme.BORDER),
-                border_radius=14,
-            ),
+                ft.Row(
+                    [quadrant_chip(k, len(buckets[k])) for k in ["delegasikan", "nanti"]],
+                    spacing=8,
+                ),
+            ],
+            spacing=8,
+        )
+        eisenhower_column.controls = [
+            ui_helpers.card(
+                ft.ExpansionTile(
+                    title=ft.Text(
+                        "SEBARAN TUGAS",
+                        size=12,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                    subtitle=ft.Text(
+                        f"{len(pending)} aktif · {len(done)} selesai",
+                        size=10.5,
+                        color=theme.MUTED,
+                    ),
+                    controls=[details],
+                    controls_padding=ft.Padding.only(left=12, right=12, bottom=12),
+                    tile_padding=ft.Padding.symmetric(vertical=2, horizontal=12),
+                    expanded=False,
+                    dense=True,
+                    maintain_state=True,
+                    text_color=theme.ON_BACKGROUND,
+                    collapsed_text_color=theme.ON_BACKGROUND,
+                    icon_color=theme.PRIMARY,
+                    collapsed_icon_color=theme.MUTED,
+                ),
+                padding=0,
+            )
         ]
 
 
@@ -325,43 +348,59 @@ def build(page: ft.Page, navigate) -> ft.Control:
             timeline_column.controls = []
             return
 
-        bars = [
-            ft.Container(
-                expand=max(int(t.get("menit_est", 0) or 0), 5),
-                height=10,
-                bgcolor=QUADRANT_META[storage.quadrant_of(t)][1],
-                border_radius=5,
-                tooltip=t["title"],
-            )
-            for t in tasks
-        ]
+        visible_tasks = tasks[:3]
         labels = [
             ft.Row(
                 [
                     ft.Container(
-                        width=8,
-                        height=8,
-                        bgcolor=QUADRANT_META[storage.quadrant_of(t)][1],
-                        border_radius=4,
-                    ),
-                    ft.Text(t["title"], size=11.5, color=theme.ON_BACKGROUND, expand=True),
-                    ft.Text(
-                        (
-                            f"{(t.get('deadline') or 'Tanpa deadline')}"
-                            + (f" {t.get('deadline_time')}" if t.get("deadline_time") else "")
+                        content=ft.Text(
+                            str(index),
+                            size=10.5,
+                            weight=ft.FontWeight.BOLD,
+                            color="#FFFFFF",
+                            text_align=ft.TextAlign.CENTER,
                         ),
+                        width=24,
+                        height=24,
+                        bgcolor=QUADRANT_META[storage.quadrant_of(task)][1],
+                        border_radius=12,
+                        alignment=ft.Alignment.CENTER,
+                    ),
+                    ft.Text(
+                        task["title"],
+                        size=11.5,
+                        weight=ft.FontWeight.BOLD,
+                        color=theme.ON_BACKGROUND,
+                        expand=True,
+                    ),
+                    ft.Text(
+                        f"~{task.get('menit_est', 0)} mnt"
+                        if task.get("menit_est")
+                        else "",
                         size=10,
                         color=theme.MUTED,
                     ),
                 ],
                 spacing=8,
             )
-            for t in tasks
+            for index, task in enumerate(visible_tasks, start=1)
         ]
+        if len(tasks) > len(visible_tasks):
+            labels.append(
+                ft.Text(
+                    f"+{len(tasks) - len(visible_tasks)} tugas lain tetap ada di daftar.",
+                    size=10.5,
+                    color=theme.MUTED,
+                )
+            )
         timeline_column.controls = [
-            ui_helpers.section_header("Urutan yang disaranin"),
-            ft.Row(bars, spacing=4),
-            *labels,
+            ui_helpers.card(
+                ft.Column(
+                    [ui_helpers.section_header("Urutan yang disaranin"), *labels],
+                    spacing=8,
+                ),
+                padding=12,
+            )
         ]
 
 
@@ -561,6 +600,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         label, color = QUADRANT_META[storage.quadrant_of(task)]
         steps = task.get("steps", [])
         done_count = sum(1 for s in steps if s.get("done"))
+        is_routine = not storage.is_recommendable_task(task)
 
         step_controls: list[ft.Control] = [
             ft.Row(
@@ -594,37 +634,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
             for i, step in enumerate(steps)
         ]
 
-        head: list[ft.Control] = [
-            ft.Row(
-                [
-                    ft.Column(
-                        [
-                            ft.Text(task["title"], size=14, weight=ft.FontWeight.BOLD,
-                                    color=theme.ON_BACKGROUND),
-                            ft.Text(
-                                f"{label} · {DIFFICULTY_LABELS.get(task.get('difficulty_est', 2), '')}"
-                                + {"daily": " · tiap hari", "weekly": " · tiap minggu", "monthly": " · tiap bulan"}.get(task.get("repeat", "none"), "")
-                                + (f" · {done_count}/{len(steps)} langkah" if len(steps) > 1 else ""),
-                                size=10,
-                                color=color,
-                            ),
-                        ],
-                        spacing=2,
-                        expand=True,
-                    ),
-                    ft.IconButton(
-                        icon=ft.Icons.DELETE_OUTLINE,
-                        icon_color=theme.MUTED,
-                        icon_size=18,
-                        tooltip="Hapus tugas",
-                        on_click=lambda e, t=task: confirm_remove(t),
-                    ),
-                ],
-            )
-        ]
+        detail_controls: list[ft.Control] = []
         scheduled = task.get("_occurrence_date") or task.get("scheduled_date")
-        if scheduled:
-            head.append(
+        if scheduled and not is_routine:
+            detail_controls.append(
                 ft.Row(
                     [
                         ft.Icon(ft.Icons.CALENDAR_TODAY, size=14, color=theme.MUTED),
@@ -634,8 +647,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 )
             )
         deadline = storage.deadline_at(task)
-        if deadline is not None:
-            head.append(
+        if deadline is not None and not is_routine:
+            detail_controls.append(
                 ft.Row(
                     [
                         ft.Icon(
@@ -653,7 +666,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 )
             )
         if len(steps) > 1:
-            head.append(
+            detail_controls.append(
                 ft.ProgressBar(
                     value=done_count / len(steps),
                     color=theme.PRIMARY,
@@ -662,18 +675,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 )
             )
 
-        head.append(
+        detail_controls.extend(step_controls)
+        detail_controls.append(
             ft.Row(
                 [
-                    ft.Icon(ft.Icons.SCHEDULE, size=14, color=theme.SECONDARY),
-                    ft.Text(
-                        f"~{task['menit_est']} menit"
-                        if task.get("menit_est")
-                        else "Estimasi mengikuti kondisi sesi",
-                        size=11,
-                        color=theme.MUTED,
-                        expand=True,
-                    ),
                     ft.TextButton(
                         content=ft.Text("Mulai", size=11.5, weight=ft.FontWeight.BOLD),
                         icon=ft.Icons.PLAY_ARROW,
@@ -684,12 +689,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         icon=ft.Icons.CHECK,
                         on_click=lambda e, t=task: complete_task(t),
                     ),
+                    ft.IconButton(
+                        icon=ft.Icons.DELETE_OUTLINE,
+                        icon_color=theme.MUTED,
+                        icon_size=17,
+                        tooltip="Hapus tugas",
+                        on_click=lambda e, t=task: confirm_remove(t),
+                    ),
                 ],
-                spacing=4,
+                spacing=2,
+                alignment=ft.MainAxisAlignment.END,
             )
         )
 
-        step_controls.append(
+        detail_controls.append(
             ft.TextButton(
                 content=ft.Text("+ Tambah langkah", size=11.5, color=theme.PRIMARY),
                 icon=ft.Icons.ADD,
@@ -697,7 +710,72 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
-        return ui_helpers.card(ft.Column([*head, *step_controls], spacing=6), padding=14)
+        repeat_label = {
+            "daily": "Tiap hari",
+            "weekly": "Jadwal mingguan",
+            "monthly": "Tiap bulan",
+        }.get(task.get("repeat", "none"), "")
+        if is_routine:
+            routine_meta = [
+                {
+                    "daily": "Jadwal harian",
+                    "weekly": "Jadwal mingguan",
+                    "monthly": "Jadwal bulanan",
+                }.get(task.get("repeat", "none"), "Jadwal rutin")
+            ]
+            try:
+                routine_meta.append(DAY_NAMES[date.fromisoformat(scheduled).weekday()])
+            except (TypeError, ValueError):
+                pass
+            if task.get("deadline_time"):
+                routine_meta.append(task["deadline_time"])
+            if task.get("repeat_end_date"):
+                routine_meta.append(f"sampai {task['repeat_end_date']}")
+            routine_meta.append("tidak masuk saran KALEM")
+            subtitle = " · ".join(routine_meta)
+        else:
+            meta = [label, DIFFICULTY_LABELS.get(task.get("difficulty_est", 2), "")]
+            if repeat_label:
+                meta.append(repeat_label)
+            if task.get("repeat_end_date"):
+                meta.append(f"sampai {task['repeat_end_date']}")
+            if task.get("menit_est"):
+                meta.append(f"~{task['menit_est']} menit")
+            if len(steps) > 1:
+                meta.append(f"{done_count}/{len(steps)} langkah")
+            subtitle = " · ".join(value for value in meta if value)
+
+        return ui_helpers.card(
+            ft.ExpansionTile(
+                leading=ft.Icon(
+                    ft.Icons.EVENT_REPEAT if is_routine else ft.Icons.CHECKLIST,
+                    size=19,
+                    color=theme.SECONDARY if is_routine else color,
+                ),
+                title=ft.Text(
+                    task["title"],
+                    size=13.5,
+                    weight=ft.FontWeight.BOLD,
+                    color=theme.ON_BACKGROUND,
+                ),
+                subtitle=ft.Text(
+                    subtitle,
+                    size=10,
+                    color=theme.SECONDARY if is_routine else color,
+                ),
+                controls=[ft.Column(detail_controls, spacing=5)],
+                controls_padding=ft.Padding.only(left=12, right=12, bottom=10),
+                tile_padding=ft.Padding.symmetric(vertical=2, horizontal=12),
+                expanded=False,
+                dense=True,
+                maintain_state=True,
+                text_color=theme.ON_BACKGROUND,
+                collapsed_text_color=theme.ON_BACKGROUND,
+                icon_color=theme.PRIMARY,
+                collapsed_icon_color=theme.MUTED,
+            ),
+            padding=0,
+        )
 
     def start_task_focus(task: dict):
         pending_index, pending = next(
@@ -781,7 +859,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         minute_total = f"{total_minutes:.1f}".rstrip("0").rstrip(".")
         history_children: list[ft.Control] = [
-            ui_helpers.section_header("Focus History"),
             ft.Row(
                 [
                     _history_stat(str(len(records)), "Sesi aktual"),
@@ -806,7 +883,29 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 )
             )
         focus_history_holder.content = ui_helpers.card(
-            ft.Column(history_children, spacing=8), padding=14
+            ft.ExpansionTile(
+                title=ft.Text(
+                    "FOCUS HISTORY",
+                    size=12,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                subtitle=ft.Text(
+                    f"{len(records)} sesi · {minute_total} menit aktual hari ini",
+                    size=10.5,
+                    color=theme.MUTED,
+                ),
+                controls=[ft.Column(history_children, spacing=8)],
+                controls_padding=ft.Padding.only(left=12, right=12, bottom=12),
+                tile_padding=ft.Padding.symmetric(vertical=2, horizontal=12),
+                expanded=False,
+                dense=True,
+                maintain_state=True,
+                text_color=theme.ON_BACKGROUND,
+                collapsed_text_color=theme.ON_BACKGROUND,
+                icon_color=theme.PRIMARY,
+                collapsed_icon_color=theme.MUTED,
+            ),
+            padding=0,
         )
 
     def render_day_tasks():
@@ -821,10 +920,37 @@ def build(page: ft.Page, navigate) -> ft.Control:
             return
 
         open_tasks = kalem_engine.rank_actionable_tasks(tasks)
-        done_tasks = [t for t in tasks if storage.task_is_done(t)]
+        routine_by_id: dict[str, dict] = {}
+        for task in tasks:
+            if (
+                not storage.is_recommendable_task(task)
+                and not storage.task_is_done(task)
+            ):
+                routine_by_id.setdefault(task.get("id", ""), task)
+        routine_tasks = sorted(
+            routine_by_id.values(),
+            key=lambda task: (task.get("deadline_time", ""), task.get("title", "")),
+        )
+        done_tasks: list[dict] = []
+        seen_done_routines: set[str] = set()
+        for task in tasks:
+            if not storage.task_is_done(task):
+                continue
+            if not storage.is_recommendable_task(task):
+                task_id = task.get("id", "")
+                if task_id in seen_done_routines:
+                    continue
+                seen_done_routines.add(task_id)
+            done_tasks.append(task)
         done_tasks.sort(key=lambda task: (task.get("deadline", ""), task.get("title", "")))
 
-        items: list[ft.Control] = [open_card(t) for t in open_tasks]
+        items: list[ft.Control] = []
+        if open_tasks:
+            items.append(ui_helpers.section_header(f"Tugas aktif ({len(open_tasks)})"))
+            items.extend(open_card(task) for task in open_tasks)
+        if routine_tasks:
+            items.append(ui_helpers.section_header(f"Jadwal rutin ({len(routine_tasks)})"))
+            items.extend(open_card(task) for task in routine_tasks)
         if done_tasks:
             items.append(
                 ui_helpers.section_header(f"Udah kelar ({len(done_tasks)})")
@@ -894,6 +1020,86 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 wrap=True,
             ),
         )
+        routine_check = ft.Checkbox(
+            label="Jadwal rutin saja (tidak masuk saran KALEM)",
+            value=False,
+            visible=False,
+        )
+        repeat_end_state = {"value": ""}
+        repeat_end_label = ft.Text(
+            "Tidak ada tanggal akhir",
+            size=10.5,
+            color=theme.MUTED,
+            expand=True,
+        )
+        repeat_end_error = ft.Text("", size=10.5, color=theme.DANGER, visible=False)
+
+        def clear_repeat_end(ev=None):
+            repeat_end_state["value"] = ""
+            repeat_end_label.value = "Tidak ada tanggal akhir"
+            repeat_end_clear.visible = False
+            repeat_end_error.visible = False
+            page.update()
+
+        def choose_repeat_end(ev):
+            picked_date = repeat_end_picker.value
+            if picked_date is None:
+                return
+            repeat_end_state["value"] = picked_date.isoformat()[:10]
+            repeat_end_label.value = f"Berakhir {repeat_end_state['value']}"
+            repeat_end_clear.visible = True
+            repeat_end_error.visible = False
+            page.update()
+
+        repeat_start_date = date.fromisoformat(state["selected"])
+        repeat_end_picker = ft.DatePicker(
+            first_date=repeat_start_date,
+            current_date=repeat_start_date,
+            last_date=date(repeat_start_date.year + 10, 12, 31),
+            help_text="Pilih tanggal berakhir",
+            cancel_text="Batal",
+            confirm_text="Pilih",
+            on_change=choose_repeat_end,
+        )
+        repeat_end_clear = ft.IconButton(
+            icon=ft.Icons.CLOSE,
+            icon_size=16,
+            icon_color=theme.MUTED,
+            tooltip="Hapus tanggal akhir",
+            visible=False,
+            on_click=clear_repeat_end,
+        )
+        repeat_end_holder = ft.Column(
+            [
+                ft.Text("Berakhir kapan? (opsional)", size=11, color=theme.MUTED),
+                ft.Row(
+                    [
+                        ft.OutlinedButton(
+                            content=ft.Text("Pilih tanggal akhir", size=11.5),
+                            icon=ft.Icons.EVENT,
+                            on_click=lambda ev: page.show_dialog(repeat_end_picker),
+                        ),
+                        repeat_end_label,
+                        repeat_end_clear,
+                    ],
+                    spacing=6,
+                ),
+                repeat_end_error,
+            ],
+            spacing=4,
+            visible=False,
+        )
+
+        def change_repeat(ev):
+            repeat = repeat_group.value or "none"
+            routine_check.visible = repeat != "none"
+            repeat_end_holder.visible = repeat != "none"
+            routine_check.value = repeat == "weekly"
+            if repeat == "none":
+                clear_repeat_end()
+            page.update()
+
+        repeat_group.on_change = change_repeat
 
         picked = {"kategori": "", "jumlah": 0.0, "menit": 0}
         kategori_holder = ft.Container()
@@ -1028,6 +1234,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 page.update()
                 return
             repeat = repeat_group.value or "none"
+            repeat_end = repeat_end_state["value"] if repeat != "none" else ""
+            if repeat_end and date.fromisoformat(repeat_end) < date.fromisoformat(state["selected"]):
+                repeat_end_error.value = "Tanggal akhir tidak boleh sebelum tanggal mulai."
+                repeat_end_error.visible = True
+                page.update()
+                return
             deadline = "" if no_deadline.value else state["selected"]
             storage.add_task(
                 name,
@@ -1042,6 +1254,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 description=(description_field.value or "").strip(),
                 repeat=repeat,
                 scheduled_date=state["selected"],
+                item_type="schedule" if routine_check.value else "task",
+                repeat_end_date=repeat_end,
             )
             page.pop_dialog()
             refresh_all()
@@ -1059,6 +1273,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         time_field,
                         ft.Text("Ulangi tugas", size=11, color=theme.MUTED),
                         repeat_group,
+                        routine_check,
+                        repeat_end_holder,
                         important_check,
                         ft.Text("Seberat apa buat dimulai?", size=11, color=theme.MUTED),
                         difficulty,
@@ -1080,7 +1296,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
     def open_split_picker(e):
-        tasks = [t for t in tasks_in_filter() if not storage.task_is_done(t)]
+        tasks = [
+            task
+            for task in tasks_in_filter()
+            if storage.is_recommendable_task(task)
+            and not storage.task_is_done(task)
+        ]
         if not tasks:
             plan_state.update(
                 saved_count=0, source="", reason="", quota_msg="", n_lokal=0, n_ai=0
@@ -1282,15 +1503,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ],
                 spacing=10,
             ),
-            ui_helpers.subtitle(
-                "Pilih tugas pada periode aktif. Hasil pecahan tersimpan di card tugas."
-            ),
             next_action_holder,
-            focus_history_holder,
-            eisenhower_column,
             timeline_column,
             plan_column,
             day_tasks_column,
+            focus_history_holder,
+            eisenhower_column,
         ],
         spacing=14,
         scroll=ft.ScrollMode.AUTO,

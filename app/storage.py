@@ -426,6 +426,14 @@ def load_state() -> dict[str, Any]:
         if "scheduled_date" not in task:
             task["scheduled_date"] = task.get("deadline", "")
             changed = True
+        if task.get("item_type") not in {"task", "schedule"}:
+            task["item_type"] = (
+                "schedule" if task.get("repeat", "none") == "weekly" else "task"
+            )
+            changed = True
+        if "repeat_end_date" not in task:
+            task["repeat_end_date"] = ""
+            changed = True
 
     decision_defaults = {
         "outcome": "",
@@ -824,8 +832,23 @@ def add_task(
     repeat: str = "none",
     custom_steps: Optional[list[str]] = None,
     scheduled_date: Optional[str] = None,
+    item_type: Optional[str] = None,
+    repeat_end_date: str = "",
 ) -> dict:
     state = load_state()
+    repeat = repeat if repeat in {"none", "daily", "weekly", "monthly"} else "none"
+    if item_type not in {"task", "schedule"}:
+        item_type = "schedule" if repeat == "weekly" else "task"
+    start_value = scheduled_date if scheduled_date is not None else deadline
+    if repeat == "none":
+        repeat_end_date = ""
+    else:
+        try:
+            start_date = date.fromisoformat(start_value or clock.today().isoformat())
+            end_date = date.fromisoformat((repeat_end_date or "").strip())
+            repeat_end_date = end_date.isoformat() if end_date >= start_date else ""
+        except (TypeError, ValueError):
+            repeat_end_date = ""
     task = {
         "id": str(uuid.uuid4()),
         "title": title,
@@ -843,7 +866,9 @@ def add_task(
         "menit_est": int(menit_est),
         "description": description,
         "custom_steps": [str(step).strip() for step in (custom_steps or []) if str(step).strip()],
-        "repeat": repeat if repeat in {"none", "daily", "weekly", "monthly"} else "none",
+        "repeat": repeat,
+        "repeat_end_date": repeat_end_date,
+        "item_type": item_type,
         "occurrences": {},
         "steps": [
             {**step, "id": step.get("id") or str(uuid.uuid4())}
@@ -876,6 +901,14 @@ def tasks_for(day: str) -> list[dict]:
         except (KeyError, TypeError, ValueError):
             continue
         repeat = task.get("repeat", "none")
+        repeat_end = None
+        if repeat != "none" and (task.get("repeat_end_date") or "").strip():
+            try:
+                repeat_end = date.fromisoformat(task["repeat_end_date"])
+            except (TypeError, ValueError):
+                repeat_end = None
+        if repeat_end is not None and target > repeat_end:
+            continue
         cocok = (
             target == mulai
             or (repeat == "daily" and target >= mulai)
@@ -1181,6 +1214,14 @@ def task_step_id(
     if 0 <= step_index < len(steps):
         return str(steps[step_index].get("id", ""))
     return ""
+
+
+def is_recommendable_task(task: dict) -> bool:
+    """Jadwal rutin tetap tampil, tetapi tidak dianggap tugas oleh KALEM."""
+    item_type = task.get("item_type")
+    if item_type not in {"task", "schedule"}:
+        item_type = "schedule" if task.get("repeat", "none") == "weekly" else "task"
+    return item_type == "task"
 
 
 def task_is_done(task: dict) -> bool:
