@@ -223,7 +223,7 @@ diem-diem jatuh ke rule-based dan keliatan kayak "API-nya belum nyala".
 ## Menjalankan
 
 ```bash
-flet run --web app/main.py      # browser -- paling gampang buat demo
+flet run --web --host localhost app/main.py  # browser -- paling gampang buat demo
 flet run app/main.py            # jendela desktop
 flet run --android app/main.py  # HP, lewat app Flet + scan QR
 flet run --ios app/main.py # ios

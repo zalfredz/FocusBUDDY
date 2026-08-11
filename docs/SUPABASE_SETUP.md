@@ -75,7 +75,7 @@ menjalankan Flet Web pada `0.0.0.0`.
 Untuk uji lokal tanpa deploy:
 
 ```bash
-PYTHONPATH="$PWD" ~/.venvs/focusbuddy/bin/flet run --web --port 8550 app/main.py
+PYTHONPATH="$PWD" ~/.venvs/focusbuddy/bin/flet run --web --host localhost --port 8550 app/main.py
 ```
 
 URL lokal hanya untuk laptop sendiri. Link yang dapat dibuka peserta dari

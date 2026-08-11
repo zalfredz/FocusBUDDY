@@ -1,13 +1,16 @@
 """Entry point aplikasi Flet FocusBuddy."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from pathlib import Path
+from typing import Any
+from urllib.parse import urlparse
 
 import flet as ft
 
-from app import focus_session, storage, theme, ui_helpers
+from app import config, focus_session, storage, theme, ui_helpers
 from app.cloud import CloudUnavailable, FocusBuddyCloud, oauth_code_from_url
 from app.views import (
     diary,
@@ -51,6 +54,122 @@ FOKUS_BOLEH = {"home", "reset"}
 
 NAV_INDEX = {name: i for i, (name, _, _) in enumerate(NAV_ROUTES)}
 _log = logging.getLogger(__name__)
+
+
+async def _read_preference_string(
+    preferences: Any,
+    key: str,
+    *,
+    attempts: int = 8,
+    delay_seconds: float = 0.15,
+) -> str:
+    for attempt in range(max(1, attempts)):
+        value = await preferences.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+        if attempt + 1 < attempts:
+            await asyncio.sleep(delay_seconds)
+    return ""
+
+
+async def _restore_saved_cloud_session(
+    cloud: FocusBuddyCloud,
+    preferences: Any,
+    token_key: str,
+) -> bool:
+    saved = await preferences.get(token_key)
+    if not isinstance(saved, str) or not saved:
+        return False
+    try:
+        tokens = json.loads(saved)
+        access_token = tokens["access_token"]
+        refresh_token = tokens["refresh_token"]
+        if not isinstance(access_token, str) or not isinstance(refresh_token, str):
+            return False
+        cloud.restore_session(access_token, refresh_token)
+        return cloud.user() is not None
+    except Exception:
+        return False
+
+
+async def _save_cloud_session(
+    cloud: FocusBuddyCloud,
+    preferences: Any,
+    token_key: str,
+    *,
+    attempts: int = 4,
+    delay_seconds: float = 0.15,
+) -> bool:
+    session = cloud.session()
+    if not session:
+        return False
+    payload = json.dumps(
+        {
+            "access_token": session.access_token,
+            "refresh_token": session.refresh_token,
+        }
+    )
+    for attempt in range(max(1, attempts)):
+        try:
+            if await preferences.set(token_key, payload):
+                return True
+        except Exception:
+            pass
+        if attempt + 1 < attempts:
+            await asyncio.sleep(delay_seconds)
+    return False
+
+
+async def _exchange_or_restore_oauth(
+    cloud: FocusBuddyCloud,
+    preferences: Any,
+    code: str,
+    pkce_key: str,
+    token_key: str,
+) -> str:
+    verifier = await _read_preference_string(preferences, pkce_key)
+    if verifier:
+        cloud.restore_pkce_verifier(verifier)
+        try:
+            cloud.exchange_code(code, verifier)
+            return "exchange"
+        except Exception:
+            if await _restore_saved_cloud_session(cloud, preferences, token_key):
+                return "session"
+            raise
+    if await _restore_saved_cloud_session(cloud, preferences, token_key):
+        return "session"
+    raise RuntimeError("PKCE verifier tidak tersedia saat callback")
+
+
+def _oauth_candidates_from_page(page: ft.Page, raw_route: str = "") -> tuple[Any, ...]:
+    candidates: list[Any] = []
+    try:
+        page.query()
+        candidates.append(page.query.to_dict)
+    except Exception:
+        pass
+    candidates.extend((raw_route, page.route, page.url))
+    return tuple(candidates)
+
+
+def _canonical_local_login_url(page_url: str, redirect_uri: str) -> str:
+    def origin(value: str) -> tuple[str, str, int | None]:
+        parsed = urlparse(value or "")
+        scheme = {"ws": "http", "wss": "https"}.get(parsed.scheme, parsed.scheme)
+        return scheme, (parsed.hostname or "").lower(), parsed.port
+
+    current = origin(page_url)
+    target = origin(redirect_uri)
+    loopback = {"localhost", "127.0.0.1", "::1"}
+    if (
+        current[1] in loopback
+        and target[1] in loopback
+        and current != target
+    ):
+        parsed = urlparse(redirect_uri)
+        return f"{target[0]}://{parsed.netloc}/"
+    return ""
 
 
 def _hydrate_user_state(cloud: FocusBuddyCloud, user_id: str) -> str:
@@ -100,19 +219,8 @@ async def main(page: ft.Page) -> None:
     app_started = False
     oauth_processing = False
 
-    async def save_session() -> None:
-        session = cloud.session()
-        if not session:
-            return
-        await preferences.set(
-            token_key,
-            json.dumps(
-                {
-                    "access_token": session.access_token,
-                    "refresh_token": session.refresh_token,
-                }
-            ),
-        )
+    async def save_session() -> bool:
+        return await _save_cloud_session(cloud, preferences, token_key)
 
     async def logout(e=None) -> None:
         nonlocal app_started
@@ -149,13 +257,16 @@ async def main(page: ft.Page) -> None:
         setattr(page, "_focusbuddy_cloud_user", user)
         setattr(page, "_focusbuddy_cloud_status", cloud_status)
         setattr(page, "_focusbuddy_logout", logout)
-        await save_session()
+        if not await save_session():
+            _log.warning("Sesi OAuth aktif tetapi token browser belum tersimpan")
         app_started = True
         build_application()
 
     async def complete_oauth(raw_route: str = "") -> bool:
         nonlocal oauth_processing
-        code, error = oauth_code_from_url(raw_route, page.route, page.url)
+        code, error = oauth_code_from_url(
+            *_oauth_candidates_from_page(page, raw_route)
+        )
         if error:
             show_login(f"Login Google gagal: {error}")
             return True
@@ -166,22 +277,36 @@ async def main(page: ft.Page) -> None:
         oauth_processing = True
         show_login("Menyambungkan akun Google…", busy=True)
         try:
-            verifier = await preferences.get(pkce_key)
-            if isinstance(verifier, str):
-                cloud.restore_pkce_verifier(verifier)
-                cloud.exchange_code(code, verifier)
-            else:
-                raise RuntimeError("PKCE verifier tidak tersedia saat callback")
-            await preferences.remove(pkce_key)
-            await start_app()
-            if page.route != "/":
-                page.go("/")
-        except Exception:
-            _log.exception("OAuth callback FocusBuddy gagal")
-            show_login("Login belum berhasil. Silakan coba lagi.")
+            try:
+                await _exchange_or_restore_oauth(
+                    cloud, preferences, code, pkce_key, token_key
+                )
+                if not await save_session():
+                    _log.warning(
+                        "OAuth berhasil tetapi token browser belum tersimpan"
+                    )
+                try:
+                    await preferences.remove(pkce_key)
+                except Exception:
+                    _log.warning("PKCE browser belum bisa dibersihkan")
+            except Exception:
+                _log.exception("OAuth callback FocusBuddy gagal")
+                show_login("Login belum berhasil. Silakan coba lagi.")
+                return True
+
+            try:
+                await start_app()
+                if page.route != "/":
+                    await page.push_route("/")
+            except Exception:
+                _log.exception("Aplikasi gagal dimuat setelah OAuth berhasil")
+                show_login(
+                    "Akun berhasil tersambung, tapi aplikasi belum selesai dimuat. "
+                    "Coba refresh halaman."
+                )
+            return True
         finally:
             oauth_processing = False
-        return True
 
     async def login_google(e) -> None:
         show_login("Membuka halaman Google…", busy=True)
@@ -216,8 +341,8 @@ async def main(page: ft.Page) -> None:
                             text_align=ft.TextAlign.CENTER,
                         ),
                         ft.Text(
-                            "Masuk supaya tugas, mood, diary, dan progres kamu "
-                            "punya ruang cloud yang terpisah dari pengguna lain.",
+                            "Bantu kamu mengatur tugas, fokus, dan ritme harian "
+                            "dengan lebih ringan.",
                             size=13,
                             color=theme.MUTED,
                             text_align=ft.TextAlign.CENTER,
@@ -226,7 +351,7 @@ async def main(page: ft.Page) -> None:
                             content=ft.Row(
                                 [
                                     ft.Icon(ft.Icons.LOGIN, size=18),
-                                    ft.Text("Lanjut dengan Google"),
+                                    ft.Text("Lanjut dengan google"),
                                 ],
                                 alignment=ft.MainAxisAlignment.CENTER,
                                 tight=True,
@@ -239,13 +364,6 @@ async def main(page: ft.Page) -> None:
                             message,
                             size=11.5,
                             color=theme.DANGER if "gagal" in message.lower() else theme.MUTED,
-                            text_align=ft.TextAlign.CENTER,
-                        ),
-                        ft.Text(
-                            "Dengan lanjut, akun Google dipakai hanya untuk identitas login. "
-                            "Data aplikasi disimpan di Supabase dengan akses per akun.",
-                            size=10.5,
-                            color=theme.MUTED,
                             text_align=ft.TextAlign.CENTER,
                         ),
                     ],
@@ -350,17 +468,50 @@ async def main(page: ft.Page) -> None:
         page.add(ft.Column([content, nav_bar], expand=True, spacing=0))
         navigate("home")
 
-    if not await complete_oauth(page.route):
-        saved = await preferences.get(token_key)
-        if isinstance(saved, str) and saved:
+    callback_code, _ = oauth_code_from_url(
+        *_oauth_candidates_from_page(page, page.route)
+    )
+    canonical_url = _canonical_local_login_url(
+        page.url or "", config.SUPABASE_REDIRECT_URI
+    )
+    if canonical_url and not callback_code:
+        show_login("Menyiapkan login Google…", busy=True)
+        await launcher.launch_url(canonical_url, web_only_window_name="_self")
+        return
+
+    oauth_completed = await complete_oauth(page.route)
+    if not oauth_completed:
+        pending_verifier = await preferences.get(pkce_key)
+        if isinstance(pending_verifier, str) and pending_verifier:
+            show_login("Menyambungkan akun Google…", busy=True)
+            for _ in range(12):
+                await asyncio.sleep(0.15)
+                if app_started:
+                    oauth_completed = True
+                    break
+                if await complete_oauth(page.route):
+                    oauth_completed = True
+                    break
+
+    if not oauth_completed:
+        try:
+            restored = await _restore_saved_cloud_session(
+                cloud, preferences, token_key
+            )
+        except Exception:
+            restored = False
+
+        if restored:
             try:
-                tokens = json.loads(saved)
-                cloud.restore_session(tokens["access_token"], tokens["refresh_token"])
                 await start_app()
             except Exception:
-                await preferences.remove(token_key)
-                show_login("Sesi sebelumnya sudah berakhir. Silakan masuk lagi.")
+                _log.exception("Aplikasi gagal dimuat dari sesi tersimpan")
+                show_login(
+                    "Sesi kamu masih aktif, tapi aplikasi belum selesai dimuat. "
+                    "Coba refresh halaman."
+                )
         else:
+            await preferences.remove(token_key)
             show_login()
 
 

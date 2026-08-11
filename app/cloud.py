@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -28,16 +29,26 @@ class CloudUser:
     name: str = ""
 
 
-def oauth_code_from_url(*candidates: str) -> tuple[str, str]:
+def oauth_code_from_url(*candidates: str | Mapping[str, Any]) -> tuple[str, str]:
+    def first_value(value: Any) -> str:
+        if isinstance(value, (list, tuple)):
+            value = value[0] if value else ""
+        return str(value or "")
+
     for raw in candidates:
         if not raw:
             continue
-        parsed = urlparse(raw)
-        params = parse_qs(parsed.query)
-        code = (params.get("code") or [""])[0]
+        if isinstance(raw, Mapping):
+            params = raw
+        else:
+            parsed = urlparse(raw)
+            params = parse_qs(parsed.query)
+        code = first_value(params.get("code"))
         if code:
             return code, ""
-        error = (params.get("error_description") or params.get("error") or [""])[0]
+        error = first_value(
+            params.get("error_description") or params.get("error")
+        )
         if error:
             return "", error
     return "", ""
