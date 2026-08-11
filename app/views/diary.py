@@ -5,6 +5,7 @@ import flet as ft
 
 from app import buddy, clock, storage, theme, ui_helpers
 from app.core.mood_model import extract_keywords, extract_tags, recurring_tag_prompt
+from app.voice_diary import VoiceDiary
 
 PROMPTS = [
     "Apa satu hal yang paling nempel di kepala kamu hari ini?",
@@ -35,14 +36,26 @@ def build(page: ft.Page, navigate) -> ft.Control:
     )
     saved_note = ft.Text("", size=12, color=theme.PRIMARY)
     entries_column = ft.Column(spacing=10)
+    save_button = ui_helpers.primary_button(
+        "Kirim ke KALEM", None, icon=ft.Icons.SEND, expand=True
+    )
 
-    def render_entries():
+    def set_voice_busy(busy: bool) -> None:
+        save_button.disabled = busy
+
+    voice = VoiceDiary(page, story_field, set_voice_busy)
+    setattr(page, "_focusbuddy_view_cleanup", voice.cleanup)
+
+    def render_entries() -> None:
         entries = storage.diary_entries()
         if not entries:
             entries_column.controls = [
-                ui_helpers.empty_state("Belum ada cerita tersimpan.", ft.Icons.MENU_BOOK)
+                ui_helpers.empty_state(
+                    "Belum ada cerita tersimpan.", ft.Icons.MENU_BOOK
+                )
             ]
             return
+
         items: list[ft.Control] = []
         for entry in entries[:10]:
             tag_chips = [
@@ -61,17 +74,32 @@ def build(page: ft.Page, navigate) -> ft.Control:
                             ft.Row(
                                 [
                                     ft.Image(
-                                        src=buddy.asset_for(entry.get("mood", buddy.DEFAULT_MOOD)),
+                                        src=buddy.asset_for(
+                                            entry.get("mood", buddy.DEFAULT_MOOD)
+                                        ),
                                         width=26,
                                         height=26,
                                         fit=ft.BoxFit.CONTAIN,
                                     ),
-                                    ft.Text(entry["date"], size=11, color=theme.MUTED, expand=True),
+                                    ft.Text(
+                                        entry["date"],
+                                        size=11,
+                                        color=theme.MUTED,
+                                        expand=True,
+                                    ),
                                 ],
                                 spacing=8,
                             ),
-                            ft.Text(entry["diary"], size=12.5, color=theme.ON_BACKGROUND),
-                            ft.Row(tag_chips, spacing=6, wrap=True) if tag_chips else ft.Container(),
+                            ft.Text(
+                                entry["diary"],
+                                size=12.5,
+                                color=theme.ON_BACKGROUND,
+                            ),
+                            (
+                                ft.Row(tag_chips, spacing=6, wrap=True)
+                                if tag_chips
+                                else ft.Container()
+                            ),
                         ],
                         spacing=8,
                     ),
@@ -80,7 +108,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         entries_column.controls = items
 
-    def save_story(e):
+    def save_story(e) -> None:
         text = (story_field.value or "").strip()
         if not text:
             story_field.error = "Ceritanya masih kosong"
@@ -90,9 +118,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         current = storage.today_mood()
         current_mood = current["mood"] if current else mood
-        tags = extract_keywords(text) + [
-            t for t in extract_tags(text) if t not in extract_keywords(text)
-        ]
+        keywords = extract_keywords(text)
+        tags = keywords + [tag for tag in extract_tags(text) if tag not in keywords]
         storage.add_mood_log(
             mood=current_mood,
             score=buddy.score_for(current_mood),
@@ -107,6 +134,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_entries()
         page.update()
 
+    save_button.on_click = save_story
     render_entries()
 
     return ft.Column(
@@ -127,7 +155,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
                         story_field,
-                        ui_helpers.wide_button("Kirim ke Kalem", save_story, icon=ft.Icons.SEND),
+                        voice.control(),
+                        ft.Row([save_button], spacing=0),
                         saved_note,
                     ],
                     spacing=12,
@@ -136,8 +165,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ui_helpers.section_header("Cerita sebelumnya"),
             entries_column,
             ui_helpers.disclaimer(
-                "Cerita kamu disimpan lokal di perangkat ini aja (~/.focusbuddy/data.json), "
-                "nggak dikirim ke server mana pun."
+                "Teks cerita tersimpan di ruang akun kamu. Kalau pakai suara, rekaman "
+                "diproses sementara untuk membuat transkrip dan tidak disimpan oleh "
+                "FocusBuddy."
             ),
         ],
         spacing=14,

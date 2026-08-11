@@ -442,6 +442,11 @@ async def main(page: ft.Page) -> None:
             return True
 
         def navigate(route: str) -> None:
+            cleanup = getattr(page, "_focusbuddy_view_cleanup", None)
+            if callable(cleanup):
+                cleanup()
+                setattr(page, "_focusbuddy_view_cleanup", None)
+
             if route != "onboarding" and not storage.get_profile().get("onboarded"):
                 route = "onboarding"
 

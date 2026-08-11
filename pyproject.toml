@@ -4,8 +4,9 @@ version = "5.0.0"
 description = "FocusBuddy — pendamping micro-planning harian bersama Kalem"
 requires-python = ">=3.13,<3.14"
 dependencies = [
-  "flet==0.86.4",
-  "flet-web==0.86.4",
+  "flet==0.86.0",
+  "flet-web==0.86.0",
+  "flet-audio-recorder==0.86.0",
   "httpx==0.28.1",
   "supabase-auth==2.31.0",
   "pydantic==2.13.4",
@@ -27,6 +28,7 @@ org = "id.focusbuddy"
 bundle_id = "id.focusbuddy.app"
 build_number = 1
 copyright = "Copyright © 2026 FocusBuddy"
+permissions = ["microphone"]
 
 [tool.flet.app]
 path = "."

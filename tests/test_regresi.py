@@ -746,6 +746,72 @@ def tes_regresi_data_dan_tugas_berulang():
     ok(not storage.task_is_done(next_week), "selesai minggu ini tidak menutup minggu depan")
 
 
+def tes_voice_diary():
+    bagian("Diary suara: audio sementara, transkrip bisa direview")
+    import io
+    import wave
+
+    import flet as ft
+
+    from app.core import speech_to_text as stt
+    from app.views import diary
+
+    pcm = b"\x00\x00" * stt.SAMPLE_RATE
+    wav_bytes = stt.pcm16_to_wav(pcm)
+    with wave.open(io.BytesIO(wav_bytes), "rb") as audio:
+        ok(audio.getnchannels() == 1 and audio.getframerate() == 16_000,
+           "PCM dari browser dibungkus jadi WAV mono 16 kHz")
+        ok(audio.getnframes() == stt.SAMPLE_RATE,
+           "durasi frame WAV tidak berubah saat dibungkus")
+
+    original_provider = stt._speech_provider
+    original_gemini = stt._transcribe_gemini
+    captured = {"wav": b""}
+    try:
+        stt._speech_provider = lambda: "gemini"
+
+        def fake_transcribe(wav: bytes):
+            captured["wav"] = wav
+            return "Hari ini aku agak capek.", ""
+
+        stt._transcribe_gemini = fake_transcribe
+        transcript, error = stt.transcribe_pcm16(
+            pcm + b"\x00" * stt.MAX_PCM_BYTES
+        )
+    finally:
+        stt._speech_provider = original_provider
+        stt._transcribe_gemini = original_gemini
+
+    ok(transcript == "Hari ini aku agak capek." and not error,
+       "hasil provider diteruskan sebagai teks Diary, bukan langsung disimpan")
+    with wave.open(io.BytesIO(captured["wav"]), "rb") as audio:
+        ok(audio.getnframes() * stt.SAMPLE_WIDTH == stt.MAX_PCM_BYTES,
+           "audio yang dikirim tetap dipotong pada batas 120 detik")
+
+    short_text, short_error = stt.transcribe_pcm16(b"\x00\x00" * 100)
+    ok(not short_text and short_error == stt.PESAN_TERLALU_PENDEK,
+       "rekaman terlalu pendek ditolak sebelum memanggil provider")
+
+    storage_baru("voice_diary_")
+    page = HalamanPalsu()
+    root = diary.build(page, lambda route: None)
+    mic_button = cari_kontrol(
+        root,
+        lambda control: isinstance(control, ft.IconButton)
+        and control.icon == ft.Icons.MIC_NONE
+        and getattr(control, "on_click", None) is not None,
+    )
+    ok(mic_button is not None,
+       "halaman Diary menyediakan tombol mikrofon kecil tanpa label panjang")
+    ok(stt.MAX_RECORD_SECONDS == 120,
+       "batas satu rekaman Diary suara adalah 120 detik")
+    ok(any(
+        "rekaman" in (getattr(item, "value", "") or "").lower()
+        and "tidak disimpan" in (getattr(item, "value", "") or "").lower()
+        for item in jalan_tree(root)
+    ), "UI menjelaskan rekaman suara tidak disimpan")
+
+
 def tes_langkah_tambahan_dan_ml_kalem():
     bagian("Langkah tambahan user & ML_KALEM")
     from app.core import decomposer_logic as dl
@@ -983,6 +1049,7 @@ def main() -> int:
         tes_label_keputusan,
         tes_ml_kalem_tidak_kontaminasi,
         tes_regresi_data_dan_tugas_berulang,
+        tes_voice_diary,
         tes_langkah_tambahan_dan_ml_kalem,
         tes_fokus_pakai_decision_task,
         tes_fokus_pakai_decision_task_tugas_berulang,

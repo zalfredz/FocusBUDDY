@@ -20,7 +20,7 @@ SUPABASE_PUBLISHABLE_KEY = os.getenv(
 )
 
 FOCUSBUDDY_PUBLIC_URL = os.getenv(
-    "FOCUSBUDDY_PUBLIC_URL", "http://localhost:8550"
+    "FOCUSBUDDY_PUBLIC_URL", "https://focusbuddy-bw0z.onrender.com"
 ).rstrip("/")
 SUPABASE_REDIRECT_URI = os.getenv(
     "SUPABASE_REDIRECT_URI", f"{FOCUSBUDDY_PUBLIC_URL}/auth/callback"
