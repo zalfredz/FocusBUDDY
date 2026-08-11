@@ -354,6 +354,7 @@ def tes_alat_demo_terpusat():
     from app.views import demo_tools, home
 
     storage_baru("demo_tools_")
+    storage.save_profile({"name": "Ari"})
     tujuan: list[str] = []
     root = demo_tools.build(HalamanPalsu(), tujuan.append)
 
@@ -379,6 +380,24 @@ def tes_alat_demo_terpusat():
         pulihkan.on_click(None)
     ok(storage.day_offset() == 0 and storage.hour_offset() == 0,
        "pemulihan mengembalikan tanggal dan jam asli")
+
+    storage.set_last_brief_date()
+    ok(not storage.ready_for_morning_brief(),
+       "kontrol: Morning Brief sudah pernah tampil hari ini")
+    tujuan.clear()
+    root = demo_tools.build(HalamanPalsu(), tujuan.append)
+    ulang = cari_kontrol(
+        root,
+        lambda control: getattr(control, "on_click", None) is not None
+        and punya_teks(control, "Ulang alur pembukaan"),
+    )
+    ok(ulang is not None, "kontrol ulang alur pembukaan tersedia")
+    if ulang is not None:
+        ulang.on_click(None)
+    ok(storage.ready_for_morning_brief(),
+       "ulang alur pembukaan memaksa Morning Brief tampil lagi untuk demo")
+    ok(tujuan == ["home"],
+       "ulang alur pembukaan masuk lewat route Home agar gate Brief dijalankan")
 
     home_root = home.build(HalamanPalsu(), tujuan.append)
     demo_icons = [

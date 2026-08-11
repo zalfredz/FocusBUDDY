@@ -35,7 +35,6 @@ STAGE_BREATHING_DONE = "breathing_478_done"
 STAGE_CHECKIN_NOT_READY = "checkin_belum_bisa"
 STAGE_CHECKIN_IMPROVED = "checkin_sedikit_lebih_baik"
 STAGE_RETRY = "recovery_repeated"
-STAGE_PROFESSIONAL = "professional_help_opened"
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
@@ -149,7 +148,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         else:
             header = ft.Column(
                 [
-                    ui_helpers.section_header("Bantuan profesional"),
+                    ui_helpers.section_header("Ngobrol dengan profesional"),
                     ft.Text(
                         "Kalau rasanya kebanyakan untuk dihadapi sendiri, layanan "
                         "yang sudah tersedia ini bisa kamu hubungi.",
@@ -182,21 +181,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         body.controls = controls
         page.update()
 
-    def show_professional() -> None:
-        log_stage(STAGE_PROFESSIONAL)
-        body.controls = [
-            ui_helpers.page_header(
-                "Ngobrol dengan profesional",
-                on_back=lambda event: show_light_menu(),
-            ),
-            professional_card(prominent=distress.escalate),
-            ui_helpers.disclaimer(
-                "FocusBuddy bukan layanan krisis. Kalau kamu dalam bahaya langsung, "
-                "hubungi layanan darurat atau nomor di atas."
-            ),
-        ]
-        page.update()
-
     def show_light_menu() -> None:
         body.controls = [
             ui_helpers.page_header(
@@ -220,10 +204,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 lambda event: show_breathing(next_stage="light"),
                 icon=ft.Icons.AIR,
             ),
-            ui_helpers.wide_button(
-                "Ngobrol dengan profesional",
-                lambda event: show_professional(),
-                icon=ft.Icons.SUPPORT_AGENT,
+            professional_card(prominent=False),
+            ui_helpers.disclaimer(
+                "FocusBuddy bukan layanan krisis. Kalau kamu dalam bahaya langsung, "
+                "hubungi layanan darurat atau nomor di atas."
             ),
         ]
         page.update()

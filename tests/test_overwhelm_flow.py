@@ -166,12 +166,12 @@ def scenario_improved_and_light_menu() -> None:
     click(root, "Sedikit lebih baik")
 
     light = texts(root)
-    for label in (
-        "Balik ke sini",
-        "Latihan napas 4-7-8",
-        "Ngobrol dengan profesional",
-    ):
+    for label in ("Balik ke sini", "Latihan napas 4-7-8"):
         check(label in light, f"recovery ringan menyediakan '{label}'")
+    check("NGOBROL DENGAN PROFESIONAL" in light,
+          "bantuan profesional langsung tampil sebagai card")
+    check(button(root, "Ngobrol dengan profesional") is None,
+          "bantuan profesional bukan tombol ketiga")
     check("Gerak 60 detik" not in light, "recovery ringan tidak memuat Gerak 60 detik")
     check("Dengerin musik nenangin" not in light,
           "recovery ringan tidak memuat musik nenangin")
@@ -187,10 +187,8 @@ def scenario_improved_and_light_menu() -> None:
         "Sedikit lebih baik tercatat dari jawaban user",
     )
 
-    click(root, "Ngobrol dengan profesional")
-    professional = texts(root)
-    check(any(partner["name"] in professional for partner in TELEHEALTH_PARTNERS),
-          "jalur profesional memakai partner yang sudah ada")
+    check(any(partner["name"] in light for partner in TELEHEALTH_PARTNERS),
+          "card profesional memakai partner yang sudah ada")
     urls = {
         getattr(control, "url", None)
         for control in walk(root)
@@ -201,7 +199,7 @@ def scenario_improved_and_light_menu() -> None:
         *(hotline["tel"] for hotline in CRISIS_HOTLINES),
     }
     check(expected_urls.issubset(urls),
-          "jalur profesional mempertahankan link dan hotline existing")
+          "card profesional mempertahankan link dan hotline existing")
 
     task = storage.add_task(
         "Lanjut pelan-pelan",

@@ -486,8 +486,8 @@ def needs_morning_brief() -> bool:
 
 
 def ready_for_morning_brief() -> bool:
-    """Morning Brief baru final setelah kondisi aktual hari ini tersedia."""
-    return needs_morning_brief() and today_mood() is not None
+    """Morning Brief menjadi pembuka hari sebelum check-in aktual."""
+    return needs_morning_brief()
 
 
 def set_last_brief_date() -> None:

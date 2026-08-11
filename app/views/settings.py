@@ -87,6 +87,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ),
             _kartu_model(),
             privacy_card,
+            _account_card(page),
         ],
         spacing=14,
         scroll=ft.ScrollMode.AUTO,
@@ -622,4 +623,52 @@ def _med_link_card(page: ft.Page, navigate) -> ft.Container:
         padding=16,
         on_click=open_medication,
         ink=True,
+    )
+
+
+def _account_card(page: ft.Page) -> ft.Container:
+    user = getattr(page, "_focusbuddy_cloud_user", None)
+    status = getattr(
+        page, "_focusbuddy_cloud_status", "Status sinkronisasi belum tersedia"
+    )
+    logout = getattr(page, "_focusbuddy_logout", None)
+
+    return ui_helpers.card(
+        ft.Column(
+            [
+                ui_helpers.section_header("Akun & Cloud"),
+                ft.Text(
+                    (user.name or user.email) if user else "Belum terhubung",
+                    size=13,
+                    weight=ft.FontWeight.BOLD,
+                    color=theme.ON_BACKGROUND,
+                ),
+                ft.Text(
+                    user.email if user else "",
+                    size=11,
+                    color=theme.MUTED,
+                    visible=bool(user and user.name and user.email),
+                ),
+                ft.Row(
+                    [
+                        ft.Icon(
+                            ft.Icons.CLOUD_DONE_OUTLINED,
+                            size=15,
+                            color=theme.PRIMARY,
+                        ),
+                        ft.Text(status, size=11, color=theme.MUTED, expand=True),
+                    ],
+                    spacing=7,
+                ),
+                ft.TextButton(
+                    content=ft.Text("Keluar dari akun", color=theme.DANGER),
+                    icon=ft.Icons.LOGOUT,
+                    icon_color=theme.DANGER,
+                    on_click=logout,
+                    visible=logout is not None,
+                ),
+            ],
+            spacing=7,
+        ),
+        padding=16,
     )

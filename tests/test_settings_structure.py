@@ -110,6 +110,11 @@ def scenario_main_settings_is_clean() -> None:
         "Favorit Kamu",
         "YANG KALEM PELAJARI",
         "PRIVASI & DATA",
+        "AKUN & CLOUD",
+        "Akun Rahasia",
+        "rahasia@example.com",
+        "Tersinkron ke database",
+        "Keluar dari akun",
     ):
         check(value in shown, f"Pengaturan utama menampilkan '{value}'")
 
@@ -118,11 +123,6 @@ def scenario_main_settings_is_clean() -> None:
         "Kapan biasanya kamu paling enak buat fokus?",
         "Pola tidur kamu akhir-akhir ini gimana?",
         "Hal apa yang paling sering bikin kamu overwhelm?",
-        "AKUN & CLOUD",
-        "Akun Rahasia",
-        "rahasia@example.com",
-        "Tersinkron ke database",
-        "Keluar dari akun",
     )
     for value in hidden:
         check(value not in shown, f"Pengaturan utama tidak menampilkan '{value}'")
@@ -130,6 +130,10 @@ def scenario_main_settings_is_clean() -> None:
     check(
         not any(isinstance(item, (ft.TextField, ft.RangeSlider)) for item in walk(root)),
         "field detail profil tidak dirender di halaman utama",
+    )
+    check(
+        shown.index("PRIVASI & DATA") < shown.index("AKUN & CLOUD"),
+        "card akun/auth tampil setelah Privasi & Data",
     )
 
     settings_button = icon_button(root, tooltip="Pengaturan Profil")

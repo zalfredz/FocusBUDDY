@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from app import buddy, clock, focus_session, storage
 from app.core.kalem_engine import DayState, decide, focus_minutes_for
-from app.views import home, tracker
+from app.views import home, morning_brief, tracker
 from models.model_overwhelm import Risiko
 
 
@@ -50,6 +50,17 @@ def walk_controls(control):
     yield from walk_controls(getattr(control, "content", None))
 
 
+def button_with_prefix(root, prefix: str):
+    for control in walk_controls(root):
+        if getattr(control, "on_click", None) is None:
+            continue
+        content = getattr(control, "content", None)
+        label = getattr(content, "value", None)
+        if isinstance(label, str) and label.startswith(prefix):
+            return control
+    return None
+
+
 def task(
     task_id: str,
     title: str,
@@ -78,17 +89,32 @@ def task(
     return result
 
 
-def scenario_checkin_before_brief_and_decision() -> None:
-    print("\n=== Check-in menjadi prerequisite daily decision ===")
+def scenario_brief_before_checkin_and_decision() -> None:
+    print("\n=== Morning Brief membuka hari sebelum check-in ===")
     state = storage.load_state()
     state["profile"].update({"name": "Ari", "onboarded": True})
-    state["last_brief_date"] = ""
+    state["last_brief_date"] = clock.today().isoformat()
     storage.save_state(state)
+    storage.advance_day(1)
 
     ready = getattr(storage, "ready_for_morning_brief", None)
-    check(callable(ready), "storage menyediakan gate Morning Brief berbasis check-in aktual")
+    check(callable(ready), "storage menyediakan gate Morning Brief harian")
     if callable(ready):
-        check(not ready(), "Morning Brief belum final sebelum check-in hari ini")
+        check(ready(), "Next Day langsung siap menampilkan Morning Brief")
+
+    brief_page = FakePage()
+    routes: list[str] = []
+    brief_root = morning_brief.build(brief_page, routes.append)
+    accept = button_with_prefix(brief_root, "Oke") or button_with_prefix(
+        brief_root, "Sesuai"
+    )
+    check(accept is not None, "rekomendasi hari ini tampil sebelum check-in")
+    check(not brief_page.dialogs, "Morning Brief tidak ditutupi modal check-in")
+    if accept is not None:
+        accept.on_click(SimpleNamespace(control=accept))
+    check(routes == ["home"], "selesai melihat rekomendasi melanjutkan ke Home")
+    if callable(ready):
+        check(not ready(), "Morning Brief ditandai sudah tampil dan tidak mengulang")
 
     page = FakePage()
     home.build(page, lambda route: None)
@@ -100,7 +126,7 @@ def scenario_checkin_before_brief_and_decision() -> None:
 
     storage.add_mood_log("tenang", 4, 4)
     if callable(ready):
-        check(ready(), "selesai check-in membuat Morning Brief siap dihitung ulang")
+        check(not ready(), "selesai check-in tidak membuka Morning Brief untuk kedua kali")
 
 
 def scenario_deadline_progress_with_small_capacity() -> None:
@@ -413,7 +439,7 @@ def main() -> int:
         storage.BACKUP_FILE = storage.DATA_DIR / "data.json.bak"
         storage.reset_all_data()
         try:
-            scenario_checkin_before_brief_and_decision()
+            scenario_brief_before_checkin_and_decision()
             storage.reset_all_data()
             scenario_deadline_progress_with_small_capacity()
             storage.reset_all_data()
