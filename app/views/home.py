@@ -552,7 +552,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     task_title_text = ft.Text(
         "", size=11.5, color=theme.MUTED, text_align=ft.TextAlign.CENTER
     )
-    controls_row = ft.Row(alignment=ft.MainAxisAlignment.CENTER, spacing=8, wrap=True)
+    controls_row = ft.Row(alignment=ft.MainAxisAlignment.CENTER, spacing=8)
 
     def toggle_pause(e):
         if focus_session.is_running():
@@ -867,12 +867,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ink=True,
     )
 
-    normal_controls = [
+    home_controls = [
         *sim_banner,
         *med_banner,
         greeting,
         kalem_block,
-        action_card,
+        focus_card if session_active else action_card,
         capture_row,
         sos_row,
         ui_helpers.disclaimer(
@@ -880,7 +880,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ),
     ]
     layout = ft.Column(
-        [focus_card] if session_active else normal_controls,
+        home_controls,
         spacing=16,
         scroll=ft.ScrollMode.AUTO,
         expand=True,

@@ -66,6 +66,11 @@ def focus_navigation_allowed(route: str) -> bool:
     return not focus_session.is_active() or route in FOKUS_BOLEH
 
 
+def main_navigation_visible(route: str) -> bool:
+    """Navigation tetap terlihat; guard Focus yang menolak perpindahannya."""
+    return route not in FULLSCREEN_ROUTES
+
+
 async def _read_preference_string(
     preferences: Any,
     key: str,
@@ -456,7 +461,7 @@ async def main(page: ft.Page) -> None:
             content.content = builder(page, navigate)
             if route in NAV_INDEX:
                 nav_bar.selected_index = NAV_INDEX[route]
-            nav_bar.visible = route not in FULLSCREEN_ROUTES and not focus_session.is_active()
+            nav_bar.visible = main_navigation_visible(route)
             page.update()
 
         nav_bar = ft.NavigationBar(

@@ -240,8 +240,11 @@ def scenario_focus_ui_has_done_and_is_compact() -> None:
     done = button(root, "DONE")
     check(done is not None, "tombol DONE tersedia saat timer masih berjalan")
     visible = texts(root)
-    check("Ada yang keinget? Tulis cepat" not in visible and "OVERWHELM" not in visible,
-          "saat Focus aktif Home hanya menampilkan kontrol sesi yang relevan")
+    check(all(text in visible for text in (
+        "Halo, Ari", "Ada yang keinget? Tulis cepat", "OVERWHELM",
+    )), "saat Focus aktif shell Home tetap tampil seperti biasa")
+    check(button(root, "Jeda") is not None and button(root, "Akhiri sesi") is not None,
+          "kontrol Jeda, DONE, dan Akhiri sesi terlihat di kartu Focus")
     if done is not None:
         state = focus_session._state()
         state.ends_at = None
@@ -360,10 +363,13 @@ def scenario_navigation_is_locked_while_active() -> None:
     import app.main as main
 
     allowed = getattr(main, "focus_navigation_allowed", None)
+    visible = getattr(main, "main_navigation_visible", None)
     check(callable(allowed), "navigation guard dapat diuji langsung")
-    if not callable(allowed):
+    check(callable(visible), "visibility navigation dapat diuji langsung")
+    if not callable(allowed) or not callable(visible):
         return
     focus_session.start(10, label="Kerjakan task")
+    check(visible("home"), "navigation bawah tetap terlihat di Home selama Focus")
     check(not allowed("tracker") and not allowed("mood") and not allowed("reset"),
           "semua halaman selain Focus/Home terkunci saat timer berjalan")
     focus_session.pause()
