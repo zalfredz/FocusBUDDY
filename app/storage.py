@@ -449,9 +449,9 @@ def reset_all_data() -> dict[str, Any]:
     save_state(state)
     clock.reset_offset()
     try:
-        from app import kalem_ml
+        import models as kalem_models
 
-        kalem_ml.reset_semua()
+        kalem_models.reset_semua()
     except Exception:
         pass
     return state

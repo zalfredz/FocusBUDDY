@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-OUT = ROOT / "app" / "data" / "bpom_index.json"
+OUT = ROOT / "datasets" / "generated" / "bpom_index.json"
 
 from app.core.bpom import indonesianise, normalise, strip_strength  # noqa: E402
 
@@ -34,14 +34,11 @@ SALT_WORDS = {
 
 
 def main() -> None:
-    matches = sorted(
-        glob.glob(str(ROOT / "DATASET" / "*Master Produk Komoditi Obat*.csv"))
-        + glob.glob(str(ROOT / "*Master Produk Komoditi Obat*.csv"))
-    )
+    matches = sorted(glob.glob(str(ROOT / "datasets" / "bpom_products_*.csv")))
     if not matches:
         raise SystemExit(
             "CSV BPOM nggak ketemu.\n"
-            "Taruh file 'APP - Master Produk Komoditi Obat-<tanggal>.csv' di folder DATASET/."
+            "Taruh file 'bpom_products_<tanggal>.csv' di folder datasets/."
         )
     src = Path(matches[-1])
     print(f"sumber : {src.name}")

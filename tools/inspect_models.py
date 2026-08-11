@@ -9,8 +9,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.core.kalem_engine import DayState  # noqa: E402
-from app.kalem_ml import fitur as F  # noqa: E402
-from app.kalem_ml import (  # noqa: E402
+from models import fitur as F  # noqa: E402
+from models import (  # noqa: E402
     model_durasi,
     model_energi,
     model_mood,

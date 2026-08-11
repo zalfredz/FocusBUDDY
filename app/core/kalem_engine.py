@@ -192,8 +192,8 @@ def decide(
                 focus_minutes=minutes,
             )
 
-    from app.kalem_ml import fitur as kfitur
-    from app.kalem_ml import model_overwhelm
+    from models import fitur as kfitur
+    from models import model_overwhelm
 
     fitur_sekarang = kfitur.bangun_fitur(now, day=day, profil=profile)
     risiko = model_overwhelm.nilai(fitur_sekarang)
@@ -213,7 +213,7 @@ def decide(
     )
     if found:
         task, step_index, step_text = found
-        from app.kalem_ml import model_kalem
+        from models import model_kalem
 
         engagement = model_kalem.nilai(fitur_sekarang, records=day.decision_records)
         if engagement.perlu_diringankan:
@@ -300,8 +300,8 @@ def build_morning_brief(
 ) -> MorningBrief:
     from app import storage
     from app.core.energy_predictor import MISSED_MED_THRESHOLD
-    from app.kalem_ml import fitur as kfitur
-    from app.kalem_ml import model_energi, model_mood
+    from models import fitur as kfitur
+    from models import model_energi, model_mood
 
     now = now or clock.now()
     name = profile.get("name") or "kamu"

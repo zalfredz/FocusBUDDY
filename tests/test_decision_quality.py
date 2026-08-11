@@ -14,7 +14,7 @@ from app.core.decision_quality import assess_capacity
 from app.core.kalem_engine import (
     DayState, decide, focus_minutes_for, pick_next_action, urgency_score,
 )
-from app.kalem_ml.model_overwhelm import Risiko
+from models.model_overwhelm import Risiko
 
 
 FAILURES: list[str] = []
@@ -92,7 +92,7 @@ def scenario_priority_and_reset() -> None:
     workload = task("Tugas penting", difficulty=1)
 
     with patch(
-        "app.kalem_ml.model_overwhelm.nilai",
+        "models.model_overwhelm.nilai",
         return_value=Risiko(0.5, "waspada", "prior"),
     ):
         decision = decide(
@@ -108,7 +108,7 @@ def scenario_priority_and_reset() -> None:
           "setelah sinyal Reset/risk, jeda didahulukan daripada tugas")
 
     with patch(
-        "app.kalem_ml.model_overwhelm.nilai",
+        "models.model_overwhelm.nilai",
         return_value=Risiko(0.0, "tenang", "prior"),
     ):
         decision = decide(
@@ -319,7 +319,7 @@ def scenario_urgency_ranking() -> None:
 
 def scenario_model_kalem_modifier() -> None:
     print("\n=== model_kalem cuma modifier durasi, bukan pemilih tugas (guardrail) ===")
-    from app.kalem_ml.model_kalem import SinyalKalem
+    from models.model_kalem import SinyalKalem
 
     profile = {"name": "Ari", "productive_hours": []}
     tugas_a = task("Task A", difficulty=1, minutes=30, task_id="a")
@@ -330,15 +330,15 @@ def scenario_model_kalem_modifier() -> None:
     )
     now = datetime.combine(clock.today(), datetime.min.time()).replace(hour=10)
 
-    with patch("app.kalem_ml.model_overwhelm.nilai", return_value=Risiko(0.0, "tenang", "prior")):
-        with patch("app.kalem_ml.model_kalem.nilai",
+    with patch("models.model_overwhelm.nilai", return_value=Risiko(0.0, "tenang", "prior")):
+        with patch("models.model_kalem.nilai",
                    return_value=SinyalKalem(skor=0.5, siap=False)):
             belum_aktif = decide(profile, day, now=now)
         check(belum_aktif.task is not None and belum_aktif.task["id"] == "a"
               and belum_aktif.focus_minutes == 30,
               "model_kalem BELUM siap -> Task A tetap kepilih, durasi 30 menit nggak disentuh")
 
-        with patch("app.kalem_ml.model_kalem.nilai",
+        with patch("models.model_kalem.nilai",
                    return_value=SinyalKalem(skor=0.1, siap=True, n_latih=24, sumber="belajar")):
             aktif = decide(profile, day, now=now)
         check(aktif.task is not None and aktif.task["id"] == "a",
@@ -356,7 +356,7 @@ def scenario_reset_belum_meringankan() -> None:
     mood_logs = [{"date": clock.today().isoformat(), "score": 3, "energy": 4}]
     now = datetime.combine(clock.today(), datetime.min.time()).replace(hour=10)
 
-    with patch("app.kalem_ml.model_overwhelm.nilai", return_value=Risiko(0.0, "tenang", "prior")):
+    with patch("models.model_overwhelm.nilai", return_value=Risiko(0.0, "tenang", "prior")):
         tanpa_reset = decide(
             profile, DayState(tasks_today=[tugas], mood_logs=mood_logs, reset_events=[]),
             now=now,
@@ -399,7 +399,7 @@ def scenario_energi_rendah_banyak_tugas() -> None:
     banyak = [task(f"Tugas {i}", difficulty=(i % 3) + 1, task_id=str(i)) for i in range(5)]
     now = datetime.combine(clock.today(), datetime.min.time()).replace(hour=10)
 
-    with patch("app.kalem_ml.model_overwhelm.nilai", return_value=Risiko(0.0, "tenang", "prior")):
+    with patch("models.model_overwhelm.nilai", return_value=Risiko(0.0, "tenang", "prior")):
         d = decide(
             profile,
             DayState(tasks_today=banyak,
@@ -419,7 +419,7 @@ def scenario_overwhelm_dan_overdue() -> None:
     overdue = task("Laporan telat", deadline=(clock.today() - timedelta(days=3)).isoformat(), difficulty=1)
     now = datetime.combine(clock.today(), datetime.min.time()).replace(hour=10)
 
-    with patch("app.kalem_ml.model_overwhelm.nilai", return_value=Risiko(0.7, "berat", "prior")):
+    with patch("models.model_overwhelm.nilai", return_value=Risiko(0.7, "berat", "prior")):
         d = decide(
             profile,
             DayState(tasks_today=[overdue],
@@ -436,7 +436,7 @@ def scenario_tidak_ada_tugas() -> None:
     profile = {"name": "Ari", "productive_hours": []}
     now = datetime.combine(clock.today(), datetime.min.time()).replace(hour=10)
 
-    with patch("app.kalem_ml.model_overwhelm.nilai", return_value=Risiko(0.0, "tenang", "prior")):
+    with patch("models.model_overwhelm.nilai", return_value=Risiko(0.0, "tenang", "prior")):
         d = decide(
             profile,
             DayState(tasks_today=[], mood_logs=[{"date": clock.today().isoformat(), "score": 4, "energy": 4}]),

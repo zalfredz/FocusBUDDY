@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from tools.muat_dataset_pecah import baca  # noqa: E402
+from tools.inspect_task_decomposition_dataset import baca  # noqa: E402
 
 AWALAN = ["", "kerjain ", "mulai ", "mau ", "harus ", "lagi mau ", "belum "]
 
@@ -57,7 +57,7 @@ NEGATIF = [
 
 
 def _uji(rec, queries, ambang):
-    from app.kalem_ml import model_pecah as mp
+    from models import model_pecah as mp
 
     benar = salah = ditolak = 0
     contoh = []
@@ -77,7 +77,7 @@ def _uji(rec, queries, ambang):
 
 
 def main() -> None:
-    from app.kalem_ml import model_pecah as mp
+    from models import model_pecah as mp
 
     rec = [r for r in baca() if r["language"] == "id"]
     if not rec:

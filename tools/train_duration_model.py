@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT))
 
 import joblib  # noqa: E402
 
-from app.kalem_ml import model_durasi  # noqa: E402
+from models import model_durasi  # noqa: E402
 
 
 def main() -> None:

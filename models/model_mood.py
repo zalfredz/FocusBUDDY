@@ -10,8 +10,8 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 
 from app import clock, storage
-from app.kalem_ml import fitur as F
-from app.kalem_ml import riwayat
+from models import fitur as F
+from models import riwayat
 
 MIN_POLA = 5
 MIN_MODEL = 10

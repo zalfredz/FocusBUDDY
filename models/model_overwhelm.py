@@ -10,8 +10,8 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
-from app.kalem_ml import fitur as F
-from app.kalem_ml import riwayat
+from models import fitur as F
+from models import riwayat
 
 MIN_HARI = 10
 MIN_PER_KELAS = 2

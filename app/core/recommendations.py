@@ -40,7 +40,12 @@ def _generate(prompt: str) -> tuple[Optional[dict], str]:
     )
     if not parsed:
         return None, reason or "balasan AI kosong"
-    if not isinstance(parsed, dict) or not parsed.get("isi"):
+    if (
+        not isinstance(parsed, dict)
+        or not isinstance(parsed.get("judul"), str)
+        or not isinstance(parsed.get("isi"), str)
+        or not parsed["isi"].strip()
+    ):
         return None, "balasan AI kosong"
     return parsed, ""
 

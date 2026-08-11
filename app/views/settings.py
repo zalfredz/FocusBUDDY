@@ -4,7 +4,7 @@ from __future__ import annotations
 import flet as ft
 
 from app import storage, theme, ui_helpers
-from app.kalem_ml import fitur as kfitur
+from models import fitur as kfitur
 
 AGE_OPTIONS = ["<18", "18-24", "25-34", "35+"]
 
@@ -495,7 +495,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
 def _kartu_model() -> ft.Control:
-    import app.kalem_ml as ml
+    import models as ml
 
     ringkas = kfitur.ringkas_untuk_ui()
     st = ml.status_semua()

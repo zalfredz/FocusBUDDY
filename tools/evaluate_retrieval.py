@@ -8,10 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from app.kalem_ml import model_pecah  # noqa: E402
+from models import model_pecah  # noqa: E402
 
-DEFAULT_PATTERNS = ROOT / "DATASET" / "focusbuddy_task_decomposition_dataset_extended.csv"
-DEFAULT_QUERIES = ROOT / "DATASET" / "focusbuddy_task_queries.csv"
+DEFAULT_PATTERNS = ROOT / "datasets" / "task_decomposition_en.csv"
+DEFAULT_QUERIES = ROOT / "datasets" / "task_decomposition_queries.csv"
 
 
 def read_patterns(path: Path) -> list[dict]:

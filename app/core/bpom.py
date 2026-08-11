@@ -12,7 +12,7 @@ from typing import Optional
 
 from app import clock
 
-INDEX_PATH = Path(__file__).resolve().parent.parent / "data" / "bpom_index.json"
+INDEX_PATH = Path(__file__).resolve().parents[2] / "datasets" / "generated" / "bpom_index.json"
 
 FUZZY_CUTOFF = 0.72
 

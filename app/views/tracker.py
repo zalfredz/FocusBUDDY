@@ -8,8 +8,8 @@ import flet as ft
 
 from app import clock, focus_session, storage, theme, ui_helpers
 from app.core import kalem_engine
-from app.kalem_ml import fitur as kfitur
-from app.kalem_ml import model_durasi
+from models import fitur as kfitur
+from models import model_durasi
 from app.core.decomposer_logic import lay_out, plan_today
 from app.core.energy_predictor import energy_to_mood_default
 

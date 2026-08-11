@@ -22,13 +22,15 @@ RESPONSE_SCHEMA = {
     },
 }
 
+MAX_LANGKAH_PER_TUGAS = 5
+
 SYSTEM_PROMPT = (
     "Kamu asisten yang bantu orang dengan ADHD/executive dysfunction menyusun "
     "rencana kerja HARI INI. Kamu dikasih daftar tugas beserta perkiraan durasi "
     "yang SUDAH dihitung sistem. Tugas kamu CUMA memecah tiap tugas jadi langkah "
     "konkret yang kecil. JANGAN nyebut durasi/menit sama sekali. Aturan: langkah "
     "pertama tiap tugas harus yang paling ringan (bisa dimulai dalam sekali duduk), "
-    "bahasa Indonesia santai, jangan pakai jargon, maksimal 3 langkah per tugas. "
+    "bahasa Indonesia santai, jangan pakai jargon, maksimal 5 langkah per tugas. "
     "Field 'tugas' harus disalin persis dari judul yang dikasih.\n\n"
     "PENTING soal sumber langkah: beberapa tugas di bawah punya baris "
     "'Deskripsi'. Kalau ADA, langkah-langkahnya HARUS dipecah dari ISI "
@@ -93,7 +95,7 @@ def _rule_based_steps(tasks: list[dict], energy_level: int) -> list[tuple[str, s
 
 def perkiraan_menit(tasks: list[dict], energy_level: int) -> dict[str, int]:
     from app import storage
-    from app.kalem_ml import model_durasi
+    from models import model_durasi
 
     records = storage.get_focus_records()
     hasil: dict[str, int] = {}
@@ -150,22 +152,41 @@ def _ai_steps(
             "Pecah jadi langkah. Jangan sebut menit."
         ),
         schema=RESPONSE_SCHEMA,
-        temperature=0.7,
+        temperature=0.2,
     )
     if not parsed:
         return None, reason or "balasan AI kosong"
+
+    def teks_langkah(value) -> list[str]:
+        if isinstance(value, str):
+            text = value.strip()
+            return [text] if text else []
+        if isinstance(value, list):
+            result: list[str] = []
+            for child in value:
+                result.extend(teks_langkah(child))
+            return result
+        if isinstance(value, dict):
+            for key in ("langkah", "step", "text", "isi"):
+                if key in value:
+                    return teks_langkah(value[key])
+        return []
 
     per_tugas: dict[str, list[str]] = {}
     for item in parsed:
         if not isinstance(item, dict):
             continue
-        step = str(item.get("langkah", "")).strip()
-        if not step:
-            continue
-        title = _match_title(str(item.get("tugas", "")).strip(), tasks) or (
-            tasks[0]["title"] if tasks else "Tugas hari ini"
+        raw_title = item.get("tugas", "")
+        title_text = raw_title.strip() if isinstance(raw_title, str) else ""
+        title = _match_title(title_text, tasks) or (
+            tasks[0]["title"] if len(tasks) == 1 else None
         )
-        per_tugas.setdefault(title, []).append(step)
+        if not title:
+            continue
+        bucket = per_tugas.setdefault(title, [])
+        for step in teks_langkah(item.get("langkah", "")):
+            if step not in bucket and len(bucket) < MAX_LANGKAH_PER_TUGAS:
+                bucket.append(step)
 
     steps: list[tuple[str, str, int]] = []
     for t in tasks:
@@ -230,7 +251,7 @@ def _langkah_lokal(task: dict) -> tuple[Optional[list[str]], str]:
     if baris:
         return baris, "manual"
 
-    from app.kalem_ml import model_pecah
+    from models import model_pecah
 
     hasil = model_pecah.cari(task.get("title", ""), task.get("description", ""))
     if hasil.ketemu:

@@ -11,76 +11,21 @@ browser buat demo. Nggak perlu nulis Dart/JS.
 ## Struktur
 
 ```
-SettingDemo.py                # 10 skenario demo siap pakai (lihat "Auto Feel" di bawah)
-app/
-  assets/                    # 5 ekspresi Kalem (SVG) -- harus sejajar main.py,
-    kalem_semangat.svg       #   itu yang dicari `flet run` (FLET_ASSETS_DIR)
-    kalem_tenang.svg  kalem_cemas.svg  kalem_sedih.svg  kalem_lelah.svg
-  config.py                  # DEMO_MODE -- gate tombol testing di Home
-  main.py                    # router: 3 tab nav + halaman ekstra
-  theme.py                   # palet + font Lexend/Quicksand
-  buddy.py                   # Kalem: MOOD_ASSETS, MOOD_SCORE, komponen UI
-  storage.py                 # persistensi lokal (~/.focusbuddy/data.json)
-  clock.py                   # sumber tunggal "sekarang" -- offset hari & jam buat testing
-  focus_session.py           # sesi fokus global, hidup di luar halaman mana pun
-  ui_helpers.py               # komponen UI berulang + ProgresAI (bar progres AI)
-  core/
-    kalem_engine.py          # ★ decision engine: satu otak buat semua halaman
-    decomposer_logic.py      # pecah tugas HARI INI -> slot waktu (model_durasi + AI)
-    energy_predictor.py      # Decision Tree (data sintetis) -- prior model_energi
-    mood_model.py            # checkin_streak/neglect_streak (canonical), diary, tag
-    reset_preferences.py     # opsi jeda + deteksi distress (rule-based, safety-critical)
-    medication_model.py      # proyeksi stok obat + dosis kelewat + link apotek
-    bpom.py                  # validasi nama obat dari registri BPOM (offline)
-    recommendations.py       # kartu rekomendasi musik/resep dari Favorit
-    ai_client.py             # ★ provider AI (Gemini/OpenAI/DeepSeek, dari .env) + latensi
-    decision_quality.py      # beban tugas vs waktu tersedia -- fakta murni, nggak milih/nge-UI
-  kalem_ml/
-    fitur.py                 # ★ lapisan fitur bersama -- satu definisi, semua model baca dari sini
-    riwayat.py                # rekonstruksi fitur per HARI LAMPAU (buat melatih) + sidik_jari()
-    model_durasi.py          # judul tugas -> rentang menit (TFIDF + RandomForest)
-    model_mood.py            # ramalan skor mood harian (RandomForest, data user)
-    model_energi.py          # beban kerja + burnout (prior sintetis + kalibrasi personal)
-    model_overwhelm.py       # risiko hari berat (LogisticRegression, belajar dari SOS)
-    model_penenang.py        # opsi jeda mana yang beneran nolong (dari perubahan mood)
-    model_pecah.py           # pungut pecahan tugas lama yang mirip (TFIDF char n-gram, 0 API)
-    model_kalem.py           # ML_KALEM -- kalibrasi ringan next-action, tidur sampai data cukup
-  data/
-    bpom_index.json          # 8.960 obat, hasil olahan CSV BPOM (dibuat tools/)
-    model_durasi.joblib      # model durasi pra-latih (opsional, dibuat tools/)
-  views/
-    onboarding.py            # 6 pertanyaan singkat (nama & umur wajib)
-    morning_brief.py         # ★ Kalem nyapa duluan sekali sehari
-    inbox.py                 # isi quick capture -> dirapikan jadi tugas
-    home.py                  # Page 1 -- satu next-action + sesi fokus, bukan dashboard
-    tracker.py                # Page 2 -- kalender, Eisenhower, Pecah Tugas
-    mood.py                  # Page 3 -- check-in + insight + grafik bulan
-    mood_chart.py             # kalender bulan buat halaman Mood
-    diary.py                 # Cerita ke Kalem (dari Page 3)
-    favorites.py             # menu Favorite (dari Page 3)
-    reset.py                 # Page 4 (dari tombol "Lagi kewalahan?")
-    med_setup.py             # setup obat sekali di awal + validasi BPOM
-    settings.py               # profil, kartu status model, hapus data
-DATASET/
-  APP - Master Produk Komoditi Obat-<tanggal>.csv   # registri BPOM (23.437 baris)
-  task_duration_dataset_id_lengkap.csv              # 549 tugas + durasi asli
-  focusbuddy_dekomposisi_id.csv                     # 212 pola Pecah Tugas Indonesia (auto-load, lihat model_pecah.py)
-  focusbuddy_task_decomposition_dataset_extended.csv # pola Inggris -- bahan terjemahan, TIDAK dimuat ke app
-  focusbuddy_task_queries.csv                       # query berlabel buat tools/evaluasi_retrieval.py
-tools/
-  build_bpom_index.py        # CSV BPOM -> app/data/bpom_index.json
-  latih_model_durasi.py      # CSV durasi -> app/data/model_durasi.joblib
-  muat_dataset_pecah.py      # intip dataset Pecah Tugas (default = --lihat doang;
-                              #   dataset-nya udah auto-load di app, lihat docstring
-                              #   sebelum pakai --tulis-ke-storage)
-  evaluasi_retrieval.py      # ukur retrieval model_pecah vs query berlabel
-                              #   (precision/coverage/wrong-retrieval-rate)
-  bikin_query_uji.py         # generate + jalanin query uji buat kalibrasi AMBANG_MIRIP
-  tes_manual_kalem.py        # tes manual tiap model KALEM, input custom (storage-independent)
-tests/
-  test_regresi.py            # regresi -- `python tests/test_regresi.py`
-  test_decision_quality.py   # skenario capacity-aware planning -- `python tests/test_decision_quality.py`
+app/                  # aplikasi Flet, views, core engine, assets, dan skenario demo
+datasets/             # CSV sumber + generated/bpom_index.json
+docs/                 # panduan aplikasi dan setup Supabase
+models/               # seluruh model KALEM + artifacts hasil training
+supabase/             # migrasi database
+tests/                # regression, decision quality, cloud, dan storage tests
+tools/                # training, evaluasi, generator, dan inspeksi manual
+main.py               # entry point lokal/hosting
+Dockerfile            # deployment container
+pyproject.toml         # konfigurasi package dan Flet
+requirements.txt      # dependency Python
 ```
+
+Panduan utama ada di [docs/PANDUAN_APLIKASI.md](docs/PANDUAN_APLIKASI.md),
+sedangkan setup database ada di [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md).
 
 ## Arsitektur: "Kalem sebagai satu otak"
 
@@ -112,13 +57,13 @@ krisis -- itu keputusan yang harus deterministik). Tapi "beban kerja hari ini
 segimana", "mood bakal gimana", dan "risiko kewalahan segimana" itu justru
 pas buat model yang belajar dari pola user -- rule tetap 2 syarat nggak bakal
 pernah setajam itu. `kalem_engine.py` yang nentuin URUTAN & KAPAN masing-masing
-dipanggil; `kalem_ml/` yang ngisi ANGKANYA.
+dipanggil; `models/` yang ngisi ANGKANYA.
 
 ### `decide()`/`build_morning_brief()` adalah fungsi murni
 
 Ini yang bikin dua fungsi itu gampang dites: semua input datang dari
 `(profile, day)` yang dioper, TIDAK ADA yang diam-diam baca `storage` lagi di
-tengah jalan. `kalem_ml.fitur.bangun_fitur(now, day=day, profil=profile)`
+tengah jalan. `models.fitur.bangun_fitur(now, day=day, profil=profile)`
 menerima `day` yang sama itu dan meneruskannya ke semua model (`model_mood`,
 `model_overwhelm`, `riwayat.baris_harian`) -- jadi ngasih `DayState` buatan ke
 `decide()` beneran ngubah hasilnya, bukan diabaikan diam-diam.
@@ -234,7 +179,7 @@ sekali, provider apa pun** -- lihat bagian Data Obat di bawah.
 ### Model kita dulu, baru AI
 
 Data yang masuk ke API udah diolah model sendiri, bukan mentah. Dulu Gemini
-disuruh nebak durasi tiap langkah; sekarang `kalem_ml.model_durasi` yang
+disuruh nebak durasi tiap langkah; sekarang `models.model_durasi` yang
 ngitung, dan AI-nya cuma nulis teks langkahnya. Diukur di 3 tugas (pakai
 Gemini, provider yang diukur pertama kali):
 
@@ -316,8 +261,8 @@ Alasannya selalu ditulis ("kenapa Kalem mikir gitu") -- bukan kotak hitam.
 Kalau catatan mood masih di bawah 5, brief-nya **ngaku belum bisa meramal**
 dan pakai setelan tengah.
 
-Ramalannya lewat `kalem_ml.model_mood.ramal()` (skor mood hari ini) +
-`kalem_ml.model_energi.nilai()` (beban kerja & burnout, dikalibrasi rasio
+Ramalannya lewat `models.model_mood.ramal()` (skor mood hari ini) +
+`models.model_energi.nilai()` (beban kerja & burnout, dikalibrasi rasio
 penyelesaian tugas & sesi fokus user). Keduanya punya prior yang dicampur
 pelan sama model yang belajar begitu datanya cukup -- nggak langsung ganti
 total begitu ada 1 data baru.
@@ -375,7 +320,7 @@ kalau ditekan "Lihat bulan".
 - **Add Task** dengan penanda mendesak/penting (Eisenhower), estimasi
   "seberat apa buat dimulai" (gampang/sedang/berat), dan opsional kategori +
   jumlah unit (buat perkiraan durasi personal).
-- **Perkiraan durasi langsung dari judul tugas** -- `kalem_ml.model_durasi`
+- **Perkiraan durasi langsung dari judul tugas** -- `models.model_durasi`
   baca TEKS judulnya (TFIDF n-gram huruf + RandomForest), nggak wajib pilih
   kategori dulu. Nampilin RENTANG ("15-40 menit"), bukan satu angka -- galat
   khasnya diukur ~faktor 2x, jadi angka pasti itu bohong yang keliatan presisi.
@@ -469,7 +414,7 @@ tag itu spesifik** di check-in berikutnya, bukan pertanyaan generik.
 
 > Picker tag cepat ("Hari ini isinya apa? kuliah/kerja kelompok/dll") yang
 > dulu ada di check-in Mood udah **dibuang** -- nggak satu pun model di
-> `kalem_ml/` baca `quick_tags`, cuma dipakai buat milih prompt diary
+> `models/` baca `quick_tags`, cuma dipakai buat milih prompt diary
 > (`recurring_tag_prompt`). Tag lama yang udah kesimpen tetap ditulis balik
 > apa adanya tiap nyimpen check-in, cuma UI buat milihnya udah nggak ada.
 
@@ -508,7 +453,7 @@ buat cemas -- sebut hal yang dilihat/disentuh/didengar), **musik** (deep link
 ke pencarian musik favorit user, atau lo-fi kalau belum diisi), dan **gerak 60
 detik**.
 
-Urutannya dari `kalem_ml.model_penenang` -- BUKAN sekadar hitung opsi mana
+Urutannya dari `models.model_penenang` -- BUKAN sekadar hitung opsi mana
 yang paling sering dipencet. Yang diukur: **mood user berubah gimana
 SESUDAH** pakai opsi itu (dibanding sebelum). Opsi yang diulang-ulang belum
 tentu yang nolong; bisa jadi justru yang nggak mempan, makanya diulang.
@@ -647,15 +592,15 @@ Semua data (profil, tugas, mood, diary, favorit, obat) disimpan **lokal** di
 `~/.focusbuddy/data.json` (schema v3, migrasi otomatis dari v1/v2).
 Nggak ada server eksternal di build ini -- **satu file storage, satu user**.
 Kalau nanti di-hosting buat banyak orang sekaligus, storage-nya perlu
-dipisah per-session (di luar scope build ini); lapisan model (`kalem_ml/`)
+dipisah per-session (di luar scope build ini); lapisan model (`models/`)
 sendiri sudah aman dipakai lintas-user (lihat "Cache model per-user" di atas).
 
 ### Auto Feel — data demo instan
 
 Model mood/energi baru kelihatan pinter kalau udah ada histori. Daripada
 check-in manual berkali-kali sambil mencet "Maju 1 hari", pakai
-**`SettingDemo.py`** di folder utama: isi/tambah skenario di situ, lalu
-pilih lewat ikon tongkat sihir di Beranda (atau `python SettingDemo.py
+**`app/demo_scenarios.py`** di folder aplikasi: isi/tambah skenario di situ, lalu
+pilih lewat ikon tongkat sihir di Beranda (atau `python -m app.demo_scenarios
 <skenario>` dari terminal). Jalur UI memakai **overlay non-destructive**:
 nama, profil, favorit, obat, diary, tugas, inbox, dan histori asli tetap
 dipertahankan. Record simulasi diberi marker khusus, skenario berikutnya hanya
@@ -686,7 +631,7 @@ bukan cuma yang eksplisit nyebut jadwal berat.
 | `jarang_checkin` | Cuma 15-20/30 hari ke-check-in, diary nyaris kosong, SOS malah sering (termasuk di hari TANPA check-in) |
 
 File-nya isinya data + generator kecil buat data itu doang, nggak ada logika
-app -- dan otomatis reset cache model (`kalem_ml.reset_semua()`) tiap ganti
+app -- dan otomatis reset cache model (`models.reset_semua()`) tiap ganti
 skenario biar nggak nyampur sama model skenario sebelumnya.
 
 Tombol **SUBS** (ikon medali) nyalain/matiin status premium seketika buat
@@ -741,11 +686,11 @@ sertifikat sistem.
 Validasi nama obat jalan **offline** dari registri resmi BPOM, bukan dari AI.
 
 ```
-DATASET/APP - Master Produk Komoditi Obat-<tanggal>.csv   # sumber, 23.437 baris, 4,8 MB
+datasets/bpom_products_<tanggal>.csv   # sumber, 23.437 baris, 4,8 MB
         |
         |  python tools/build_bpom_index.py
         v
-app/data/bpom_index.json                          # 8.960 nama unik, 1,66 MB
+datasets/generated/bpom_index.json                          # 8.960 nama unik, 1,66 MB
 ```
 
 Yang dipakai app: nama resmi, **NIE** (nomor izin edar), golongan, komposisi,
@@ -769,7 +714,7 @@ python tools/build_bpom_index.py
 di daftar terpisah (nomor TR/SD/POM). Jadi "Tolak Angin" bakal balik "nggak
 ketemu" -- itu bener, bukan bug.
 
-## Model Kalem (`app/kalem_ml/`)
+## Model Kalem (`models/`)
 
 Satu file per model, satu lapisan fitur bersama (`fitur.py`) -- semua model
 baca angka dari sana, bukan hitung ulang sendiri-sendiri.
@@ -778,7 +723,7 @@ baca angka dari sana, bukan hitung ulang sendiri-sendiri.
 |---|---|---|---|
 | `fitur.py` | — (lapisan fitur, ~45 sinyal) | `DayState` / storage | — |
 | `riwayat.py` | — (rekonstruksi fitur per hari lampau) | `DayState` / storage | — |
-| `model_durasi.py` | Judul tugas → rentang menit | `DATASET/task_duration_dataset_id_lengkap.csv` (549) + sesi user | 2 sesi/kategori |
+| `model_durasi.py` | Judul tugas → rentang menit | `datasets/task_duration_id.csv` (549) + sesi user | 2 sesi/kategori |
 | `model_mood.py` | Ramalan skor mood harian | catatan user | 5 catatan (pola), 10 (RandomForest) |
 | `model_energi.py` | Beban kerja + burnout | 500 baris sintetis + kalibrasi user | jalan dari hari-1 |
 | `model_overwhelm.py` | Risiko hari berat | hari user mencet SOS | 10 hari ber-label |
@@ -808,8 +753,8 @@ Tugas.
 ### Melatih ulang
 
 ```bash
-python tools/build_bpom_index.py      # indeks obat dari DATASET/
-python tools/latih_model_durasi.py    # model durasi -> app/data/*.joblib
+python tools/build_bpom_index.py      # indeks obat dari datasets/
+python tools/train_duration_model.py   # model durasi -> models/artifacts/*.joblib
 ```
 
 Dua-duanya opsional: app tetap jalan tanpa artefaknya (model durasi dilatih

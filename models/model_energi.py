@@ -10,7 +10,7 @@ from app.core.energy_predictor import (
     NEGLECT_BURNOUT_THRESHOLD,
     predict_workload,
 )
-from app.kalem_ml import fitur as F
+from models import fitur as F
 
 AMBANG_SELESAI = 0.35
 AMBANG_SESI = 0.4

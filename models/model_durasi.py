@@ -12,9 +12,9 @@ from scipy.sparse import csr_matrix, hstack
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-ROOT = Path(__file__).resolve().parent.parent.parent
-DATASET = ROOT / "DATASET" / "task_duration_dataset_id_lengkap.csv"
-MODEL_PATH = ROOT / "app" / "data" / "model_durasi.joblib"
+ROOT = Path(__file__).resolve().parent.parent
+DATASET = ROOT / "datasets" / "task_duration_id.csv"
+MODEL_PATH = ROOT / "models" / "artifacts" / "task_duration_model.joblib"
 
 MAX_FITUR_TEKS = 300
 N_POHON = 300
@@ -196,7 +196,7 @@ def perkirakan(
     energi: Optional[int] = None,
 ) -> Perkiraan:
     if kalibrasi is None:
-        from app.kalem_ml import fitur as _f
+        from models import fitur as _f
 
         kalibrasi = _f.kalibrasi_waktu(records or [], energi)
     lo, mid, hi = _prediksi_umum(judul or "tugas", tempo_hari, penting)

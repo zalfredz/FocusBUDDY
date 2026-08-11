@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-DEFAULT = ROOT / "DATASET" / "focusbuddy_dekomposisi_id.csv"
+DEFAULT = ROOT / "datasets" / "task_decomposition_id.csv"
 
 
 def baca(path: Path = DEFAULT) -> list[dict]:

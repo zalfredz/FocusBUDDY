@@ -58,18 +58,17 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
 
     def open_auto_feel(e):
         try:
-            import SettingDemo
+            from app import demo_scenarios
         except ImportError:
-            SettingDemo = None
+            demo_scenarios = None
 
-        if SettingDemo is None:
+        if demo_scenarios is None:
             page.show_dialog(
                 ft.AlertDialog(
                     modal=True,
-                    title=ft.Text("SettingDemo.py nggak ketemu", size=16),
+                    title=ft.Text("Skenario demo nggak ketemu", size=16),
                     content=ft.Text(
-                        "File SettingDemo.py harus ada di folder utama project "
-                        "(sejajar sama README.md).",
+                        "File app/demo_scenarios.py harus tersedia.",
                         size=13,
                     ),
                     actions=[
@@ -80,12 +79,12 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             return
 
         def pick(key: str):
-            SettingDemo.apply_scenario_overlay(key)
+            demo_scenarios.apply_scenario_overlay(key)
             page.pop_dialog()
             navigate("home")
 
         def clear_demo(e):
-            SettingDemo.clear_demo_overlay()
+            demo_scenarios.clear_demo_overlay()
             page.pop_dialog()
             navigate("home")
 
@@ -98,8 +97,8 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
                 color=theme.MUTED,
             )
         ]
-        for key, label, desc, judul_demo, wow in SettingDemo.list_scenarios():
-            objective = SettingDemo.DEMO_OBJECTIVES.get(key, {})
+        for key, label, desc, judul_demo, wow in demo_scenarios.list_scenarios():
+            objective = demo_scenarios.DEMO_OBJECTIVES.get(key, {})
             isi: list[ft.Control] = [
                 ft.Text(judul_demo, size=13, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND),
             ]
@@ -134,7 +133,7 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
                     ft.TextButton(
                         content=ft.Text("Hapus data demo"),
                         on_click=clear_demo,
-                        disabled=not SettingDemo.demo_overlay_active(),
+                        disabled=not demo_scenarios.demo_overlay_active(),
                     ),
                     ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog())
                 ],
@@ -329,7 +328,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     decision = kalem_engine.decide(profile, day)
 
     if not focus_session.is_active():
-        from app.kalem_ml import fitur as kfitur
+        from models import fitur as kfitur
 
         storage.record_decision_shown(
             decision.kind,

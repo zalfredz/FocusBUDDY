@@ -137,8 +137,8 @@ def tes_mendesak_dari_deadline():
 def tes_data_basi():
     bagian("Data mood basi TIDAK dipakai buat nebak hari ini")
     from app.core import kalem_engine as ke
-    import app.kalem_ml as ml
-    from app.kalem_ml import fitur as F
+    import models as ml
+    from models import fitur as F
 
     storage_baru("basi_")
     pasang_logs(skor=1, n=6, energi=1, mulai_dari=10)
@@ -173,8 +173,8 @@ def tes_data_basi():
 def tes_hari_kosong_bukan_hari_buruk():
     bagian("Hari tanpa check-in = KOSONG, bukan hari buruk")
     from app import clock
-    import app.kalem_ml as ml
-    from app.kalem_ml import fitur as F, riwayat
+    import models as ml
+    from models import fitur as F, riwayat
 
     storage_baru("kosong_")
     st = storage.load_state()
@@ -216,7 +216,7 @@ def tes_urutan_mood():
 def tes_isolasi_model_antar_user():
     bagian("Cache model nggak bocor antar-user")
     from app import clock
-    from app.kalem_ml import fitur as F, model_mood
+    from models import fitur as F, model_mood
 
     def tulis(prefix: str, skor: int) -> Path:
         d = Path(tempfile.mkdtemp(prefix=prefix)) / ".focusbuddy"
@@ -256,7 +256,7 @@ def tes_isolasi_model_antar_user():
 def tes_fungsi_murni():
     bagian("decide()/build_morning_brief() murni dari argumen")
     from app import clock
-    import app.kalem_ml as ml
+    import models as ml
     from app.core import kalem_engine as ke
 
     storage_baru("murni_")
@@ -291,7 +291,7 @@ def tes_fungsi_murni():
 
 def tes_halaman_kebangun():
     bagian("Semua halaman kebangun")
-    import app.kalem_ml as ml
+    import models as ml
     from app.views import (diary, favorites, home, inbox, med_setup, mood,
                            morning_brief, onboarding, reset, settings, tracker)
 
@@ -412,7 +412,7 @@ def tes_pertanyaan_makan_dan_jam():
 def tes_pecah_hemat_api():
     bagian("Pecah Tugas: pungut hasil lama biar nggak nelpon API terus")
     from app.core import decomposer_logic as dl
-    from app.kalem_ml import model_pecah
+    from models import model_pecah
 
     storage_baru("pecah_")
 
@@ -477,7 +477,7 @@ def tes_pecah_hemat_api():
 
 def tes_retrieval_bahasa_natural():
     bagian("Pecah Tugas: retrieval bahasa natural (paraphrase, bukan variasi awalan)")
-    from app.kalem_ml import model_pecah
+    from models import model_pecah
 
     bawaan = list(model_pecah._pola_bawaan())
     target = "Beresin kamar"
@@ -519,7 +519,7 @@ def tes_fallback_ai_valid():
     from unittest.mock import patch
 
     from app.core import ai_client, decomposer_logic as dl
-    from app.kalem_ml import model_pecah
+    from models import model_pecah
 
     storage_baru("fallback_ai_")
 
@@ -565,7 +565,7 @@ def tes_fallback_ai_valid():
 
 def tes_label_keputusan():
     bagian("Label keputusan: 'Kalem nampilin X, user mencet apa nggak'")
-    from app.kalem_ml import fitur as F
+    from models import fitur as F
 
     storage_baru("label_")
 
@@ -594,8 +594,8 @@ def tes_label_keputusan():
 
 def tes_ml_kalem_tidak_kontaminasi():
     bagian("ML_KALEM: fitur decision-time TIDAK boleh ketimpa data outcome-time")
-    from app.kalem_ml import fitur as F
-    from app.kalem_ml import model_kalem
+    from models import fitur as F
+    from models import model_kalem
 
     storage_baru("kontaminasi_")
 
@@ -670,7 +670,7 @@ def tes_regresi_data_dan_tugas_berulang():
 def tes_langkah_tambahan_dan_ml_kalem():
     bagian("Langkah tambahan user & ML_KALEM")
     from app.core import decomposer_logic as dl
-    from app.kalem_ml import model_kalem
+    from models import model_kalem
 
     storage_baru("kalem_baru_")
     tugas = {

@@ -1,6 +1,7 @@
 """Gateway tunggal provider penyusun KALEM tanpa membocorkan detail provider ke UI."""
 from __future__ import annotations
 
+import ast
 import json
 import logging
 import os
@@ -133,7 +134,53 @@ def _urai_json(text: str, akar_array: bool) -> Optional[Any]:
     try:
         return json.loads(text[start:end + 1])
     except json.JSONDecodeError:
+        pass
+    for kandidat in (text, text[start:end + 1]):
+        try:
+            parsed = ast.literal_eval(kandidat)
+        except (SyntaxError, ValueError):
+            continue
+        if isinstance(parsed, (dict, list)):
+            return parsed
+    return None
+
+
+def _ambil_array(parsed: Any) -> Optional[list[Any]]:
+    if isinstance(parsed, list):
+        return parsed
+    if not isinstance(parsed, dict):
         return None
+    for key in ("item", "items", "data", "result"):
+        value = parsed.get(key)
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            nested = _urai_json(value, akar_array=True)
+            if isinstance(nested, list):
+                return nested
+    return None
+
+
+def _skema_openai(schema: dict) -> dict:
+    def ketatkan(value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        out = {key: ketatkan(item) for key, item in value.items()}
+        if out.get("type") == "object":
+            out["additionalProperties"] = False
+        return out
+
+    wrapped = (
+        {
+            "type": "object",
+            "properties": {"item": schema},
+            "required": ["item"],
+            "additionalProperties": False,
+        }
+        if schema.get("type") == "array"
+        else schema
+    )
+    return ketatkan(wrapped)
 
 
 def _ke_skema_gemini(schema: Any) -> Any:
@@ -213,11 +260,25 @@ def _panggil_estilo_openai(
         return None, PESAN_BELUM_DIKONFIGURASI
 
     akar_array = schema.get("type") == "array"
+    output_schema = _skema_openai(schema)
     petunjuk_bentuk = (
-        '\n\nBalas HANYA JSON valid, dibungkus begini: {"item": [...]} -- '
-        "isi array-nya ngikutin instruksi di atas."
-        if akar_array
-        else "\n\nBalas HANYA JSON valid sesuai instruksi di atas."
+        "\n\nFORMAT OUTPUT WAJIB:\n"
+        "- Balas HANYA JSON valid tanpa markdown atau penjelasan tambahan.\n"
+        "- Ikuti JSON Schema ini persis:\n"
+        f"{json.dumps(output_schema, ensure_ascii=False)}\n"
+        "- Jangan ubah array atau object menjadi string."
+    )
+    response_format = (
+        {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "kalem_response",
+                "strict": True,
+                "schema": output_schema,
+            },
+        }
+        if provider == "openai"
+        else {"type": "json_object"}
     )
 
     import time
@@ -229,7 +290,7 @@ def _panggil_estilo_openai(
             model=model,
             temperature=temperature,
             max_tokens=MAX_OUTPUT_TOKENS,
-            response_format={"type": "json_object"},
+            response_format=response_format,
             messages=[
                 {"role": "system", "content": system_instruction + petunjuk_bentuk},
                 {"role": "user", "content": prompt},
@@ -249,9 +310,9 @@ def _panggil_estilo_openai(
     if parsed is None:
         return None, "balasan Kalem nggak kebaca dengan benar"
     if akar_array:
-        if not isinstance(parsed, dict):
+        parsed = _ambil_array(parsed)
+        if parsed is None:
             return None, "balasan Kalem nggak sesuai format yang diharapkan"
-        parsed = parsed.get("item", [])
     return parsed, ""
 
 

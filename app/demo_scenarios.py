@@ -877,9 +877,9 @@ def apply_scenario(key: str) -> str:
         storage.add_inbox_note(note)
 
     try:
-        from app import kalem_ml
+        import models as kalem_models
 
-        kalem_ml.reset_semua()
+        kalem_models.reset_semua()
     except Exception:
         pass
 
@@ -921,9 +921,9 @@ def _without_demo_entries(state: dict) -> None:
 
 def _reset_models() -> None:
     try:
-        from app import kalem_ml
+        import models as kalem_models
 
-        kalem_ml.reset_semua()
+        kalem_models.reset_semua()
     except Exception:
         pass
 
@@ -1112,7 +1112,7 @@ def list_scenarios() -> list[tuple[str, str, str, str, str]]:
 
 
 def _cek_pattern_confidence(decision: Any, **ctx: Any) -> Optional[str]:
-    from app.kalem_ml import model_mood, model_overwhelm
+    from models import model_mood, model_overwhelm
 
     mood_siap = model_mood.status()["siap_model"]
     overwhelm_siap = model_overwhelm.status()["siap"]
@@ -1124,8 +1124,8 @@ def _cek_pattern_confidence(decision: Any, **ctx: Any) -> Optional[str]:
 
 
 def _cek_tidak_klaim_pola_personal(decision: Any, **ctx: Any) -> bool:
-    from app.kalem_ml import fitur as F
-    from app.kalem_ml import model_mood
+    from models import fitur as F
+    from models import model_mood
 
     ramalan = model_mood.ramal(F.bangun_fitur())
     return not ramalan.siap
@@ -1275,13 +1275,13 @@ def _cek_hindari_tugas_mustahil(decision: Any, **ctx: Any) -> Optional[bool]:
 
 
 def _cek_model_personal_bisa_aktif(decision: Any, **ctx: Any) -> bool:
-    from app.kalem_ml import model_mood, model_overwhelm
+    from models import model_mood, model_overwhelm
 
     return bool(model_mood.status()["siap_model"] or model_overwhelm.status()["siap"])
 
 
 def _cek_butuh_histori_cukup(decision: Any, **ctx: Any) -> bool:
-    from app.kalem_ml import model_mood
+    from models import model_mood
 
     return model_mood.status()["n_catatan"] >= model_mood.MIN_POLA
 
@@ -1411,8 +1411,8 @@ if __name__ == "__main__":
             print(f"  {'':<22} {desc}")
             print(f"  {'':<22} demo point: {wow}\n")
         print("Pakai:")
-        print("  python SettingDemo.py <nama_skenario>             # pasang doang")
-        print("  python SettingDemo.py <nama_skenario> --evaluasi  # pasang + decide() + cek expected")
+        print("  python -m app.demo_scenarios <nama_skenario>")
+        print("  python -m app.demo_scenarios <nama_skenario> --evaluasi")
     else:
         name = sys.argv[1]
         if name not in SCENARIOS:

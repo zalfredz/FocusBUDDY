@@ -17,7 +17,7 @@ BOBOT_DESKRIPSI = 0.6
 MIN_RECORDS = 1
 
 BAHASA_UTAMA = "id"
-DATASET_BAWAAN = Path(__file__).resolve().parents[2] / "DATASET" / "focusbuddy_dekomposisi_id.csv"
+DATASET_BAWAAN = Path(__file__).resolve().parent.parent / "datasets" / "task_decomposition_id.csv"
 
 
 @dataclass

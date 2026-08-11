@@ -39,5 +39,5 @@ exclude = [
   "build",
   "tests",
   "tools",
-  "DATASET/APP - Master Produk Komoditi Obat-2026-08-01.csv",
+  "datasets/bpom_products_2026-08-01.csv",
 ]

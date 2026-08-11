@@ -1,7 +1,7 @@
 """Model personal KALEM dan status kesiapan masing-masing model."""
 from __future__ import annotations
 
-from app.kalem_ml import (  # noqa: F401
+from models import (  # noqa: F401
     fitur,
     model_durasi,
     model_energi,

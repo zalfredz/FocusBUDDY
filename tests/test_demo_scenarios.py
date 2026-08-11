@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import SettingDemo
+from app import demo_scenarios
 from app import storage
 
 
@@ -60,7 +60,7 @@ def _test_overlay_tidak_merusak_data_user() -> None:
     storage.save_state(state)
     original = deepcopy(storage.load_state())
 
-    SettingDemo.apply_scenario_overlay("learning_from_history")
+    demo_scenarios.apply_scenario_overlay("learning_from_history")
     overlaid = storage.load_state()
 
     for key in (
@@ -87,7 +87,7 @@ def _test_overlay_tidak_merusak_data_user() -> None:
     today_logs = [log for log in overlaid["mood_logs"] if log.get("date") == date.today().isoformat()]
     assert len(today_logs) == 1 and not today_logs[0].get("_demo_generated")
 
-    SettingDemo.apply_scenario_overlay("deadline_stack")
+    demo_scenarios.apply_scenario_overlay("deadline_stack")
     replaced = storage.load_state()
     demo_entries = [
         item
@@ -98,7 +98,7 @@ def _test_overlay_tidak_merusak_data_user() -> None:
     assert demo_entries
     assert {item.get("_demo_scenario") for item in demo_entries} == {"deadline_stack"}
 
-    assert SettingDemo.clear_demo_overlay() is True
+    assert demo_scenarios.clear_demo_overlay() is True
     cleared = storage.load_state()
     assert "demo_overlay" not in cleared
     assert all(
@@ -132,9 +132,9 @@ def main() -> int:
         storage.BACKUP_FILE = storage.DATA_DIR / "data.json.bak"
         try:
             _test_overlay_tidak_merusak_data_user()
-            assert len(SettingDemo.SCENARIOS) == 10, "demo harus tetap punya 10 skenario inti"
-            assert set(SettingDemo.SCENARIOS) == set(SettingDemo.DEMO_OBJECTIVES), "set skenario/objective harus sama"
-            results = {key: SettingDemo.run_demo(key) for key in SettingDemo.SCENARIOS}
+            assert len(demo_scenarios.SCENARIOS) == 10, "demo harus tetap punya 10 skenario inti"
+            assert set(demo_scenarios.SCENARIOS) == set(demo_scenarios.DEMO_OBJECTIVES), "set skenario/objective harus sama"
+            results = {key: demo_scenarios.run_demo(key) for key in demo_scenarios.SCENARIOS}
         finally:
             storage.DATA_DIR, storage.DATA_FILE, storage.BACKUP_FILE = original
 

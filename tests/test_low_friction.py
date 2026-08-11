@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-DATASET = ROOT / "DATASET" / "focusbuddy_dekomposisi_id.csv"
+DATASET = ROOT / "datasets" / "task_decomposition_id.csv"
 TARGET_RATA = 1.8
 
 SKOR_MANUAL: list[tuple[str, str, int, str]] = [

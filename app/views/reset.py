@@ -15,7 +15,7 @@ from app.core.reset_preferences import (
     detect_distress,
     music_links,
 )
-from app.kalem_ml import model_penenang
+from models import model_penenang
 
 MOVE_ACTIONS = [
     "Berdiri, regangin badan 60 detik.",
