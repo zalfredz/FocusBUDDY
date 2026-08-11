@@ -48,7 +48,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         preset = storage.PRODUCTIVE_PRESETS.get(answers.get("productive_time", ""))
         answers["productive_hours"] = [[preset[0], preset[1]]] if preset else []
         storage.save_profile(answers)
-        storage.set_last_brief_date()
         navigate("med_setup" if answers.get("on_medication") == "ya" else "home")
 
     QUESTIONS = [
@@ -67,7 +66,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     ]
 
     WHY = {
-        "age_range": "Buat nyesuain gaya bahasa KALEM biar pas sama kamu.",
+        "age_range": "Disimpan sebagai konteks profil dan bisa kamu ubah kapan pun.",
         "status": f"Biar KALEM tahu gambaran ritme hari-harimu. Boleh pilih maksimal "
                   f"{storage.MAX_STATUS} ya.",
         "productive_time": "Biar KALEM tahu kapan harus bantu kamu fokus atau nurunin "

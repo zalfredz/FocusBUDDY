@@ -52,12 +52,19 @@ def _locked(fn):
 
 
 def _records_layak(records: list[dict]) -> list[dict]:
+    def repeated(record: dict) -> bool:
+        try:
+            return int(record.get("n_tampil", 1)) >= 3
+        except (TypeError, ValueError):
+            return False
+
     return [
         record for record in records
         if record.get("kind") == "next_action"
         and record.get("action_kind") == "focus"
         and isinstance(record.get("fitur"), dict)
         and record.get("fitur")
+        and (record.get("acted") is True or repeated(record))
     ]
 
 

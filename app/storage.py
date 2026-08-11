@@ -200,6 +200,7 @@ def _default_state() -> dict[str, Any]:
         "favorites": {key: "" for key in FAVORITE_FIELDS},
         "tasks": [],
         "mood_logs": [],
+        "diary_records": [],
         "reset_events": [],
         "medication": None,
         "inbox": [],
@@ -264,6 +265,7 @@ def _migrate(state: dict[str, Any]) -> dict[str, Any]:
         )
 
     fresh["reset_events"] = state.get("reset_events", [])
+    fresh["diary_records"] = state.get("diary_records", [])
     fresh["inbox"] = state.get("inbox", [])
     fresh["last_brief_date"] = state.get("last_brief_date", "")
     fresh["today_energy"] = state.get("today_energy", {"date": "", "level": 0})
@@ -391,7 +393,7 @@ def load_state() -> dict[str, Any]:
             migrated[key] = deepcopy(_default_state()[key])
             changed = True
     for key in (
-        "tasks", "mood_logs", "reset_events", "inbox", "focus_records",
+        "tasks", "mood_logs", "diary_records", "reset_events", "inbox", "focus_records",
         "decompose_records", "decision_records",
     ):
         if not isinstance(migrated.get(key), list):
@@ -411,6 +413,25 @@ def load_state() -> dict[str, Any]:
             changed = True
     if _normalise_profile(profile):
         changed = True
+    for task in migrated.get("tasks", []):
+        if not isinstance(task, dict):
+            continue
+        for step in task.get("steps", []):
+            if isinstance(step, dict) and not step.get("id"):
+                step["id"] = str(uuid.uuid4())
+                changed = True
+        occurrences = task.get("occurrences", {})
+        if not isinstance(occurrences, dict):
+            task["occurrences"] = {}
+            changed = True
+            continue
+        for steps in occurrences.values():
+            if not isinstance(steps, list):
+                continue
+            for step in steps:
+                if isinstance(step, dict) and not step.get("id"):
+                    step["id"] = str(uuid.uuid4())
+                    changed = True
     if changed:
         save_state(migrated)
     dev = migrated.get("dev", {})
@@ -462,6 +483,11 @@ def needs_morning_brief() -> bool:
     if not state["profile"].get("onboarded"):
         return False
     return state.get("last_brief_date", "") != clock.today().isoformat()
+
+
+def ready_for_morning_brief() -> bool:
+    """Morning Brief baru final setelah kondisi aktual hari ini tersedia."""
+    return needs_morning_brief() and today_mood() is not None
 
 
 def set_last_brief_date() -> None:
@@ -772,7 +798,10 @@ def add_task(
         "custom_steps": [str(step).strip() for step in (custom_steps or []) if str(step).strip()],
         "repeat": repeat if repeat in {"none", "daily", "weekly", "monthly"} else "none",
         "occurrences": {},
-        "steps": steps or [],
+        "steps": [
+            {**step, "id": step.get("id") or str(uuid.uuid4())}
+            for step in (steps or [])
+        ],
         "created_at": clock.now().isoformat(),
     }
     state["tasks"].append(task)
@@ -792,6 +821,10 @@ def tasks_for(day: str) -> list[dict]:
 
     tampil: list[dict] = []
     for task in get_tasks():
+        if not (task.get("deadline") or "").strip():
+            if target == clock.today() and task.get("repeat", "none") == "none":
+                tampil.append(dict(task))
+            continue
         try:
             mulai = date.fromisoformat(task["deadline"])
         except (KeyError, TypeError, ValueError):
@@ -821,16 +854,22 @@ def tasks_today() -> list[dict]:
 def tasks_actionable_today() -> list[dict]:
     today = clock.today()
     current = tasks_for(today.isoformat())
-    overdue = []
+    current_ids = {task.get("id") for task in current}
+    carry_over = []
     for task in get_tasks():
-        if task.get("repeat", "none") != "none" or task_is_done(task):
+        if (
+            task.get("id") in current_ids
+            or task.get("repeat", "none") != "none"
+            or task_is_done(task)
+        ):
             continue
         try:
-            if date.fromisoformat(task["deadline"]) < today:
-                overdue.append(task)
+            deadline = date.fromisoformat(task["deadline"])
         except (KeyError, TypeError, ValueError):
             continue
-    return current + overdue
+        if deadline < today or is_urgent(task):
+            carry_over.append(task)
+    return current + carry_over
 
 
 def delete_task(task_id: str) -> None:
@@ -850,7 +889,11 @@ def set_task_steps(task_id: str, steps: list[dict], occurrence_date: Optional[st
                 s.get("text") for s in old_steps if s.get("done")
             }
             new_steps = [
-                {**s, "done": s.get("done", False) or s.get("text") in done_texts}
+                {
+                    **s,
+                    "id": s.get("id") or str(uuid.uuid4()),
+                    "done": s.get("done", False) or s.get("text") in done_texts,
+                }
                 for s in steps
             ]
             task["steps"] = new_steps
@@ -887,6 +930,85 @@ def set_step_done(
             steps[step_index]["done"] = done
             break
     save_state(state)
+
+
+def ensure_focus_step(
+    task_id: str,
+    step_text: str,
+    occurrence_date: Optional[str] = None,
+) -> int:
+    """Materialisasi micro-step untuk task yang belum memiliki decomposition."""
+    state = load_state()
+    for task in state["tasks"]:
+        if task.get("id") != task_id:
+            continue
+        if occurrence_date and task.get("repeat", "none") != "none":
+            steps = task.setdefault("occurrences", {}).setdefault(
+                occurrence_date, [dict(step) for step in task.get("steps", [])]
+            )
+        else:
+            steps = task.setdefault("steps", [])
+        for index, step in enumerate(steps):
+            if step.get("text") == step_text:
+                return index
+        steps.insert(0, {"id": str(uuid.uuid4()), "text": step_text, "done": False})
+        if len(steps) == 1:
+            steps.append({
+                "id": str(uuid.uuid4()),
+                "text": f"Lanjutkan {task.get('title', 'tugas')}",
+                "done": False,
+            })
+        save_state(state)
+        return 0
+    return -1
+
+
+def apply_focus_outcome(
+    task_id: str,
+    step_index: int,
+    outcome: str,
+    occurrence_date: Optional[str] = None,
+) -> bool:
+    """Terapkan outcome fokus ke step yang tepat tanpa mencocokkan judul."""
+    if outcome != "completed" or not task_id:
+        return False
+    state = load_state()
+    for task in state["tasks"]:
+        if task.get("id") != task_id:
+            continue
+        if occurrence_date and task.get("repeat", "none") != "none":
+            steps = task.setdefault("occurrences", {}).setdefault(
+                occurrence_date, [dict(step) for step in task.get("steps", [])]
+            )
+        else:
+            steps = task.get("steps", [])
+        if 0 <= int(step_index) < len(steps):
+            steps[int(step_index)]["done"] = True
+            save_state(state)
+            return True
+        return False
+    return False
+
+
+def task_completion_status(task_id: str, occurrence_date: Optional[str] = None) -> bool:
+    tasks = tasks_for(occurrence_date) if occurrence_date else get_tasks()
+    task = next((item for item in tasks if item.get("id") == task_id), None)
+    return task_is_done(task) if task else False
+
+
+def task_step_id(
+    task_id: str,
+    step_index: int,
+    occurrence_date: Optional[str] = None,
+) -> str:
+    tasks = tasks_for(occurrence_date) if occurrence_date else get_tasks()
+    task = next((item for item in tasks if item.get("id") == task_id), None)
+    if not task:
+        return ""
+    steps = task.get("steps", [])
+    if 0 <= step_index < len(steps):
+        return str(steps[step_index].get("id", ""))
+    return ""
 
 
 def task_is_done(task: dict) -> bool:
@@ -930,11 +1052,22 @@ def add_focus_record(
     task_title: str = "",
     menit_est: int = 0,
     selesai: bool = False,
+    outcome: str = "",
+    task_id: str = "",
+    step_id: str = "",
+    occurrence_date: str = "",
+    step_index: Optional[int] = None,
+    decision_id: str = "",
+    reflection: str = "",
+    session_started_at: str = "",
+    session_ended_at: str = "",
+    task_completed: bool = False,
 ) -> Optional[dict]:
-    if float(menit) < MIN_RECORD_MINUTES:
+    if float(menit) < MIN_RECORD_MINUTES and not outcome:
         return None
     state = load_state()
     record = {
+        "id": str(uuid.uuid4()),
         "kategori": kategori,
         "jumlah_unit": float(jumlah_unit),
         "menit": round(float(menit), 1),
@@ -942,7 +1075,19 @@ def add_focus_record(
         "selesai": bool(selesai),
         "energi": int(energi),
         "task_title": task_title,
+        "task_id": task_id,
+        "step_id": step_id,
+        "occurrence_date": occurrence_date,
+        "step_index": step_index,
+        "decision_id": decision_id,
+        "outcome": outcome,
+        "reflection": reflection.strip(),
+        "session_started_at": session_started_at,
+        "session_ended_at": session_ended_at or clock.now().isoformat(),
+        "actual_focus_minutes": round(float(menit), 1),
+        "task_completed": bool(task_completed),
         "date": clock.today().isoformat(),
+        "timestamp": clock.now().isoformat(),
     }
     state.setdefault("focus_records", []).insert(0, record)
     state["focus_records"] = state["focus_records"][:200]
@@ -1019,6 +1164,10 @@ def record_decision_shown(
     action_kind: str,
     fitur: Optional[Any] = None,
     label: str = "",
+    *,
+    task_id: str = "",
+    occurrence_date: str = "",
+    step_index: Optional[int] = None,
 ) -> Optional[str]:
     if not kind:
         return None
@@ -1031,6 +1180,9 @@ def record_decision_shown(
             r.get("date") == hari_ini
             and r.get("kind") == kind
             and r.get("action_kind") == action_kind
+            and r.get("task_id", "") == task_id
+            and r.get("occurrence_date", "") == occurrence_date
+            and r.get("step_index") == step_index
             and not r.get("acted")
         ):
             r["n_tampil"] = int(r.get("n_tampil", 1)) + 1
@@ -1046,9 +1198,17 @@ def record_decision_shown(
         "kind": kind,
         "action_kind": action_kind,
         "label": label,
+        "task_id": task_id,
+        "occurrence_date": occurrence_date,
+        "step_index": step_index,
         "n_tampil": 1,
         "acted": False,
         "acted_at": "",
+        "started": False,
+        "started_at": "",
+        "completed": False,
+        "completed_at": "",
+        "helpful": None,
         "fitur": _fitur_ringkas(fitur),
     }
     daftar.insert(0, catatan)
@@ -1071,6 +1231,56 @@ def record_decision_acted(kind: str, action_kind: str) -> bool:
             r["acted_at"] = clock.now().isoformat()
             save_state(state)
             return True
+    return False
+
+
+def record_decision_acted_by_id(record_id: Optional[str]) -> bool:
+    if not record_id:
+        return False
+    state = load_state()
+    for record in state.get("decision_records", []):
+        if record.get("id") != record_id:
+            continue
+        if not record.get("acted"):
+            record["acted"] = True
+            record["acted_at"] = clock.now().isoformat()
+            save_state(state)
+        return True
+    return False
+
+
+def record_decision_started(record_id: Optional[str]) -> bool:
+    if not record_id:
+        return False
+    state = load_state()
+    for record in state.get("decision_records", []):
+        if record.get("id") != record_id:
+            continue
+        record["started"] = True
+        record["started_at"] = record.get("started_at") or clock.now().isoformat()
+        save_state(state)
+        return True
+    return False
+
+
+def record_decision_outcome(
+    record_id: Optional[str],
+    *,
+    completed: bool,
+    helpful: Optional[bool] = None,
+) -> bool:
+    if not record_id:
+        return False
+    state = load_state()
+    for record in state.get("decision_records", []):
+        if record.get("id") != record_id:
+            continue
+        record["completed"] = bool(completed)
+        record["completed_at"] = clock.now().isoformat()
+        if helpful is not None:
+            record["helpful"] = bool(helpful)
+        save_state(state)
+        return True
     return False
 
 
@@ -1150,21 +1360,125 @@ def today_mood() -> Optional[dict]:
 
 
 def diary_entries() -> list[dict]:
-    return [entry for entry in get_mood_logs() if entry.get("diary")]
+    state = load_state()
+    records = list(state.get("diary_records", []))
+    dates_with_records = {record.get("date") for record in records}
+    legacy = [
+        {
+            "id": f"legacy-{entry.get('date', '')}",
+            "date": entry.get("date", ""),
+            "timestamp": entry.get("date", ""),
+            "diary": entry.get("diary", ""),
+            "mood": entry.get("mood", "tenang"),
+            "tags": list(entry.get("tags") or []),
+            "source": "legacy_mood_log",
+        }
+        for entry in state.get("mood_logs", [])
+        if entry.get("diary") and entry.get("date") not in dates_with_records
+    ]
+    return sorted(
+        records + legacy,
+        key=lambda entry: str(entry.get("timestamp", entry.get("date", ""))),
+        reverse=True,
+    )
+
+
+def add_diary_entry(
+    text: str,
+    *,
+    mood: str = "",
+    tags: Optional[list[str]] = None,
+    source: str = "diary",
+) -> Optional[dict]:
+    clean = (text or "").strip()
+    if not clean:
+        return None
+    state = load_state()
+    today = clock.today().isoformat()
+    today_log = next(
+        (entry for entry in state.get("mood_logs", []) if entry.get("date") == today),
+        None,
+    )
+    records = state.setdefault("diary_records", [])
+    if today_log and today_log.get("diary") and not any(
+        record.get("date") == today for record in records
+    ):
+        records.append({
+            "id": str(uuid.uuid4()),
+            "date": today,
+            "timestamp": f"{today}T00:00:00",
+            "diary": today_log["diary"],
+            "mood": today_log.get("mood", "tenang"),
+            "tags": list(today_log.get("tags") or []),
+            "source": "legacy_mood_log",
+        })
+    record = {
+        "id": str(uuid.uuid4()),
+        "date": today,
+        "timestamp": clock.now().isoformat(),
+        "diary": clean,
+        "mood": mood or (today_log or {}).get("mood", "tenang"),
+        "tags": list(tags or []),
+        "source": source,
+    }
+    records.insert(0, record)
+    if today_log is not None:
+        today_texts = [
+            item.get("diary", "")
+            for item in reversed(records)
+            if item.get("date") == today and item.get("diary")
+        ]
+        today_log["diary"] = "\n\n".join(today_texts)
+        today_log["tags"] = list(dict.fromkeys(
+            list(today_log.get("tags") or []) + list(tags or [])
+        ))[:12]
+    save_state(state)
+    return record
+    return record
 
 
 def add_reset_event(choice: str) -> dict:
     state = load_state()
     latest = state["mood_logs"][0] if state["mood_logs"] else None
     event = {
+        "id": str(uuid.uuid4()),
         "timestamp": clock.now().isoformat(),
         "date": clock.today().isoformat(),
         "choice": choice,
         "mood_score": latest["score"] if latest else None,
+        "energy_before": latest.get("energy") if latest else None,
+        "completed": False,
+        "completed_at": "",
+        "improved": None,
+        "followup_used": False,
     }
     state["reset_events"].insert(0, event)
     save_state(state)
     return event
+
+
+def complete_reset_event(event_id: str, *, improved: bool) -> bool:
+    state = load_state()
+    for event in state.get("reset_events", []):
+        if event.get("id") != event_id:
+            continue
+        event["completed"] = True
+        event["completed_at"] = clock.now().isoformat()
+        event["improved"] = bool(improved)
+        save_state(state)
+        return True
+    return False
+
+
+def mark_reset_followup_used(event_id: str) -> bool:
+    state = load_state()
+    for event in state.get("reset_events", []):
+        if event.get("id") != event_id:
+            continue
+        event["followup_used"] = True
+        save_state(state)
+        return True
+    return False
 
 
 def get_reset_events(within_days: Optional[int] = None) -> list[dict]:

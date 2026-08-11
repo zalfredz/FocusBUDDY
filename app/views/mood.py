@@ -209,6 +209,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_insight()
         render_history()
         page.update()
+        if storage.ready_for_morning_brief():
+            navigate("home")
+            return
         offer_diary(mood)
 
     def offer_diary(mood: str):

@@ -1,6 +1,7 @@
 """Decision engine tunggal yang memilih respons dan tindakan KALEM."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Optional
@@ -9,6 +10,8 @@ from app import clock
 from app.core.medication_model import check_status, missed_streak
 
 MED_NUDGE_HOUR = 7
+MED_NUDGE_END_HOUR = 12
+POMODORO_MAX_MINUTES = 25
 
 ENERGY_BLOCKS = {
     1: (5, 3),
@@ -36,6 +39,8 @@ class KalemDecision:
     step_text: str = ""
     step_index: int = 0
     focus_minutes: int = 15
+    remaining_minutes: int = 0
+    context_event_id: str = ""
 
 
 @dataclass
@@ -62,6 +67,62 @@ def focus_minutes_for(energy_level: int) -> int:
 def break_minutes_for(energy_level: int) -> int:
     _, rest = ENERGY_BLOCKS.get(energy_level, ENERGY_BLOCKS[3])
     return rest
+
+
+def task_remaining_minutes(
+    task: dict,
+    step_index: int,
+    focus_records: Optional[list[dict]] = None,
+) -> int:
+    """Estimasi sisa task dari estimasi Tracker, checklist, dan sesi sebelumnya."""
+    try:
+        estimate = max(0, int(task.get("menit_est", 0) or 0))
+    except (TypeError, ValueError):
+        estimate = 0
+    if estimate <= 0:
+        return 0
+
+    steps = task.get("steps", [])
+    pending = [index for index, step in enumerate(steps) if not step.get("done")]
+    remaining = (
+        math.ceil(estimate * len(pending) / len(steps))
+        if steps and pending
+        else estimate
+    )
+
+    occurrence = task.get("_occurrence_date", "")
+    spent = 0.0
+    for record in focus_records or []:
+        if record.get("task_id") != task.get("id"):
+            continue
+        if record.get("occurrence_date", "") != occurrence:
+            continue
+        if record.get("step_index") != step_index:
+            continue
+        if record.get("outcome") == "completed":
+            continue
+        try:
+            spent += float(record.get("actual_focus_minutes", record.get("menit", 0)) or 0)
+        except (TypeError, ValueError):
+            continue
+    return max(1, math.ceil(remaining - spent))
+
+
+def task_focus_minutes(
+    task: dict,
+    step_index: int,
+    energy_level: int,
+    focus_records: Optional[list[dict]] = None,
+    available_minutes: Optional[int] = None,
+) -> tuple[int, int]:
+    """Bentuk satu sesi Pomodoro dari sisa task; energi hanya menjadi batas."""
+    remaining = task_remaining_minutes(task, step_index, focus_records)
+    energy_cap = min(POMODORO_MAX_MINUTES, focus_minutes_for(energy_level))
+    task_cap = min(POMODORO_MAX_MINUTES, remaining) if remaining else energy_cap
+    session = max(1, min(task_cap, energy_cap))
+    if available_minutes is not None and available_minutes > 0:
+        session = min(session, int(available_minutes))
+    return session, remaining
 
 
 def focus_reason(energy_level: int) -> str:
@@ -143,7 +204,67 @@ def pick_next_action(
         if not step.get("done"):
             return chosen, i, step.get("text", chosen["title"])
 
-    return chosen, 0, chosen["title"]
+    return chosen, -1, f"Buka bahan yang dibutuhkan untuk {chosen['title']}"
+
+
+def _pending_reset_followup(events: list[dict]) -> Optional[dict]:
+    today = clock.today().isoformat()
+    return next(
+        (
+            event
+            for event in events
+            if event.get("date") == today
+            and event.get("completed") is True
+            and event.get("improved") is not None
+            and not event.get("followup_used", False)
+        ),
+        None,
+    )
+
+
+def _recently_blocked(task: dict, records: list[dict]) -> bool:
+    occurrence = task.get("_occurrence_date", "")
+    return any(
+        record.get("date") == clock.today().isoformat()
+        and record.get("task_id") == task.get("id")
+        and record.get("occurrence_date", "") == occurrence
+        and record.get("outcome") == "blocked"
+        for record in records[:10]
+    )
+
+
+def _decision_context_message(
+    profile: dict,
+    day: DayState,
+    energy: int,
+    risk_level: str,
+    reset_followup: Optional[dict],
+    now: datetime,
+) -> str:
+    if reset_followup and reset_followup.get("improved") is True:
+        return "Kalau sudah sedikit lebih enak, cukup satu langkah kecil ini."
+    if risk_level == "waspada":
+        return "Kepalanya lagi penuh, jadi KALEM kecilkan langkah dan durasinya."
+    if energy <= 2:
+        return "Energi kamu lagi rendah, jadi sesi ini dibuat lebih pendek."
+
+    open_tasks = [task for task in day.tasks_today if not _task_done(task)]
+    workload_minutes = 0
+    for task in open_tasks:
+        try:
+            workload_minutes += max(0, int(task.get("menit_est", 0) or 0))
+        except (TypeError, ValueError):
+            continue
+    if len(open_tasks) >= 4 or workload_minutes >= 180:
+        return "Bebannya lagi padat, jadi KALEM pilih satu prioritas paling masuk akal."
+    if in_productive_window(profile, now) is False:
+        return "Sekarang di luar jam fokus pilihanmu, jadi targetnya dibuat lebih ringan."
+    return ""
+
+
+def _task_done(task: dict) -> bool:
+    steps = task.get("steps", [])
+    return bool(steps) and all(step.get("done") for step in steps)
 
 
 def predicted_mood(mood_logs: list[dict], default: str = "tenang") -> str:
@@ -178,51 +299,92 @@ def decide(
     energy = day.energy_level or _energy_from_logs(day.mood_logs)
     minutes = focus_minutes_for(energy)
 
+    from models import fitur as kfitur
+    from models import model_overwhelm
+
+    fitur_sekarang = kfitur.bangun_fitur(now, day=day, profil=profile)
+    risiko = model_overwhelm.nilai(fitur_sekarang)
+    reset_followup = _pending_reset_followup(day.reset_events)
+
+    if reset_followup and reset_followup.get("improved") is False:
+        return KalemDecision(
+            kind="recovery",
+            message="Ternyata belum terasa lebih enak. Nggak perlu dipaksa lanjut.",
+            detail="Tugasnya tetap tersimpan. Kembali kalau kamu memang sudah siap.",
+            mood="cemas",
+            action_label="Aku istirahat dulu",
+            action_kind="rest",
+            focus_minutes=minutes,
+            context_event_id=reset_followup.get("id", ""),
+        )
+
+    if risiko.tingkat == "berat" and not (
+        reset_followup and reset_followup.get("improved") is True
+    ):
+        return KalemDecision(
+            kind="recovery",
+            message="Kondisinya kelihatan berat. Hari ini nggak harus dipaksa produktif.",
+            detail="Kalau mau recovery, kamu tetap bisa memilih menu Reset sendiri.",
+            mood="cemas",
+            action_label="Aku istirahat dulu",
+            action_kind="rest",
+            focus_minutes=minutes,
+        )
+
     med_status = check_status(day.medication)
-    if med_status.active and med_status.pills_remaining > 0 and now.hour >= MED_NUDGE_HOUR:
+    if (
+        risiko.tingkat == "tenang"
+        and med_status.active
+        and med_status.pills_remaining > 0
+        and MED_NUDGE_HOUR <= now.hour < MED_NUDGE_END_HOUR
+    ):
         taken_today = (day.medication or {}).get("last_taken") == clock.today().isoformat()
         if not taken_today:
             return KalemDecision(
                 kind="med",
                 message=f"Udah minum {med_status.name} hari ini?",
-                detail="Kalau udah, pencet aja -- stoknya Kalem yang hitung.",
+                detail="Kalau udah, pencet aja -- stoknya KALEM yang hitung.",
                 mood=mood,
                 action_label="Udah minum",
                 action_kind="med_taken",
                 focus_minutes=minutes,
             )
 
-    from models import fitur as kfitur
-    from models import model_overwhelm
-
-    fitur_sekarang = kfitur.bangun_fitur(now, day=day, profil=profile)
-    risiko = model_overwhelm.nilai(fitur_sekarang)
-    if risiko.perlu_diringankan:
-        return KalemDecision(
-            kind="pre_escalate",
-            message="Beberapa hari ini kelihatannya berat ya.",
-            detail="Nggak harus produktif dulu. Mau berhenti sebentar sama Kalem?",
-            mood="cemas",
-            action_label="Ambil jeda",
-            action_kind="reset",
-            focus_minutes=minutes,
-        )
-
     found = pick_next_action(
         day.tasks_today, available_minutes=day.available_minutes, now=now,
     )
+    if found and day.available_minutes is not None and day.available_minutes <= 0:
+        return KalemDecision(
+            kind="calm",
+            message="Waktu yang tersedia sekarang sudah habis.",
+            detail="Tugasnya tetap aman. KALEM pilih lagi saat kamu punya waktu.",
+            mood=mood,
+            action_label="Nggak sekarang",
+            action_kind="rest",
+            focus_minutes=0,
+        )
     if found:
         task, step_index, step_text = found
         from models import model_kalem
 
+        minutes, remaining_minutes = task_focus_minutes(
+            task,
+            step_index,
+            energy,
+            day.focus_records,
+            day.available_minutes,
+        )
         engagement = model_kalem.nilai(fitur_sekarang, records=day.decision_records)
         if engagement.perlu_diringankan:
-            minutes = max(5, minutes - 5)
-        gentle = in_productive_window(profile, now) is False
-        message = (
-            "Kalau lagi nggak di jam terbaik kamu, satu langkah kecil aja udah cukup."
-            if gentle
-            else "Satu hal ini dulu aja."
+            minutes = max(1, minutes - 5)
+        if risiko.tingkat == "waspada":
+            minutes = min(minutes, 10)
+        if reset_followup and reset_followup.get("improved") is True:
+            minutes = min(minutes, 10)
+        if _recently_blocked(task, day.focus_records):
+            minutes = min(minutes, 5)
+        message = _decision_context_message(
+            profile, day, energy, risiko.tingkat, reset_followup, now
         )
         return KalemDecision(
             kind="next_action",
@@ -235,6 +397,8 @@ def decide(
             step_text=step_text,
             step_index=step_index,
             focus_minutes=minutes,
+            remaining_minutes=remaining_minutes,
+            context_event_id=(reset_followup or {}).get("id", ""),
         )
 
     return KalemDecision(

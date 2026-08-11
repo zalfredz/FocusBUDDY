@@ -285,8 +285,9 @@ def tes_fungsi_murni():
              "choice": "napas", "mood_score": None} for i in (0, 1, 2)
         ],
     )
-    ok(ke.decide(profile, day_berat).kind == "pre_escalate",
-       "day berat -> eskalasi, walau storage-nya tenang")
+    keputusan_berat = ke.decide(profile, day_berat)
+    ok(keputusan_berat.kind == "recovery" and keputusan_berat.action_kind == "rest",
+       "day berat -> recovery tanpa Reset otomatis, walau storage-nya tenang")
 
 
 def tes_halaman_kebangun():
@@ -410,12 +411,12 @@ def tes_komponen_baru():
 
 
 def tes_fokus_ngunci():
-    bagian("Mode fokus ngunci halaman lain (kecuali jeda)")
+    bagian("Mode fokus ngunci seluruh navigation utama")
     import app.main as main_mod
     from app import focus_session
 
-    ok("reset" in main_mod.FOKUS_BOLEH,
-       "halaman JEDA tetap boleh dibuka -- ngunci jalan keluar orang kewalahan itu bahaya")
+    ok("reset" not in main_mod.FOKUS_BOLEH,
+       "OVERWHELM tidak dibuka di tengah sesi; user mengakhiri sesi dulu")
     ok("home" in main_mod.FOKUS_BOLEH, "Beranda boleh (di situ timernya tinggal)")
     ok("tracker" not in main_mod.FOKUS_BOLEH, "Tracker dikunci pas lagi fokus")
 
@@ -705,9 +706,8 @@ def tes_ml_kalem_tidak_kontaminasi():
     ok(not bocor, f"model_kalem.FEATURES nggak nyerempet field outcome-only (dapet bocor: {bocor})")
 
     kolom_skema = set(storage.get_decision_records()[0].keys())
-    ok({"started", "completed"} & kolom_skema == set(),
-       "[KARAKTERISASI] skema decision_records saat ini cuma shown+acted -- "
-       "started/completed belum ada, jadi belum ada risiko kontaminasi dari situ")
+    ok({"started", "completed", "helpful"} <= kolom_skema,
+       "decision lifecycle punya started/completed/helpful sebagai outcome terpisah")
 
 
 def tes_regresi_data_dan_tugas_berulang():
@@ -833,7 +833,7 @@ def tes_langkah_tambahan_dan_ml_kalem():
         low = i < 12
         records.append({
             "kind": "next_action", "action_kind": "focus", "acted": not low,
-            "n_tampil": 1,
+            "n_tampil": 3 if low else 1,
             "fitur": {
                 "energi_terakhir": 1 if low else 6,
                 "skor_3h": 2 if low else 5,
@@ -844,6 +844,12 @@ def tes_langkah_tambahan_dan_ml_kalem():
         sinyal = model_kalem.nilai({"energi_terakhir": 1, "skor_3h": 2, "n_belum_selesai": 6}, records)
         ok(sinyal.siap and sinyal.perlu_diringankan,
            "ML_KALEM aktif setelah data cukup dan hanya meringankan target")
+        sekali_dilihat = dict(records[0], n_tampil=1)
+        ok(sekali_dilihat not in model_kalem._records_layak([sekali_dilihat]),
+           "recommendation yang baru sekali terlihat dan belum dipencet tetap netral")
+        tiga_kali_dilewati = dict(sekali_dilihat, n_tampil=3)
+        ok(tiga_kali_dilewati in model_kalem._records_layak([tiga_kali_dilewati]),
+           "recommendation yang dilewati berulang baru boleh menjadi sinyal peringanan")
         belum = model_kalem.nilai({}, records[:8])
         ok(not belum.siap, "ML_KALEM tetap diam saat data belum cukup")
     finally:

@@ -37,9 +37,6 @@ def ukur_manfaat(
         d = _tanggal(log.get("date", ""))
         if d is not None and log.get("score") is not None:
             skor_per_hari[d] = float(log["score"])
-    if not skor_per_hari:
-        return {}, {}
-
     hari_urut = sorted(skor_per_hari)
     kumpul: dict[str, list[float]] = {}
     jumlah: dict[str, int] = {}
@@ -49,7 +46,13 @@ def ukur_manfaat(
         d = _tanggal(ev.get("date", ""))
         if pilihan not in OPTIONS or d is None:
             continue
+        if ev.get("completed") is False:
+            continue
         jumlah[pilihan] = jumlah.get(pilihan, 0) + 1
+
+        if isinstance(ev.get("improved"), bool):
+            kumpul.setdefault(pilihan, []).append(1.0 if ev["improved"] else -1.0)
+            continue
 
         sebelum = [h for h in hari_urut if h <= d]
         sesudah = [h for h in hari_urut if d < h <= d + timedelta(days=JENDELA_SESUDAH)]
@@ -101,8 +104,7 @@ def peringkat(
         if naik >= SELISIH_BERARTI:
             catatan = (
                 f"Dari {jumlah.get(atas, 0)}x kamu pakai, "
-                f"'{OPTIONS[atas]['label']}' yang paling sering bikin "
-                "hari-hari sesudahnya lebih enak."
+                f"'{OPTIONS[atas]['label']}' yang paling sering terasa membantu."
             )
         else:
             catatan = (

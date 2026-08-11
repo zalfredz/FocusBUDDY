@@ -56,10 +56,14 @@ if config.DEMO_MODE:
 
 FULLSCREEN_ROUTES = {"onboarding", "morning_brief"}
 
-FOKUS_BOLEH = {"home", "reset"}
+FOKUS_BOLEH = {"home"}
 
 NAV_INDEX = {name: i for i, (name, _, _) in enumerate(NAV_ROUTES)}
 _log = logging.getLogger(__name__)
+
+
+def focus_navigation_allowed(route: str) -> bool:
+    return not focus_session.is_active() or route in FOKUS_BOLEH
 
 
 async def _read_preference_string(
@@ -394,7 +398,7 @@ async def main(page: ft.Page) -> None:
         storage.touch_last_open()
 
         def _tolak_keluar_fokus(tujuan: str) -> bool:
-            if not focus_session.is_running() or tujuan in FOKUS_BOLEH:
+            if focus_navigation_allowed(tujuan):
                 return False
 
             s = focus_session.snapshot()
@@ -402,11 +406,6 @@ async def main(page: ft.Page) -> None:
 
             def lanjut(e):
                 page.pop_dialog()
-
-            def tetap_pindah(e):
-                page.pop_dialog()
-                focus_session.pause()
-                navigate(tujuan)
 
             page.show_dialog(
                 ft.AlertDialog(
@@ -419,8 +418,7 @@ async def main(page: ft.Page) -> None:
                                 size=13,
                             ),
                             ft.Text(
-                                "Yuk selesaiin itu dulu. Kalau emang perlu pindah, "
-                                "sesinya aku jeda dulu ya biar nggak keitung putus.",
+                                "Selesaikan, pause, atau akhiri sesi dari layar Focus dulu.",
                                 size=11.5,
                                 color=theme.MUTED,
                             ),
@@ -429,10 +427,6 @@ async def main(page: ft.Page) -> None:
                         tight=True,
                     ),
                     actions=[
-                        ft.TextButton(
-                            content=ft.Text("Pindah aja", color=theme.MUTED),
-                            on_click=tetap_pindah,
-                        ),
                         ui_helpers.primary_button(
                             "Lanjut fokus", lanjut, icon=ft.Icons.BOLT
                         ),
@@ -442,6 +436,11 @@ async def main(page: ft.Page) -> None:
             return True
 
         def navigate(route: str) -> None:
+            if _tolak_keluar_fokus(route):
+                nav_bar.selected_index = NAV_INDEX.get("home", 0)
+                page.update()
+                return
+
             cleanup = getattr(page, "_focusbuddy_view_cleanup", None)
             if callable(cleanup):
                 cleanup()
@@ -450,19 +449,14 @@ async def main(page: ft.Page) -> None:
             if route != "onboarding" and not storage.get_profile().get("onboarded"):
                 route = "onboarding"
 
-            if _tolak_keluar_fokus(route):
-                nav_bar.selected_index = NAV_INDEX.get("home", 0)
-                page.update()
-                return
-
-            if route == "home" and storage.needs_morning_brief():
+            if route == "home" and storage.ready_for_morning_brief():
                 route = "morning_brief"
 
             builder = ROUTES.get(route, home.build)
             content.content = builder(page, navigate)
             if route in NAV_INDEX:
                 nav_bar.selected_index = NAV_INDEX[route]
-            nav_bar.visible = route not in FULLSCREEN_ROUTES
+            nav_bar.visible = route not in FULLSCREEN_ROUTES and not focus_session.is_active()
             page.update()
 
         nav_bar = ft.NavigationBar(

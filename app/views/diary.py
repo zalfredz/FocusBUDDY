@@ -18,15 +18,13 @@ PROMPTS = [
 def build(page: ft.Page, navigate) -> ft.Control:
     latest = storage.latest_mood()
     mood = latest["mood"] if latest else buddy.DEFAULT_MOOD
-    today_iso = clock.today().isoformat()
-    existing_today = latest["diary"] if latest and latest["date"] == today_iso else ""
 
     prompt = recurring_tag_prompt(storage.get_mood_logs()) or PROMPTS[
         clock.today().toordinal() % len(PROMPTS)
     ]
 
     story_field = ft.TextField(
-        value=existing_today,
+        value="",
         hint_text="Tulis sebisanya. Nggak harus rapi, nggak harus panjang.",
         multiline=True,
         min_lines=5,
@@ -120,16 +118,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
         current_mood = current["mood"] if current else mood
         keywords = extract_keywords(text)
         tags = keywords + [tag for tag in extract_tags(text) if tag not in keywords]
-        storage.add_mood_log(
-            mood=current_mood,
-            score=buddy.score_for(current_mood),
-            energy=current.get("energy", 3) if current else 3,
-            diary=text,
-            tags=tags[:6],
-            quick_tags=current.get("quick_tags", []) if current else [],
-            ate_today=current.get("ate_today") if current else None,
-            rested_enough=current.get("rested_enough") if current else None,
-        )
+        if current is None:
+            storage.add_mood_log(
+                mood=current_mood,
+                score=buddy.score_for(current_mood),
+                energy=3,
+            )
+        storage.add_diary_entry(text, mood=current_mood, tags=tags[:6])
+        story_field.value = ""
         saved_note.value = "Tersimpan. Makasih udah cerita 🤍"
         render_entries()
         page.update()

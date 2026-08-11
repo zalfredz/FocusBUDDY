@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import random
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Callable, Optional
 
 JADWAL_KULIAH: dict[int, list[tuple[str, str, str]]] = {
@@ -258,6 +258,7 @@ def _skenario_deadline_stack() -> dict:
                         "deadline sore, kecil+nggak penting+deadline paling deket.",
         "premium": False,
         "available_minutes_hint": 30,
+        "include_classes": False,
         "profile": {
             "name": "Alfredo", "age_range": "18-24", "status": ["mahasiswa"],
             "productive_hours": [[19, 23]], "sleep_condition": "cukup",
@@ -543,6 +544,40 @@ def _skenario_learning_from_history() -> dict:
     }
 
 
+def _skenario_alur(
+    label: str,
+    description: str,
+    flow_case: str,
+    tasks: Optional[list[dict]] = None,
+    *,
+    available_minutes: Optional[int] = 20,
+) -> dict:
+    scenario = {
+        "label": label,
+        "description": description,
+        "flow_case": flow_case,
+        "include_classes": False,
+        "premium": False,
+        "profile": {
+            "name": "Demo", "age_range": "18-24", "status": ["mahasiswa"],
+            "productive_hours": [], "sleep_condition": "cukup",
+            "on_medication": "tidak", "overwhelm_triggers": [], "custom_triggers": [],
+        },
+        "favorites": {},
+        "mood_history": [
+            _log(4, 4, ["stabil"], "Kondisi cukup stabil.", True, True) | {"offset": 0}
+        ],
+        "tasks": tasks or [],
+        "inbox": [],
+        "medication": None,
+        "sos_days_ago": [],
+        "show_brief_today": False,
+    }
+    if available_minutes is not None:
+        scenario["available_minutes_hint"] = available_minutes
+    return scenario
+
+
 SCENARIOS: dict[str, dict] = {
     "baru": _skenario_baru(),
     "deadline_stack": _skenario_deadline_stack(),
@@ -554,6 +589,74 @@ SCENARIOS: dict[str, dict] = {
     "chaotic_workload": _skenario_chaotic_workload(),
     "overdue_recovery": _skenario_overdue_recovery(),
     "learning_from_history": _skenario_learning_from_history(),
+    "large_task_decomposition": _skenario_alur(
+        "Task besar — diubah jadi langkah konkret",
+        "Task 120 menit tanpa langkah diuji lewat decision engine dan materialisasi langkah.",
+        "large_task_decomposition",
+        [{"title": "Kerjakan skripsi", "important": True, "difficulty": 3,
+          "estimated_minutes": 120, "deadline_time": "23:59", "steps": []}],
+        available_minutes=15,
+    ),
+    "focus_completed": _skenario_alur(
+        "Focus selesai — progres task diperbarui",
+        "Outcome Selesai harus menandai langkah persis lalu menjalankan decide() lagi.",
+        "focus_completed",
+        [{"title": "Latihan Kalkulus", "important": True, "difficulty": 1,
+          "estimated_minutes": 20, "steps": ["Kerjakan soal nomor 1", "Cek jawaban"]}],
+    ),
+    "focus_incomplete": _skenario_alur(
+        "Focus belum selesai — task tetap terbuka",
+        "Outcome Belum selesai dicatat tanpa menghilangkan progres yang belum selesai.",
+        "focus_incomplete",
+        [{"title": "Baca jurnal", "important": True, "difficulty": 2,
+          "estimated_minutes": 30, "steps": ["Baca abstrak", "Catat temuan"]}],
+    ),
+    "focus_blocked": _skenario_alur(
+        "Focus terhambat — langkah berikutnya diperkecil",
+        "Outcome Terhambat memicu keputusan ulang yang lebih ringan pada task yang sama.",
+        "focus_blocked",
+        [{"title": "Tulis laporan", "important": True, "difficulty": 3,
+          "estimated_minutes": 90, "steps": ["Buka data laporan", "Tulis pembahasan"]}],
+    ),
+    "recurring_identity": _skenario_alur(
+        "Tugas berulang — occurrence tetap terpisah",
+        "Menyelesaikan occurrence hari ini tidak boleh menyelesaikan occurrence minggu depan.",
+        "recurring_identity",
+        [{"title": "Review mingguan", "important": True, "difficulty": 1,
+          "estimated_minutes": 15, "repeat": "weekly", "steps": ["Buka catatan minggu ini"]}],
+    ),
+    "duplicate_title": _skenario_alur(
+        "Judul kembar — update berdasarkan ID",
+        "Dua task berjudul sama harus tetap memiliki outcome dan metadata yang terpisah.",
+        "duplicate_title",
+        [
+            {"title": "Tugas kembar", "important": True, "difficulty": 3,
+             "estimated_minutes": 45, "kategori": "Rumah", "steps": ["Langkah decoy"]},
+            {"title": "Tugas kembar", "important": True, "difficulty": 1,
+             "estimated_minutes": 10, "kategori": "Kuliah", "steps": ["Langkah yang benar"]},
+        ],
+    ),
+    "no_task": _skenario_alur(
+        "Tidak ada task — tetap ada satu arah",
+        "Pipeline tanpa task harus memberi aksi tenang yang jujur, bukan task rekaan.",
+        "no_task",
+        [],
+        available_minutes=None,
+    ),
+    "ignored_recommendation": _skenario_alur(
+        "Rekomendasi belum diambil",
+        "Recommendation yang baru terlihat tidak boleh otomatis dianggap acted atau gagal.",
+        "ignored_recommendation",
+        [{"title": "Rapikan catatan", "important": True, "difficulty": 1,
+          "estimated_minutes": 10, "steps": ["Buka catatan"]}],
+    ),
+    "reset_not_improved": _skenario_alur(
+        "Reset belum membantu — jangan paksa produktif",
+        "Sesudah user bilang belum membaik, keputusan berikutnya harus memberi ruang istirahat.",
+        "reset_not_improved",
+        [{"title": "Kerjakan laporan besar", "important": True, "difficulty": 3,
+          "estimated_minutes": 90, "steps": ["Buka laporan"]}],
+    ),
 }
 
 
@@ -590,7 +693,7 @@ DEMO_OBJECTIVES: dict[str, dict] = {
         "expected": {
             "respect_available_time": True,
             "use_minutes_est": True,
-            "avoid_large_task_when_capacity_is_low": True,
+            "meaningful_progress_with_small_capacity": True,
         },
         "demo_objective": {
             "primary": "capacity_awareness",
@@ -635,7 +738,7 @@ DEMO_OBJECTIVES: dict[str, dict] = {
         ),
         "tests": ["overwhelm_short_circuit", "low_friction_action", "reduced_workload"],
         "expected": {
-            "overwhelm_short_circuit": True,
+            "does_not_auto_open_reset": True,
             "next_action_should_be_small": True,
             "should_not_force_large_task": True,
         },
@@ -684,6 +787,7 @@ DEMO_OBJECTIVES: dict[str, dict] = {
             "decide_called_again": True,
             "next_action_can_change": True,
             "next_action_should_be_less_demanding": True,
+            "reset_was_user_triggered": True,
         },
         "demo_objective": {
             "primary": "re_decision",
@@ -773,6 +877,86 @@ DEMO_OBJECTIVES: dict[str, dict] = {
         },
         "wow": "Setelah punya histori yang cukup, respons Kalem mulai menggunakan pola personal user.",
     },
+    "large_task_decomposition": {
+        "demo_title": "Task Besar Menjadi Satu Langkah",
+        "story": "Task besar tanpa outline dinilai dengan kapasitas nyata 15 menit.",
+        "tests": ["decomposition", "task_identity", "capacity"],
+        "expected": {"large_task_is_decomposed": True},
+        "wow": "KALEM mempertahankan task asal sambil membuat titik mulai yang konkret.",
+    },
+    "focus_completed": {
+        "demo_title": "Focus Selesai Memperbarui Progres",
+        "story": "User menyelesaikan satu sesi dan secara eksplisit memilih Selesai.",
+        "tests": ["focus_outcome", "task_update", "re_decision"],
+        "expected": {"task_step_completed": True, "decision_re_evaluated": True},
+        "wow": "Timer tidak menyelesaikan task; jawaban user yang memperbarui langkah.",
+    },
+    "focus_incomplete": {
+        "demo_title": "Focus Belum Selesai Tetap Jujur",
+        "story": "User berhenti tetapi pekerjaannya belum selesai.",
+        "tests": ["focus_outcome", "open_task", "re_decision"],
+        "expected": {
+            "task_stays_open": True,
+            "focus_outcome_recorded": "incomplete",
+            "decision_re_evaluated": True,
+        },
+        "wow": "Durasi fokus tersimpan tanpa mengarang completion.",
+    },
+    "focus_blocked": {
+        "demo_title": "Saat Terhambat, Langkah Diperkecil",
+        "story": "User menandai sesi sebagai Terhambat pada task besar.",
+        "tests": ["blocked_outcome", "smaller_next_action", "task_identity"],
+        "expected": {
+            "task_stays_open": True,
+            "focus_outcome_recorded": "blocked",
+            "blocked_action_is_smaller": True,
+        },
+        "wow": "KALEM merespons hambatan dengan sesi 5 menit pada task yang sama.",
+    },
+    "recurring_identity": {
+        "demo_title": "Occurrence Tugas Berulang Tetap Terpisah",
+        "story": "Occurrence minggu ini selesai, occurrence minggu depan belum.",
+        "tests": ["recurring_identity", "focus_outcome"],
+        "expected": {
+            "current_occurrence_completed": True,
+            "next_occurrence_stays_open": True,
+        },
+        "wow": "Satu checklist mingguan tidak menutup semua minggu berikutnya.",
+    },
+    "duplicate_title": {
+        "demo_title": "Dua Judul Sama, ID Tetap Benar",
+        "story": "Dua task punya judul identik tetapi metadata dan tingkat kesulitan berbeda.",
+        "tests": ["task_id", "duplicate_title", "focus_outcome"],
+        "expected": {"exact_task_updated": True, "duplicate_task_untouched": True},
+        "wow": "Outcome mengikuti ID yang dipilih engine, bukan pencocokan judul.",
+    },
+    "no_task": {
+        "demo_title": "Hari Tanpa Task",
+        "story": "Tidak ada task dan tidak ada kelas buatan yang disisipkan.",
+        "tests": ["empty_state", "safe_action"],
+        "expected": {"no_task_action_is_honest": True},
+        "wow": "KALEM tetap memberi arah tanpa mengarang pekerjaan.",
+    },
+    "ignored_recommendation": {
+        "demo_title": "Recommendation Belum Diambil",
+        "story": "Recommendation tampil dua kali tetapi user belum menekan aksinya.",
+        "tests": ["decision_lifecycle", "shown_not_acted"],
+        "expected": {
+            "recommendation_is_shown_not_acted": True,
+            "ignored_is_not_completion_failure": True,
+        },
+        "wow": "Belum bertindak tidak disamakan dengan recommendation yang buruk.",
+    },
+    "reset_not_improved": {
+        "demo_title": "Reset Belum Membantu",
+        "story": "User menyelesaikan Reset tetapi menjawab kondisinya belum membaik.",
+        "tests": ["reset_feedback", "no_forced_productivity"],
+        "expected": {
+            "reset_completed_without_improvement": True,
+            "no_productivity_is_forced": True,
+        },
+        "wow": "KALEM memberi ruang istirahat dan tidak memaksa user kembali bekerja.",
+    },
 }
 
 
@@ -850,7 +1034,10 @@ def apply_scenario(key: str) -> str:
 
     storage.save_state(state)
 
-    for task in (scenario.get("tasks") or []) + _tugas_kelas_hari_ini():
+    scenario_tasks = list(scenario.get("tasks") or [])
+    if scenario.get("include_classes", True):
+        scenario_tasks += _tugas_kelas_hari_ini()
+    for task in scenario_tasks:
         deadline_time = task.get("deadline_time")
         if deadline_time is None:
             deadline_time = "09:00" if task.get("urgent") else ""
@@ -861,16 +1048,18 @@ def apply_scenario(key: str) -> str:
             deadline_iso = deadline_date.isoformat()
         else:
             deadline_iso = str(deadline_date)
+        raw_steps = task.get("steps") if "steps" in task else [task["title"]]
         storage.add_task(
             task["title"],
             deadline_iso,
             task.get("important", True),
-            steps=[{"text": s, "done": False} for s in (task.get("steps") or [task["title"]])],
+            steps=[{"text": s, "done": False} for s in raw_steps],
             difficulty_est=int(task.get("difficulty", 2)),
             deadline_time=deadline_time,
             menit_est=int(task.get("estimated_minutes", task.get("menit_est", 0)) or 0),
             kategori=task.get("kategori", ""),
             jumlah_unit=task.get("jumlah_unit", 0),
+            repeat=task.get("repeat", "none"),
         )
 
     for note in scenario.get("inbox") or []:
@@ -1031,7 +1220,10 @@ def apply_scenario_overlay(key: str) -> str:
         reverse=True,
     )
 
-    for task in (scenario.get("tasks") or []) + _tugas_kelas_hari_ini():
+    scenario_tasks = list(scenario.get("tasks") or [])
+    if scenario.get("include_classes", True):
+        scenario_tasks += _tugas_kelas_hari_ini()
+    for task in scenario_tasks:
         deadline_time = task.get("deadline_time")
         if deadline_time is None:
             deadline_time = "09:00" if task.get("urgent") else ""
@@ -1042,6 +1234,7 @@ def apply_scenario_overlay(key: str) -> str:
             deadline_iso = deadline_date.isoformat()
         else:
             deadline_iso = str(deadline_date)
+        raw_steps = task.get("steps") if "steps" in task else [task["title"]]
         state.setdefault("tasks", []).append(
             {
                 "id": str(uuid.uuid4()),
@@ -1057,11 +1250,11 @@ def apply_scenario_overlay(key: str) -> str:
                 ),
                 "description": "",
                 "custom_steps": [],
-                "repeat": "none",
+                "repeat": task.get("repeat", "none"),
                 "occurrences": {},
                 "steps": [
                     {"text": step, "done": False}
-                    for step in (task.get("steps") or [task["title"]])
+                    for step in raw_steps
                 ],
                 "created_at": clock.now().isoformat(),
                 _DEMO_MARKER: True,
@@ -1141,7 +1334,7 @@ def _cek_hormati_waktu_tersedia(decision: Any, **ctx: Any) -> Optional[bool]:
     tersedia = ctx.get("available_minutes")
     if tersedia is None or decision.task is None:
         return None
-    return int(decision.task.get("menit_est", 0) or 0) <= tersedia
+    return decision.action_kind == "focus" and 0 < decision.focus_minutes <= tersedia
 
 
 def _cek_pakai_menit_est(decision: Any, **ctx: Any) -> Optional[bool]:
@@ -1151,12 +1344,14 @@ def _cek_pakai_menit_est(decision: Any, **ctx: Any) -> Optional[bool]:
 
 
 def _cek_hindari_tugas_besar_saat_kapasitas_kecil(decision: Any, **ctx: Any) -> Optional[bool]:
-    from app.core.decision_quality import assess_capacity
-
     tersedia = ctx.get("available_minutes")
     if tersedia is None or decision.task is None:
         return None
-    return assess_capacity([decision.task], tersedia).fits
+    return (
+        decision.action_kind == "focus"
+        and 0 < decision.focus_minutes <= tersedia
+        and bool((decision.step_text or "").strip())
+    )
 
 
 def _cek_tidak_overwhelm_tanpa_bukti(decision: Any, **ctx: Any) -> bool:
@@ -1168,7 +1363,7 @@ def _cek_durasi_masuk_akal(decision: Any, **ctx: Any) -> bool:
 
 
 def _cek_overwhelm_short_circuit(decision: Any, **ctx: Any) -> bool:
-    return decision.kind == "pre_escalate" and decision.action_kind == "reset"
+    return decision.action_kind != "reset"
 
 
 def _cek_next_action_kecil(decision: Any, **ctx: Any) -> bool:
@@ -1178,7 +1373,7 @@ def _cek_next_action_kecil(decision: Any, **ctx: Any) -> bool:
 def _cek_tidak_paksa_tugas_besar(decision: Any, **ctx: Any) -> bool:
     if decision.action_kind != "focus" or decision.task is None:
         return True
-    return int(decision.task.get("menit_est", 0) or 0) <= 45
+    return decision.focus_minutes <= 10
 
 
 def _cek_tidak_terlalu_diringankan(decision: Any, **ctx: Any) -> bool:
@@ -1195,9 +1390,18 @@ def _cek_decide_dipanggil_lagi(decision: Any, **ctx: Any) -> bool:
 
 def _cek_next_action_bisa_berubah(decision: Any, **ctx: Any) -> Optional[bool]:
     sebelum = ctx.get("decision_before")
-    if sebelum is None or sebelum.task is None or decision.task is None:
+    if sebelum is None:
         return None
-    return sebelum.task.get("id") != decision.task.get("id")
+    before_task_id = sebelum.task.get("id") if sebelum.task else None
+    after_task_id = decision.task.get("id") if decision.task else None
+    return any(
+        (
+            before_task_id != after_task_id,
+            sebelum.step_text != decision.step_text,
+            sebelum.focus_minutes != decision.focus_minutes,
+            sebelum.action_kind != decision.action_kind,
+        )
+    )
 
 
 def _cek_next_action_lebih_ringan(decision: Any, **ctx: Any) -> Optional[bool]:
@@ -1266,12 +1470,14 @@ def _cek_overdue_jadi_kandidat(decision: Any, **ctx: Any) -> bool:
 
 
 def _cek_hindari_tugas_mustahil(decision: Any, **ctx: Any) -> Optional[bool]:
-    from app.core.decision_quality import assess_capacity
-
     tersedia = ctx.get("available_minutes")
     if tersedia is None or decision.task is None:
         return None
-    return assess_capacity([decision.task], tersedia).fits
+    return (
+        decision.action_kind == "focus"
+        and 0 < decision.focus_minutes <= tersedia
+        and bool((decision.step_text or "").strip())
+    )
 
 
 def _cek_model_personal_bisa_aktif(decision: Any, **ctx: Any) -> bool:
@@ -1286,6 +1492,13 @@ def _cek_butuh_histori_cukup(decision: Any, **ctx: Any) -> bool:
     return model_mood.status()["n_catatan"] >= model_mood.MIN_POLA
 
 
+def _cek_flow_value(name: str) -> Callable[..., Any]:
+    def check(decision: Any, **ctx: Any) -> Any:
+        return (ctx.get("flow") or {}).get(name)
+
+    return check
+
+
 _PEMERIKSA: dict[str, Callable[..., Any]] = {
     "pattern_confidence": _cek_pattern_confidence,
     "should_not_claim_personal_pattern": _cek_tidak_klaim_pola_personal,
@@ -1293,9 +1506,11 @@ _PEMERIKSA: dict[str, Callable[..., Any]] = {
     "respect_available_time": _cek_hormati_waktu_tersedia,
     "use_minutes_est": _cek_pakai_menit_est,
     "avoid_large_task_when_capacity_is_low": _cek_hindari_tugas_besar_saat_kapasitas_kecil,
+    "meaningful_progress_with_small_capacity": _cek_hindari_tugas_besar_saat_kapasitas_kecil,
     "do_not_trigger_overwhelm_without_evidence": _cek_tidak_overwhelm_tanpa_bukti,
     "prefer_reasonable_duration": _cek_durasi_masuk_akal,
     "overwhelm_short_circuit": _cek_overwhelm_short_circuit,
+    "does_not_auto_open_reset": _cek_overwhelm_short_circuit,
     "next_action_should_be_small": _cek_next_action_kecil,
     "should_not_force_large_task": _cek_tidak_paksa_tugas_besar,
     "should_not_over_reduce_task": _cek_tidak_terlalu_diringankan,
@@ -1313,6 +1528,27 @@ _PEMERIKSA: dict[str, Callable[..., Any]] = {
     "avoid_impossible_task": _cek_hindari_tugas_mustahil,
     "personal_model_can_activate": _cek_model_personal_bisa_aktif,
     "pattern_requires_sufficient_history": _cek_butuh_histori_cukup,
+    **{
+        name: _cek_flow_value(name)
+        for name in (
+            "reset_was_user_triggered",
+            "large_task_is_decomposed",
+            "task_step_completed",
+            "decision_re_evaluated",
+            "task_stays_open",
+            "focus_outcome_recorded",
+            "blocked_action_is_smaller",
+            "current_occurrence_completed",
+            "next_occurrence_stays_open",
+            "exact_task_updated",
+            "duplicate_task_untouched",
+            "no_task_action_is_honest",
+            "recommendation_is_shown_not_acted",
+            "ignored_is_not_completion_failure",
+            "reset_completed_without_improvement",
+            "no_productivity_is_forced",
+        )
+    },
 }
 
 
@@ -1322,10 +1558,15 @@ def evaluate_demo_result(
     *,
     decision_before: Optional[Any] = None,
     available_minutes: Optional[int] = None,
+    flow: Optional[dict[str, Any]] = None,
 ) -> dict:
     objective = DEMO_OBJECTIVES[key]
     expected = objective.get("expected", {})
-    ctx = {"decision_before": decision_before, "available_minutes": available_minutes}
+    ctx = {
+        "decision_before": decision_before,
+        "available_minutes": available_minutes,
+        "flow": flow or {},
+    }
 
     result: dict = {
         "scenario": key,
@@ -1368,26 +1609,198 @@ def run_demo(key: str) -> dict:
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-    from app import storage
+    from app import focus_session, storage
     from app.core import kalem_engine
 
     apply_scenario(key)
+    focus_session.stop()
     available_minutes = SCENARIOS[key].get("available_minutes_hint")
 
     profile, day = kalem_engine.snapshot()
     day.available_minutes = available_minutes
     decision = kalem_engine.decide(profile, day)
     decision_before = None
+    flow: dict[str, Any] = {}
+
+    def rerun_decision() -> Any:
+        current_profile, current_day = kalem_engine.snapshot()
+        current_day.available_minutes = available_minutes
+        return kalem_engine.decide(current_profile, current_day)
+
+    def run_focus_outcome(outcome: str) -> tuple[Any, Optional[dict], dict, int]:
+        if decision.task is None:
+            return decision, None, {}, -1
+        task = decision.task
+        occurrence = task.get("_occurrence_date", "")
+        step_index = decision.step_index
+        if step_index < 0:
+            step_index = storage.ensure_focus_step(
+                task.get("id", ""), decision.step_text, occurrence or None
+            )
+        record_id = storage.record_decision_shown(
+            decision.kind,
+            decision.action_kind,
+            label=decision.action_label,
+            task_id=task.get("id", ""),
+            occurrence_date=occurrence,
+            step_index=step_index,
+        )
+        storage.record_decision_acted_by_id(record_id)
+        focus_session.start(
+            5,
+            label=decision.step_text,
+            task_title=task.get("title", ""),
+            kategori=task.get("kategori", ""),
+            jumlah_unit=task.get("jumlah_unit", 0),
+            task_id=task.get("id", ""),
+            occurrence_date=occurrence,
+            step_index=step_index,
+            decision_id=record_id or "",
+        )
+        session = focus_session._state()
+        session.total_seconds = 5 * 60
+        session.ends_at = datetime.now() - timedelta(seconds=1)
+        record = focus_session.finish(outcome)
+        return rerun_decision(), record, task, step_index
 
     if key == "after_reset":
         decision_before = decision
-        storage.add_reset_event("napas")
-        profile, day = kalem_engine.snapshot()
-        day.available_minutes = available_minutes
-        decision = kalem_engine.decide(profile, day)
+        event = storage.add_reset_event("napas")
+        storage.complete_reset_event(event["id"], improved=True)
+        flow["reset_was_user_triggered"] = bool(
+            storage.get_reset_events()[0].get("completed")
+        )
+        decision = rerun_decision()
+    elif key == "reset_not_improved":
+        event = storage.add_reset_event("grounding")
+        storage.complete_reset_event(event["id"], improved=False)
+        decision_before = decision
+        decision = rerun_decision()
+        saved_event = storage.get_reset_events()[0]
+        flow["reset_completed_without_improvement"] = (
+            saved_event.get("completed") is True and saved_event.get("improved") is False
+        )
+        flow["no_productivity_is_forced"] = decision.action_kind == "rest"
+    elif key == "large_task_decomposition":
+        task = decision.task or {}
+        step_index = storage.ensure_focus_step(
+            task.get("id", ""), decision.step_text, task.get("_occurrence_date") or None
+        )
+        saved = next(
+            (item for item in storage.get_tasks() if item.get("id") == task.get("id")),
+            {},
+        )
+        flow["large_task_is_decomposed"] = bool(
+            task
+            and int(task.get("menit_est", 0) or 0) > int(available_minutes or 0)
+            and 0 <= step_index < len(saved.get("steps", []))
+            and saved["steps"][step_index].get("text") == decision.step_text
+            and decision.focus_minutes <= int(available_minutes or decision.focus_minutes)
+        )
+    elif key in {"focus_completed", "focus_incomplete", "focus_blocked", "recurring_identity", "duplicate_title"}:
+        outcome = {
+            "focus_completed": "completed",
+            "focus_incomplete": "incomplete",
+            "focus_blocked": "blocked",
+            "recurring_identity": "completed",
+            "duplicate_title": "completed",
+        }[key]
+        decision_before = decision
+        decision, record, selected_task, step_index = run_focus_outcome(outcome)
+        occurrence = selected_task.get("_occurrence_date", "")
+        current = next(
+            (
+                task for task in storage.tasks_for(occurrence or date.today().isoformat())
+                if task.get("id") == selected_task.get("id")
+            ),
+            {},
+        )
+        selected_step_done = bool(
+            0 <= step_index < len(current.get("steps", []))
+            and current["steps"][step_index].get("done")
+        )
+        flow["task_step_completed"] = selected_step_done
+        flow["task_stays_open"] = not storage.task_is_done(current)
+        flow["focus_outcome_recorded"] = (record or {}).get("outcome")
+        flow["decision_re_evaluated"] = decision is not None
+        flow["blocked_action_is_smaller"] = bool(
+            outcome == "blocked"
+            and decision.task
+            and decision.task.get("id") == selected_task.get("id")
+            and decision.focus_minutes == 5
+        )
+        if key == "recurring_identity":
+            next_occurrence = (date.today() + timedelta(days=7)).isoformat()
+            future = next(
+                (
+                    task for task in storage.tasks_for(next_occurrence)
+                    if task.get("id") == selected_task.get("id")
+                ),
+                {},
+            )
+            flow["current_occurrence_completed"] = storage.task_is_done(current)
+            flow["next_occurrence_stays_open"] = bool(future) and not storage.task_is_done(future)
+        if key == "duplicate_title":
+            all_duplicates = [
+                task for task in storage.get_tasks() if task.get("title") == "Tugas kembar"
+            ]
+            selected_saved = next(
+                (task for task in all_duplicates if task.get("id") == selected_task.get("id")),
+                {},
+            )
+            other = next(
+                (task for task in all_duplicates if task.get("id") != selected_task.get("id")),
+                {},
+            )
+            flow["exact_task_updated"] = bool(
+                selected_saved.get("kategori") == "Kuliah"
+                and selected_saved.get("steps", [{}])[0].get("done")
+            )
+            flow["duplicate_task_untouched"] = bool(
+                other.get("kategori") == "Rumah"
+                and not any(step.get("done") for step in other.get("steps", []))
+            )
+    elif key == "no_task":
+        flow["no_task_action_is_honest"] = bool(
+            decision.task is None
+            and decision.kind == "calm"
+            and decision.action_kind == "add_task"
+        )
+    elif key == "ignored_recommendation":
+        task = decision.task or {}
+        identity = {
+            "task_id": task.get("id", ""),
+            "occurrence_date": task.get("_occurrence_date", ""),
+            "step_index": decision.step_index,
+        }
+        first_id = storage.record_decision_shown(
+            decision.kind, decision.action_kind, label=decision.action_label, **identity
+        )
+        second_id = storage.record_decision_shown(
+            decision.kind, decision.action_kind, label=decision.action_label, **identity
+        )
+        record = next(
+            (item for item in storage.get_decision_records() if item.get("id") == first_id),
+            {},
+        )
+        flow["recommendation_is_shown_not_acted"] = bool(
+            first_id == second_id and record.get("n_tampil") == 2 and not record.get("acted")
+        )
+        from models import model_kalem
+
+        flow["ignored_is_not_completion_failure"] = bool(
+            record
+            and not record.get("completed")
+            and not record.get("completed_at")
+            and record not in model_kalem._records_layak([record])
+        )
 
     hasil = evaluate_demo_result(
-        key, decision, decision_before=decision_before, available_minutes=available_minutes,
+        key,
+        decision,
+        decision_before=decision_before,
+        available_minutes=available_minutes,
+        flow=flow,
     )
     hasil["decision"] = {
         "kind": decision.kind,
@@ -1398,6 +1811,7 @@ def run_demo(key: str) -> dict:
         "task_id": decision.task.get("id") if decision.task else None,
         "task_title": decision.task.get("title") if decision.task else None,
     }
+    hasil["flow"] = flow
     return hasil
 
 

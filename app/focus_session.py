@@ -22,6 +22,12 @@ class _FocusState:
     jumlah_unit: float = 0.0
     energi: int = 4
     recorded: bool = False
+    task_id: str = ""
+    step_id: str = ""
+    occurrence_date: str = ""
+    step_index: int = -1
+    decision_id: str = ""
+    started_at: str = ""
 
 
 _FALLBACK_STATE = _FocusState()
@@ -38,6 +44,11 @@ def start(
     kategori: str = "",
     jumlah_unit: float = 0,
     energi: int = 4,
+    task_id: str = "",
+    step_id: str = "",
+    occurrence_date: str = "",
+    step_index: int = -1,
+    decision_id: str = "",
 ) -> None:
     state = _state()
     state.total_seconds = max(int(minutes), 1) * 60
@@ -50,6 +61,16 @@ def start(
     state.jumlah_unit = float(jumlah_unit)
     state.energi = int(energi)
     state.recorded = False
+    state.task_id = task_id
+    state.step_id = step_id
+    state.occurrence_date = occurrence_date
+    state.step_index = int(step_index)
+    state.decision_id = decision_id
+    state.started_at = datetime.now().isoformat()
+    if decision_id:
+        from app import storage
+
+        storage.record_decision_started(decision_id)
 
 
 def elapsed_minutes() -> float:
@@ -57,7 +78,10 @@ def elapsed_minutes() -> float:
     return max(0.0, (state.total_seconds - remaining()) / 60.0)
 
 
-def record_if_worthwhile() -> Optional[dict]:
+def record_if_worthwhile(
+    outcome: str = "",
+    reflection: str = "",
+) -> Optional[dict]:
     from app import storage
 
     state = _state()
@@ -71,7 +95,19 @@ def record_if_worthwhile() -> Optional[dict]:
         energi=state.energi,
         task_title=state.task_title,
         menit_est=state.total_seconds // 60,
-        selesai=remaining() <= 0,
+        selesai=outcome == "completed",
+        outcome=outcome,
+        task_id=state.task_id,
+        step_id=state.step_id,
+        occurrence_date=state.occurrence_date,
+        step_index=state.step_index if state.step_index >= 0 else None,
+        decision_id=state.decision_id,
+        reflection=reflection,
+        session_started_at=state.started_at,
+        session_ended_at=datetime.now().isoformat(),
+        task_completed=storage.task_completion_status(
+            state.task_id, state.occurrence_date or None
+        ),
     )
 
 
@@ -99,7 +135,35 @@ def reset() -> None:
 
 
 def stop() -> None:
-    record_if_worthwhile()
+    """Buang sesi tanpa menyimpulkan outcome; dipakai logout dan cleanup."""
+    _clear()
+
+
+def finish(outcome: str, reflection: str = "") -> Optional[dict]:
+    """Simpan outcome eksplisit lalu tutup sesi fokus."""
+    allowed = {"completed", "incomplete", "blocked", "later"}
+    if outcome not in allowed or not is_active():
+        return None
+    from app import storage
+
+    state = _state()
+    if outcome == "completed":
+        storage.apply_focus_outcome(
+            state.task_id,
+            state.step_index,
+            outcome,
+            state.occurrence_date or None,
+        )
+    record = record_if_worthwhile(outcome, reflection)
+    storage.record_decision_outcome(
+        state.decision_id,
+        completed=outcome == "completed",
+    )
+    _clear()
+    return record
+
+
+def _clear() -> None:
     state = _state()
     state.total_seconds = 0
     state.label = ""
@@ -111,6 +175,12 @@ def stop() -> None:
     state.jumlah_unit = 0.0
     state.energi = 4
     state.recorded = False
+    state.task_id = ""
+    state.step_id = ""
+    state.occurrence_date = ""
+    state.step_index = -1
+    state.decision_id = ""
+    state.started_at = ""
 
 
 def remaining() -> int:
@@ -140,7 +210,6 @@ def just_finished() -> bool:
     if state.total_seconds > 0 and remaining() <= 0 and state.ends_at is not None:
         _ends_at_none()
         state.finished = True
-        record_if_worthwhile()
     return state.finished
 
 
@@ -168,6 +237,12 @@ def snapshot() -> dict[str, Any]:
         "remaining": left,
         "label": state.label,
         "task_title": state.task_title,
+        "task_id": state.task_id,
+        "step_id": state.step_id,
+        "occurrence_date": state.occurrence_date,
+        "step_index": state.step_index,
+        "decision_id": state.decision_id,
+        "session_started_at": state.started_at,
         "running": is_running(),
         "paused": is_paused(),
         "active": is_active(),

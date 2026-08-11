@@ -104,8 +104,9 @@ def scenario_priority_and_reset() -> None:
             ),
             now=datetime.combine(clock.today(), datetime.min.time()).replace(hour=10),
         )
-    check(decision.kind == "pre_escalate" and decision.action_kind == "reset",
-          "setelah sinyal Reset/risk, jeda didahulukan daripada tugas")
+    check(decision.kind == "next_action" and decision.action_kind == "focus"
+          and decision.focus_minutes <= 10,
+          "overwhelm waspada mengecilkan action tanpa membuat Reset otomatis")
 
     with patch(
         "models.model_overwhelm.nilai",
@@ -180,7 +181,7 @@ def scenario_pick_next_action_agresif() -> None:
     ditawarkan = focus_minutes_for(3)
     check(ditawarkan <= 20,
           f"...sesi yang BENERAN ditawarkan cuma {ditawarkan} menit (dari energi, "
-          "bukan dari menit_est tugas) -- lapisan mitigasi lama, independen dari capacity")
+          "sebagai batas kondisi setelah estimasi task) -- independen dari capacity")
 
 
 def scenario_capacity_agresif() -> None:
@@ -335,8 +336,8 @@ def scenario_model_kalem_modifier() -> None:
                    return_value=SinyalKalem(skor=0.5, siap=False)):
             belum_aktif = decide(profile, day, now=now)
         check(belum_aktif.task is not None and belum_aktif.task["id"] == "a"
-              and belum_aktif.focus_minutes == 30,
-              "model_kalem BELUM siap -> Task A tetap kepilih, durasi 30 menit nggak disentuh")
+              and belum_aktif.focus_minutes == 25,
+              "model_kalem BELUM siap -> Task A tetap kepilih, durasi dibatasi satu Pomodoro 25 menit")
 
         with patch("models.model_kalem.nilai",
                    return_value=SinyalKalem(skor=0.1, siap=True, n_latih=24, sumber="belajar")):
@@ -344,13 +345,13 @@ def scenario_model_kalem_modifier() -> None:
         check(aktif.task is not None and aktif.task["id"] == "a",
               "model_kalem AKTIF & 'perlu diringankan' TETAP nggak ngubah tugas -- "
               "masih Task A, bukan Task B")
-        check(aktif.focus_minutes == 25,
-              f"...durasi turun 30 -> {aktif.focus_minutes} menit (max(5, minutes-5)), "
+        check(aktif.focus_minutes == 20,
+              f"...durasi turun 25 -> {aktif.focus_minutes} menit, "
               "sesuai kontrak 'cuma boleh meringankan'")
 
 
-def scenario_reset_belum_meringankan() -> None:
-    print("\n=== [KARAKTERISASI] Reset -> next action: belum ada mekanisme 'lebih ringan' ===")
+def scenario_reset_feedback_meringankan() -> None:
+    print("\n=== Reset outcome -> next action lebih ringan ===")
     profile = {"name": "Ari", "productive_hours": []}
     tugas = task("Kerjakan laporan praktikum", difficulty=2, minutes=45, task_id="lapo")
     mood_logs = [{"date": clock.today().isoformat(), "score": 3, "energy": 4}]
@@ -361,36 +362,37 @@ def scenario_reset_belum_meringankan() -> None:
             profile, DayState(tasks_today=[tugas], mood_logs=mood_logs, reset_events=[]),
             now=now,
         )
-        satu_reset = decide(
+        reset_membaik = decide(
             profile,
             DayState(tasks_today=[tugas], mood_logs=mood_logs,
-                     reset_events=[{"date": clock.today().isoformat(), "choice": "napas"}]),
+                     reset_events=[{
+                         "id": "reset-ok", "date": clock.today().isoformat(),
+                         "choice": "napas", "completed": True, "improved": True,
+                         "followup_used": False,
+                     }]),
             now=now,
         )
-        riwayat_berat = [
-            {"date": (clock.today() - timedelta(days=d)).isoformat(), "choice": "napas"}
-            for d in range(5)
-        ]
-        reset_berat = decide(
-            profile, DayState(tasks_today=[tugas], mood_logs=mood_logs, reset_events=riwayat_berat),
+        reset_belum_membaik = decide(
+            profile,
+            DayState(tasks_today=[tugas], mood_logs=mood_logs, reset_events=[{
+                "id": "reset-no", "date": clock.today().isoformat(),
+                "choice": "napas", "completed": True, "improved": False,
+                "followup_used": False,
+            }]),
             now=now,
         )
 
     check(tanpa_reset.kind == "next_action" and tanpa_reset.task["id"] == "lapo",
           "baseline: tanpa riwayat Reset, next action normal ke tugas yang ada")
 
-    check(satu_reset.task["id"] == tanpa_reset.task["id"]
-          and satu_reset.step_text == tanpa_reset.step_text
-          and satu_reset.focus_minutes == tanpa_reset.focus_minutes,
-          "[KARAKTERISASI] 1x kunjungan Reset TIDAK mengubah task/step/durasi next action "
-          f"sama sekali (tetap '{satu_reset.step_text}', {satu_reset.focus_minutes} menit)")
+    check(reset_membaik.task["id"] == tanpa_reset.task["id"]
+          and reset_membaik.focus_minutes < tanpa_reset.focus_minutes,
+          "Reset yang dinyatakan membaik mempertahankan identity task tapi mengecilkan durasi "
+          f"({tanpa_reset.focus_minutes} -> {reset_membaik.focus_minutes} menit)")
 
-    check(reset_berat.task["id"] == tanpa_reset.task["id"]
-          and reset_berat.step_text == tanpa_reset.step_text
-          and reset_berat.focus_minutes == tanpa_reset.focus_minutes,
-          "[KARAKTERISASI] BAHKAN 5x Reset dalam 5 hari terakhir tidak mengubah task/step/durasi "
-          f"next action (tetap '{reset_berat.step_text}', {reset_berat.focus_minutes} menit) -- "
-          "belum ada mekanisme yang membuat first action lebih kecil/ringan gara-gara riwayat Reset")
+    check(reset_belum_membaik.kind == "recovery"
+          and reset_belum_membaik.action_kind == "rest",
+          "Reset belum membaik -> tidak memaksa focus dan tidak membuka Reset otomatis")
 
 
 def scenario_energi_rendah_banyak_tugas() -> None:
@@ -426,9 +428,8 @@ def scenario_overwhelm_dan_overdue() -> None:
                      mood_logs=[{"date": clock.today().isoformat(), "score": 2, "energy": 2}]),
             now=now,
         )
-    check(d.kind == "pre_escalate" and d.action_kind == "reset",
-          "overwhelm 'berat' menang atas tugas overdue -- jeda didahulukan, bukan dipaksa "
-          "ngerjain tugas telat cuma karena deadline-nya udah lewat")
+    check(d.kind == "recovery" and d.action_kind == "rest",
+          "overwhelm 'berat' menang atas tugas overdue tanpa membuka Reset otomatis")
 
 
 def scenario_tidak_ada_tugas() -> None:
@@ -456,7 +457,7 @@ def main() -> int:
     scenario_capacity_agresif()
     scenario_capacity_terhubung()
     scenario_model_kalem_modifier()
-    scenario_reset_belum_meringankan()
+    scenario_reset_feedback_meringankan()
     scenario_energi_rendah_banyak_tugas()
     scenario_overwhelm_dan_overdue()
     scenario_tidak_ada_tugas()

@@ -51,13 +51,76 @@ def build(page: ft.Page, navigate) -> ft.Control:
         storage.get_reset_events(), storage.get_mood_logs(), storage.all_triggers(profile)
     )
 
-    logged = False
+    reset_event_id = ""
 
     def log_once(choice: str):
-        nonlocal logged
-        if not logged:
-            storage.add_reset_event(choice)
-            logged = True
+        nonlocal reset_event_id
+        if not reset_event_id:
+            reset_event_id = storage.add_reset_event(choice)["id"]
+
+    def show_outcome() -> None:
+        if not reset_event_id:
+            show_menu()
+            return
+
+        def answer(improved: bool) -> None:
+            nonlocal reset_event_id
+            storage.complete_reset_event(reset_event_id, improved=improved)
+            if improved:
+                navigate("home")
+                return
+
+            def retry(e) -> None:
+                nonlocal reset_event_id
+                reset_event_id = ""
+                show_menu()
+
+            body.controls = [
+                ui_helpers.page_header("", on_back=lambda e: show_menu()),
+                buddy.face("cemas", 110),
+                ui_helpers.title("Belum membaik juga nggak apa-apa.", 19),
+                ft.Text(
+                    "Nggak ada tugas yang harus dipaksa sekarang. Kamu boleh tetap "
+                    "istirahat, mencoba aktivitas lain, atau mencari dukungan.",
+                    size=12.5,
+                    color=theme.MUTED,
+                    text_align=ft.TextAlign.CENTER,
+                ),
+                ui_helpers.wide_button(
+                    "Coba aktivitas lain",
+                    retry,
+                    icon=ft.Icons.SPA,
+                ),
+                professional_card(prominent=distress.escalate),
+                ft.TextButton(
+                    content=ft.Text("Kembali ke Beranda"),
+                    on_click=lambda e: navigate("home"),
+                ),
+            ]
+            page.update()
+
+        body.controls = [
+            ui_helpers.page_header("", on_back=lambda e: show_menu()),
+            buddy.face("tenang", 110),
+            ui_helpers.title("Sekarang rasanya gimana?", 19),
+            ft.Text(
+                "Jawaban kamu yang menentukan apakah Reset ini membantu—bukan "
+                "sekadar karena aktivitasnya dibuka.",
+                size=12.5,
+                color=theme.MUTED,
+                text_align=ft.TextAlign.CENTER,
+            ),
+            ui_helpers.wide_button(
+                "Sedikit lebih enak",
+                lambda e: answer(True),
+                icon=ft.Icons.FAVORITE,
+            ),
+            ft.OutlinedButton(
+                content=ft.Text("Belum membaik"),
+                on_click=lambda e: answer(False),
+            ),
+        ]
+        page.update()
 
 
     def hotline_rows() -> list[ft.Control]:
@@ -285,6 +348,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 circle.animate_scale = ft.Animation(900, ft.AnimationCurve.EASE_OUT)
                 circle.scale = 0.8
                 page.update()
+                await asyncio.sleep(0.8)
+                if running["active"]:
+                    show_outcome()
 
         def back(e):
             running["active"] = False
@@ -328,6 +394,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ft.TextButton(
                             content=ft.Text("Ulangi dari awal"),
                             on_click=lambda e: (pos.update(i=0), render()),
+                        ),
+                        ui_helpers.wide_button(
+                            "Lanjut", lambda e: show_outcome(), icon=ft.Icons.CHECK
                         ),
                     ],
                     spacing=12,
@@ -418,6 +487,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     color=theme.ON_BACKGROUND),
             ft.Text(note, size=12.5, color=theme.MUTED, text_align=ft.TextAlign.CENTER),
             *links,
+            ui_helpers.wide_button(
+                "Selesai mendengarkan",
+                lambda e: show_outcome(),
+                icon=ft.Icons.CHECK,
+            ),
         ]
         if not fav:
             children.append(
@@ -465,6 +539,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     countdown_text.value = "🤍"
                     status_text.value = "Udah. Itu aja udah cukup buat sekarang."
                     page.update()
+                    await asyncio.sleep(0.8)
+                    if alive["on"]:
+                        show_outcome()
             finally:
                 timer["loop"] = False
 

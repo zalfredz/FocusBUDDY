@@ -57,6 +57,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     eisenhower_column = ft.Column(spacing=8)
     timeline_column = ft.Column(spacing=8)
     plan_column = ft.Column(spacing=8, visible=False)
+    next_action_holder = ft.Container(visible=False)
 
 
     def day_has_task(day_iso: str) -> bool:
@@ -307,6 +308,19 @@ def build(page: ft.Page, navigate) -> ft.Control:
         after_task = next((t for t in storage.tasks_for(occurrence_date) if t["id"] == task_id), None) \
             if occurrence_date else next((t for t in storage.get_tasks() if t["id"] == task_id), None)
         sesudah = storage.task_is_done(after_task) if after_task else False
+        profile, day = kalem_engine.snapshot()
+        next_decision = kalem_engine.decide(profile, day)
+        next_action_holder.data = {
+            "kind": next_decision.kind,
+            "task_id": next_decision.task.get("id") if next_decision.task else None,
+        }
+        next_action_holder.content = ui_helpers.banner(
+            "Progres tersimpan. KALEM sudah menilai ulang kondisimu — "
+            "lihat satu langkah berikutnya di Beranda.",
+            theme.SUCCESS,
+            ft.Icons.AUTO_AWESOME,
+        )
+        next_action_holder.visible = True
         refresh_all()
         if sesudah and not sebelum:
             ui_helpers.reward_overlay(page)
@@ -461,14 +475,40 @@ def build(page: ft.Page, navigate) -> ft.Control:
         return ui_helpers.card(ft.Column([*head, *step_controls], spacing=6), padding=14)
 
     def start_task_focus(task: dict):
-        pending = next((s["text"] for s in task.get("steps", []) if not s.get("done")), task["title"])
+        pending_index, pending = next(
+            (
+                (index, step["text"])
+                for index, step in enumerate(task.get("steps", []))
+                if not step.get("done")
+            ),
+            (-1, task["title"]),
+        )
+        if pending_index < 0:
+            pending = f"Buka bahan yang dibutuhkan untuk {task['title']}"
+            pending_index = storage.ensure_focus_step(
+                task.get("id", ""), pending, task.get("_occurrence_date") or None
+            )
+        focus_minutes, _ = kalem_engine.task_focus_minutes(
+            task,
+            pending_index,
+            state["energy"],
+            storage.get_focus_records(),
+        )
         focus_session.start(
-            max(int(task.get("menit_est") or kalem_engine.focus_minutes_for(state["energy"])), 1),
+            focus_minutes,
             label=pending,
             task_title=task["title"],
             kategori=task.get("kategori", ""),
             jumlah_unit=task.get("jumlah_unit", 0),
             energi=state["energy"],
+            task_id=task.get("id", ""),
+            step_id=storage.task_step_id(
+                task.get("id", ""),
+                pending_index,
+                task.get("_occurrence_date") or None,
+            ),
+            occurrence_date=task.get("_occurrence_date", ""),
+            step_index=pending_index,
         )
         navigate("home")
 
@@ -995,6 +1035,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ),
             ui_helpers.subtitle("'Pecah Tugas' nyusun tugas HARI INI jadi slot waktu — kamu pilih yang mana."),
             plan_column,
+            next_action_holder,
             eisenhower_column,
             timeline_column,
             day_tasks_column,
