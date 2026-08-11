@@ -1,22 +1,4 @@
-"""Medication Companion -- jalan di BELAKANG LAYAR, bukan halaman sendiri.
-
-User setup sekali di awal (nama obat, dosis harian, stok awal). Sesudah itu
-form-nya nggak diisi lagi: stok berkurang otomatis tiap user mencet "Udah
-minum obat" di Home. Kalau mendekati habis (<= REMINDER_THRESHOLD hari),
-Home nampilin banner yang nawarin cari apotek.
-
-Kenapa stok cuma turun saat diabsen, bukan dihitung dari tanggal setup:
-menebak dari kalender bakal salah tiap kali user skip dosis, dan angka stok
-yang bohong lebih berbahaya daripada angka yang ketinggalan. Kalau user
-belum absen hari ini, Kalem yang nanya duluan (lihat kalem_engine.decide).
-
-BUKAN alat diagnosis / pengganti dokter. FocusBuddy nggak pernah nyaranin
-atau ngitungin "dosis wajar" -- dosis yang diisi user itu yang sudah
-ditentukan dokternya. Pencarian apotek nunjuk ke Google Maps + partner
-daring asli (`ONLINE_PHARMACY_PARTNERS`) -- BUKAN daftar lokasi karangan.
-Kalau butuh "apotek terdekat beneran", itu tugas Maps API, bukan data
-statis yang bisa basi/salah alamat.
-"""
+"""Proyeksi stok obat dari resep pengguna; tidak menentukan atau menyarankan dosis."""
 from __future__ import annotations
 
 import math
@@ -26,30 +8,12 @@ from typing import Optional
 
 from app import clock
 
-# Lead time sengaja panjang: user butuh ruang buat nyari apotek / nebus resep
-# tanpa mepet. Riset medication reminder app nyaranin 5-7 hari, bukan 3.
-REMINDER_THRESHOLD_DAYS = 7
+REMINDER_THRESHOLD_DAYS = 3
 
-# Partner apotek daring -- titik komisi afiliasi.
-#
-# CATATAN URL: `halodoc.com/apotik-antar` DULU kepakai di sini dan sekarang
-# soft-404 (dialihin ke /artikel/apotik-antar yang isinya "Halaman tidak
-# ditemukan" -- tapi tetap balikin HTTP 200, jadi cek status doang nggak
-# ketahuan). Semua deep link ke apotek Halodoc yang dicoba juga mati, makanya
-# yang dipakai berandanya: rapuh dikit di UX, tapi nggak pernah mati.
 ONLINE_PHARMACY_PARTNERS = [
-    {"name": "Halodoc", "desc": "Tebus resep & antar obat", "url": "https://www.halodoc.com"},
-    {"name": "K24Klik", "desc": "Apotek daring 24 jam", "url": "https://www.k24klik.com"},
+    {"name": "Halodoc", "desc": "Resep & antar ke rumah", "url": "https://www.halodoc.com"},
+    {"name": "K24Klik", "desc": "Apotek online 24 jam", "url": "https://www.k24klik.com"},
 ]
-
-
-# CATATAN: `predict_depletion()` + `DepletionPrediction` dulu ada di sini --
-# versi awal yang nyoba regresi linear dari `consumption_log` (kumulatif pil
-# terpakai) buat nebak laju konsumsi. Nggak pernah dipanggil: `check_status()`
-# di bawah gantiin dengan perhitungan lebih sederhana (stok / dosis harian)
-# yang cukup buat kebutuhan reminder, dan `consumption_log` sendiri nggak
-# pernah ditulis di mana pun. Dihapus bareng import numpy/sklearn yang cuma
-# dipakai di sini.
 
 
 @dataclass
@@ -65,13 +29,6 @@ class MedicationStatus:
 
 
 def check_status(medication: Optional[dict], today: Optional[date] = None) -> MedicationStatus:
-    """Proyeksikan kapan stok habis dari sisa stok yang sudah dikonfirmasi.
-
-    Inilah bagian "background"-nya: dipanggil tiap app dibuka, hasilnya
-    dipakai buat nentuin perlu nampilin banner pengingat atau nggak.
-    Stok (`pills_left`) cuma berubah lewat storage.take_medication(), jadi
-    di sini tinggal bagi sisa stok dengan dosis harian.
-    """
     if not medication or not medication.get("enabled", True):
         return MedicationStatus(active=False)
 
@@ -98,10 +55,12 @@ def check_status(medication: Optional[dict], today: Optional[date] = None) -> Me
 
     message = ""
     if needs_reminder:
-        message = (
-            f"{medication.get('name', 'Obat')} kamu diperkirakan habis "
-            f"{days_left} hari lagi ({depletion_date.strftime('%d %b')})."
-        )
+        nama = medication.get("name", "Obat")
+        tanggal = depletion_date.strftime("%d %b")
+        if days_left == 1:
+            message = f"{nama} diperkirakan habis esok ({tanggal})."
+        else:
+            message = f"{nama} diperkirakan habis {days_left} hari lagi ({tanggal})."
 
     return MedicationStatus(
         active=True,
@@ -116,18 +75,6 @@ def check_status(medication: Optional[dict], today: Optional[date] = None) -> Me
 
 
 def missed_streak(medication: Optional[dict], today: Optional[date] = None) -> int:
-    """Berapa hari BERTURUT-TURUT obatnya nggak keabsen, dihitung dari kemarin.
-
-    Nggak absen = dianggap nggak minum. Buat obat ADHD, beberapa hari bolong
-    itu penjelasan yang masuk akal kenapa fokus & mood ikut turun -- dan itu
-    konteks yang bikin Kalem nurunin ekspektasi, BUKAN alasan buat negur.
-
-    HARI INI SENGAJA NGGAK DIHITUNG: jam 9 pagi user belum tentu udah minum,
-    dan ngitung hari yang belum kelar jadi "kelewat" itu nuduh kecepetan.
-
-    Dibatasi juga sama `start_date` -- hari sebelum obatnya didaftarin jelas
-    bukan dosis yang kelewat.
-    """
     if not medication or not medication.get("enabled", True):
         return 0
 
@@ -141,8 +88,6 @@ def missed_streak(medication: Optional[dict], today: Optional[date] = None) -> i
 
     streak = 0
     cursor = today - timedelta(days=1)
-    # Dibatasi 14 hari: lebih dari itu nggak nambah keputusan apa pun, dan
-    # angka gede malah kesannya nge-judge.
     while streak < 14:
         if start and cursor < start:
             break
@@ -154,19 +99,6 @@ def missed_streak(medication: Optional[dict], today: Optional[date] = None) -> i
 
 
 def maps_search_url(query: str = "apotek terdekat") -> str:
-    """Deep link ke pencarian Google Maps.
-
-    Sengaja nggak bikin data "stok real-time" palsu -- mending nyerahin ke
-    Maps yang datanya beneran hidup daripada nampilin daftar contoh yang
-    keliatan asli tapi bohong.
-    """
     from urllib.parse import quote_plus
 
     return f"https://www.google.com/maps/search/?api=1&query={quote_plus(query)}"
-
-
-# CATATAN: dulu ada `find_nearby_pharmacies()` + `_haversine_km()` di sini,
-# ngitung jarak ke `SAMPLE_PHARMACIES` (5 apotek Jakarta yang DIKARANG lat/
-# lon-nya buat demo). Nggak pernah dipanggil di mana pun, dan kalaupun
-# kepasang bakal nampilin lokasi apotek palsu seolah nyata -- persis yang
-# diperingatin di docstring `maps_search_url()` di atas. Dihapus.

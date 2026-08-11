@@ -1,12 +1,4 @@
-"""Page 1 -- Home. Jawaban satu pertanyaan: "sekarang ngapain?"
-
-Bukan dashboard status semua tugas. Grid 4 kuadran Eisenhower sengaja
-dipindah ke Tracker: nampilin 4 kategori keputusan sekaligus (apalagi pas
-angkanya masih 0) justru bikin overwhelm duluan sebelum mulai apa-apa.
-
-Isi halaman ini cuma: sapaan, satu kartu aksi dari Kalem decision engine,
-quick capture, dan satu jalan keluar kalau lagi kewalahan.
-"""
+"""Beranda dan rekomendasi tindakan utama KALEM."""
 from __future__ import annotations
 
 import asyncio
@@ -31,7 +23,6 @@ _FALLBACK_TICKER: dict = {"running": False, "refresh": None}
 
 
 def _ticker_state() -> dict:
-    """Satu ticker per browser, bukan satu ticker untuk seluruh server."""
     return (
         session_scope.get_or_create(
             _TICKER_SESSION_KEY,
@@ -42,8 +33,6 @@ def _ticker_state() -> dict:
 
 
 def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
-    """Tombol bantu testing. Di-gate lewat config.DEMO_MODE -- ganti flag itu
-    ke False pas mau rilis beneran, semua tombol ini ilang otomatis."""
     if not config.DEMO_MODE:
         return []
 
@@ -52,16 +41,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
         navigate("home")
 
     def lompat_malam(e):
-        """Demo: geser jam app ke malem, dan bisa dibalikin lagi.
-
-        Tombolnya TOGGLE, bukan sekali-jalan: kalau lagi kegeser, pencet lagi
-        buat balik ke jam asli. Tanpa itu satu-satunya cara balik normal cuma
-        reset seluruh offset -- kebawa-bawa hari yang udah dimajuin.
-
-        Fitur yang gerbangnya jam (pertanyaan "udah makan?") mustahil
-        ditunjukin kalau demonya siang, dan "Maju 1 hari" nggak nolong --
-        dia cuma geser tanggal, jamnya tetap jam asli.
-        """
         if storage.hour_offset():
             storage.clear_hour_offset()
         else:
@@ -69,17 +48,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
         navigate("home")
 
     def buka_ulang_app(e):
-        """Demo: 'tutup app, terus buka lagi'.
-
-        Ngulang persis yang kejadian pas app beneran distart (lihat main.py):
-        catat pembukaan baru, lupain brief hari ini, terus masuk lewat pintu
-        depan. Hasilnya Morning Brief nyapa lagi, dan popup check-in/makan
-        ikut kepancing -- alur pembukaan yang utuh, tanpa perlu bener-bener
-        matiin app di depan juri.
-
-        NGGAK nyentuh data: mood, tugas, dan riwayat tetap utuh. Yang direset
-        cuma penanda "hari ini udah disapa".
-        """
         storage.clear_last_brief_date()
         storage.touch_last_open()
         navigate("home")
@@ -89,11 +57,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
         navigate("home")
 
     def open_auto_feel(e):
-        """Pasang data demo dari SettingDemo.py biar model punya bahan.
-
-        Tanpa ini, demo di akun kosong bakal jawab "Kalem masih belajar
-        pola kamu" terus -- jujur, tapi nggak nunjukkin apa-apa.
-        """
         try:
             import SettingDemo
         except ImportError:
@@ -117,8 +80,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             return
 
         def pick(key: str):
-            # Jalur UI harus non-destructive. `apply_scenario()` yang lama
-            # sengaja khusus CLI/evaluator karena me-reset seluruh storage.
             SettingDemo.apply_scenario_overlay(key)
             page.pop_dialog()
             navigate("home")
@@ -152,8 +113,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             if wow:
                 isi.append(ft.Text(f"Demo point: {wow}", size=10.5,
                                     color=theme.PRIMARY, italic=True))
-            # Label/deskripsi teknis lama tetap ditaruh, cuma lebih kecil --
-            # masih berguna buat debug, bukan lagi yang paling menonjol.
             isi.append(ft.Text(f"{label} — {desc}", size=9.5, color=theme.MUTED))
             rows.append(
                 ft.Container(
@@ -182,10 +141,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             )
         )
 
-    # Tombol "reset data" DIPINDAH ke Pengaturan. Dulu ada di sini juga,
-    # padahal Pengaturan udah punya "Hapus semua data" -- dua pintu ke aksi
-    # yang sama, dan yang di header ini justru yang paling gampang kepencet
-    # nggak sengaja.
     return [
         ft.IconButton(
             icon=ft.Icons.SKIP_NEXT,
@@ -194,9 +149,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
             tooltip=f"Maju 1 hari (testing) — sekarang {clock.today().strftime('%a, %d %b')}",
             on_click=next_day,
         ),
-        # Ikonnya ikut keadaan: bulan = "lompat ke malam", matahari = "lagi
-        # kegeser, pencet buat balik". Tombol toggle yang ikonnya nggak pernah
-        # berubah itu bohong -- kelihatannya cuma bisa satu arah.
         ft.IconButton(
             icon=ft.Icons.WB_SUNNY if storage.hour_offset() else ft.Icons.BEDTIME,
             icon_color=theme.TERTIARY if storage.hour_offset() else theme.MUTED,
@@ -233,20 +185,6 @@ def _dev_buttons(page: ft.Page, navigate) -> list[ft.Control]:
 
 
 def _popup_checkin(page: ft.Page, navigate) -> None:
-    """Tanya mood + energi sekali sehari, langsung pas buka app.
-
-    KENAPA POPUP, BUKAN NUNGGU USER KE HALAMAN MOOD
-    -----------------------------------------------
-    Mood & energi itu yang nyetel SKALA hari itu -- durasi sesi fokus,
-    ukuran langkah pas mecah tugas, sampai nada pesan Kalem. Kalau nunggu
-    user inisiatif buka halaman Mood, data yang paling nentuin justru yang
-    paling sering kosong.
-
-    Dua chip, sekali tap masing-masing, terus kelar. Sengaja NGGAK ada tag,
-    diary, atau toggle makan/istirahat di sini -- itu semua tetap di halaman
-    Mood. Popup yang panjang bakal di-dismiss, dan popup yang di-dismiss
-    nggak ngasih data apa pun.
-    """
     pilih = {"mood": buddy.DEFAULT_MOOD, "energi": 0}
     isi = ft.Column(spacing=14, tight=True)
 
@@ -311,20 +249,9 @@ def _popup_checkin(page: ft.Page, navigate) -> None:
         )
         storage.set_today_energy(energi)
         page.pop_dialog()
-        # navigate() nge-build ulang Beranda, dan di ujung build() ada gerbang
-        # popup makan. Jadi rantainya nyambung sendiri: check-in kelar ->
-        # halaman digambar ulang -> kalau udah lewat jam 18, popup makan
-        # nyusul. Nggak perlu manggil popup kedua dari sini.
         navigate("home")
 
     def nanti(e):
-        # Sengaja NGGAK nyimpen apa pun. Hari tanpa check-in itu harus
-        # BENERAN kosong -- nebak-nebak di sini malah bikin data bohong,
-        # dan model lebih baik tau "nggak ada data" daripada dikasih tebakan.
-        #
-        # Konsekuensinya popup makan juga nggak nyusul: jawabannya nempel di
-        # catatan mood hari itu, dan catatannya belum ada. Dua-duanya bakal
-        # ditawarin lagi pas Beranda kebuka berikutnya.
         page.pop_dialog()
 
     gambar()
@@ -342,30 +269,11 @@ def _popup_checkin(page: ft.Page, navigate) -> None:
 
 
 def _energi_dari_skor(score: int) -> int:
-    """Skor mood (1-5) -> tebakan energi awal (1-6)."""
     return {1: 1, 2: 2, 3: 3, 4: 5, 5: 6}.get(score, 3)
 
 
 def _popup_makan(page: ft.Page, navigate) -> None:
-    """Satu pertanyaan, dua tombol: udah makan hari ini atau belum.
-
-    KENAPA CUMA MALEM
-    -----------------
-    Ditanya jam 9 pagi, "belum" itu jawaban normal yang nggak berarti apa-apa.
-    Ditanya jam 7 malem, "belum" itu sinyal beneran -- dan itu yang dipakai
-    `neglect_streak()` buat naikin burnout_risk (3 hari berturut-turut).
-
-    KENAPA NGGAK ADA TOMBOL "NANTI"
-    -------------------------------
-    Pertanyaannya cuma satu dan jawabannya dua-duanya sah. "Belum" BUKAN
-    jawaban yang salah -- dia data yang kepakai, sama pentingnya sama "udah".
-    Jadi nggak ada yang perlu dihindarin dengan nunda.
-    """
     def jawab(makan: bool):
-        # Catatan mood hari ini ditulis ULANG UTUH: add_mood_log() nimpa
-        # seluruh entri per tanggal, jadi mood/energi/diary/tag hari itu harus
-        # dioper balik apa adanya. Kalau nggak, jawab "udah makan" bakal
-        # ngehapus check-in yang barusan disimpen.
         log = storage.today_mood()
         if not log:
             page.pop_dialog()
@@ -417,18 +325,9 @@ def _popup_makan(page: ft.Page, navigate) -> None:
 
 def build(page: ft.Page, navigate) -> ft.Control:
     ticker_state = _ticker_state()
-    # Redirect kalau belum onboarding ditangani router di main.py -- jangan
-    # panggil navigate() dari sini, hasilnya bakal ketimpa nilai balik fungsi ini.
     profile, day = kalem_engine.snapshot()
     decision = kalem_engine.decide(profile, day)
 
-    # Catat "Kalem nampilin pesan ini" -- bahan label buat belajar milih pesan
-    # (lihat catatan panjang di storage.record_decision_shown). Nggak ada
-    # penilaian di sini: didiemin itu data, bukan kegagalan user.
-    #
-    # Sengaja SESUDAH decide() & sebelum UI dirakit, dan cuma pas nggak ada
-    # sesi fokus jalan -- pas sesi jalan kartu aksinya emang nggak ditampilin,
-    # jadi nyatet "ditampilin" di situ bakal bohong.
     if not focus_session.is_active():
         from app.kalem_ml import fitur as kfitur
 
@@ -439,7 +338,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             decision.action_label,
         )
 
-    # ------------------------------------------------- banner (dev & obat)
 
     sim_banner: list[ft.Control] = []
     if clock.is_simulated():
@@ -490,7 +388,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         ]
 
-    # ------------------------------------------------------------ sapaan
 
     greeting = ft.Row(
         [
@@ -508,8 +405,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                             ft.Text(
                                 clock.today().strftime("%A, %d %B %Y"), size=12, color=theme.MUTED
                             ),
-                            # Badge status -- pas demo di depan juri harus
-                            # kelihatan jelas lagi di tier mana.
                             *(
                                 [
                                     ft.Container(
@@ -557,10 +452,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         spacing=0,
     )
 
-    # ------------------------------------------------------------- Kalem
 
-    # Warna favorit jadi lingkaran lembut di belakang Kalem -- aksen kecil
-    # yang bikin kartunya kerasa "punya user", tanpa ngerusak palet utama.
     accent = storage.favorite_color_hex()
     kalem_face_block: ft.Control = buddy.face(decision.mood, 170)
     if accent:
@@ -583,13 +475,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
         alignment=ft.Alignment.CENTER,
     )
 
-    # ------------------------------------------- kartu aksi (satu-satunya)
 
     def take_med(e):
         result = storage.take_medication()
         if result is None and (day.medication or {}).get("enabled", True):
-            # Bisa gagal karena stoknya udah 0 -- kasih tau, jangan diem-diem
-            # nggak ngapa-ngapain kayak tombolnya nggak kepencet.
             page.show_dialog(
                 ft.AlertDialog(
                     modal=True,
@@ -612,19 +501,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         navigate("home")
 
     def start_focus(e):
-        # Sesinya jalan DI SINI, nggak dilempar ke Tracker. Dulu tombol ini
-        # cuma nitip niat lewat nav.set_intent() terus pindah halaman -- satu
-        # aksi kepecah dua layar, dan timernya mati begitu user pindah lagi.
-        # Home adalah jalur fokus utama, jadi konteks tugas ikut dibawa ke
-        # catatan sesi agar model durasi benar-benar belajar dari sini juga.
-        #
-        # `decision.task` dipakai LANGSUNG -- itu dict yang sama yang udah
-        # dipilih `pick_next_action()` di kalem_engine.decide(). Dulu di sini
-        # dicari ULANG lewat storage.tasks_actionable_today() dicocokin ke
-        # JUDUL, yang selain boros (nge-resolve ulang semua occurrence tugas
-        # berulang) juga rapuh: dua tugas actionable dengan judul sama bisa
-        # kecomot yang salah, dan kategori/jumlah_unit-nya ikut salah kesimpen
-        # ke catatan sesi.
         task = decision.task or {}
         focus_session.start(
             decision.focus_minutes,
@@ -673,12 +549,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         card_children = [ft.Text(decision.detail, size=13.5, color=theme.ON_BACKGROUND)]
 
     def _aksi_dicatat(e):
-        """Bungkus aksi kartu: tandai keputusannya DIPENCET, baru jalanin.
-
-        Dibungkus di sini (satu tempat) daripada nyisipin pencatatan ke tiap
-        handler di ACTIONS -- biar nggak ada aksi yang kelupaan dicatat pas
-        nanti ada jenis aksi baru ditambahin.
-        """
         storage.record_decision_acted(decision.kind, decision.action_kind)
         ACTIONS.get(decision.action_kind, lambda ev: None)(e)
 
@@ -692,9 +562,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     action_card = ui_helpers.card(ft.Column(card_children, spacing=10))
 
-    # ---------------------------------------------------- kartu sesi fokus
-    # Muncul GANTIIN kartu aksi selama sesi hidup, biar Beranda tetap cuma
-    # nampilin satu hal buat dikerjain -- itu janji halaman ini.
 
     ring = ft.ProgressRing(
         value=1.0, width=190, height=190, stroke_width=13,
@@ -728,12 +595,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         navigate("home")
 
     def refresh_focus():
-        """Gambar ulang kartu fokus dari snapshot sesi.
-
-        Sengaja baca ulang snapshot tiap detak, bukan nyimpen angka sendiri:
-        sisa waktunya dihitung dari jam dinding, jadi tetap akurat walau
-        detaknya sempat telat pas app lagi sibuk.
-        """
         s = focus_session.snapshot()
         if not s["active"]:
             return
@@ -783,11 +644,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.update()
 
     async def ticker():
-        """Satu loop untuk sesi browser ini, dijaga ``ticker_state``.
-
-        Tanpa penjaga ini tiap kunjungan ke Beranda bakal nambah satu loop,
-        dan timernya keliatan lompat 2-3 detik sekaligus.
-        """
         if ticker_state["running"]:
             return
         ticker_state["running"] = True
@@ -851,7 +707,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ticker_state["refresh"] = refresh_focus
         refresh_focus()
 
-    # ------------------------------------------------------ quick capture
 
     def open_capture(e):
         note_field = ft.TextField(
@@ -894,14 +749,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
-    # Dua aksi yang beda, jadi dua target klik yang beda: badan kartu buat
-    # NULIS cepat, angka "n tersimpan" buat NGEBUKA daftarnya. Sebelumnya
-    # chevron-nya cuma hiasan -- catatan masuk tapi nggak pernah bisa dibaca.
-    #
-    # Tombol "+" terpisah sempat ada di sini, tapi dibuang: dia aksinya SAMA
-    # PERSIS sama teks di sebelahnya, jadi cuma nambah satu benda buat dilihat
-    # tanpa nambah satu hal pun yang bisa dilakuin. Barisnya sekarang tinggal
-    # dua bagian -- tulis cepat, dan yang tersimpan.
     inbox_count = len(storage.get_inbox())
 
     capture_children: list[ft.Control] = [
@@ -941,9 +788,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
-    # Sengaja TANPA on_click di container luar: kalau ditumpuk sama on_click
-    # anak-anaknya, kliknya jadi rebutan dan yang luar selalu menang --
-    # badge "n tersimpan" nggak akan pernah kepencet.
     capture_row = ft.Container(
         content=ft.Row(capture_children, spacing=10),
         bgcolor=theme.SURFACE,
@@ -952,9 +796,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         padding=ft.Padding.symmetric(vertical=12, horizontal=14),
     )
 
-    # --------------------------------------------------------- OVERWHELMED
-    # Selalu ada & selalu bisa dipencet (self-initiated), tapi tenang secara
-    # visual. Banner merah full-width bikin halaman ini kerasa darurat terus.
 
     sos_row = ft.Container(
         content=ft.Row(
@@ -983,8 +824,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             *med_banner,
             greeting,
             kalem_block,
-            # Sesi fokus GANTIIN kartu aksi, bukan numpuk di bawahnya --
-            # Beranda tetap cuma nampilin satu hal buat dikerjain.
             focus_card if session_active else action_card,
             capture_row,
             sos_row,
@@ -1000,16 +839,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     if session_active:
         page.run_task(ticker)
 
-    # Dua popup, satu antrian, urutannya nggak pernah tabrakan:
-    #
-    #   belum check-in  -> popup mood+energi dulu. Pas disimpen dia manggil
-    #                      navigate("home"), build() jalan lagi, dan giliran
-    #                      popup makan kecek di bawah ini.
-    #   udah check-in   -> langsung popup makan (kalau udah lewat jam 18 dan
-    #                      belum dijawab).
-    #
-    # Dua-duanya nggak muncul pas lagi ada sesi fokus jalan -- jangan motong
-    # orang yang lagi ngerjain sesuatu.
     if not session_active:
         if storage.today_mood() is None:
             _popup_checkin(page, navigate)

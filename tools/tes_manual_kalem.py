@@ -1,36 +1,4 @@
-"""Tes manual model Kalem -- masukin input custom, lihat tiap model jawab apa.
-
-BUKAN pengganti tests/test_regresi.py (itu tes otomatis, pass/fail). Ini
-alat buat NGECEK MANUAL: kamu tentuin sendiri kombinasi angka yang mau
-dicoba (skor mood, jumlah SOS, tugas mendesak, dll), lalu lihat langsung
-output model_mood / model_energi / model_overwhelm / model_durasi /
-model_penenang buat kombinasi itu -- tanpa mesti check-in beneran atau
-pasang skenario penuh lewat SettingDemo.py.
-
-STORAGE-INDEPENDENT
---------------------
-`fitur_manual()` bikin `Fitur` dari `DayState` + profil yang dioper
-eksplisit (bukan None). `kalem_ml/fitur.py::bangun_fitur()` cuma jatuh
-balik baca ~/.focusbuddy/data.json kalau `day`/`profil` di-None-in. Jadi
-skrip ini GAK PERNAH nyentuh data asli kamu.
-
-CARA PAKAI
-----------
-    python tools/tes_manual_kalem.py                # semua skenario contoh
-    python tools/tes_manual_kalem.py overwhelm       # cuma model_overwhelm
-    python tools/tes_manual_kalem.py durasi          # cuma model_durasi
-
-Atau import langsung buat eksplorasi bebas (skrip ini, notebook, python -i):
-
-    from tools.tes_manual_kalem import fitur_manual, riwayat_manual
-    from app.kalem_ml import model_overwhelm
-
-    f = fitur_manual(n_sos_7h=3, n_sos_3h=2, skor_3h=1.8, streak_abai=4)
-    print(model_overwhelm.nilai(f))
-
-Nambah skenario sendiri: tinggal tambah entri di SKENARIO_* di bawah, atau
-panggil fitur_manual()/riwayat_manual() langsung.
-"""
+"""Menjalankan skenario manual untuk memeriksa keluaran model KALEM."""
 from __future__ import annotations
 
 import sys
@@ -50,9 +18,6 @@ from app.kalem_ml import (  # noqa: E402
     model_penenang,
 )
 
-# =============================================================================
-# PEMBANGUN INPUT -- nggak nyentuh storage sama sekali
-# =============================================================================
 
 _NETRAL: dict[str, float] = {
     "umur_idx": 1.0, "n_status": 1.0, "tidur_jam": 7.0,
@@ -74,13 +39,6 @@ _NETRAL: dict[str, float] = {
 
 
 def fitur_manual(logs: list[dict] | None = None, day: DayState | None = None, **override: float) -> F.Fitur:
-    """Fitur custom buat satu tes -- isi cuma kolom yang kamu perluin.
-
-    Kolom yang nggak disebut di `override` dipakai dari _NETRAL di atas.
-    `logs`/`day` cuma perlu diisi buat nge-tes jalur model yang BELAJAR dari
-    histori -- pakai `riwayat_manual()` di bawah. Buat jalur prior/rule-
-    based, cukup override angka ringkasannya langsung.
-    """
     nilai = dict(_NETRAL)
     nilai.update(override)
     day = day if day is not None else DayState(mood_logs=logs or [])
@@ -95,11 +53,6 @@ def riwayat_manual(
     hari: list[tuple[int, int, bool | None, bool | None]],
     sos_hari_ago: list[int] | None = None,
 ) -> DayState:
-    """DayState dari daftar (skor, energi, makan, istirahat) per hari.
-
-    index 0 = HARI INI, mundur ke belakang. Butuh minimal 10-12 hari biar
-    model_mood/model_overwhelm keluar dari mode prior dan beneran belajar.
-    """
     today = date.today()
     logs = []
     for offset, (skor, energi, makan, istirahat) in enumerate(hari):
@@ -116,11 +69,6 @@ def riwayat_manual(
         for d in (sos_hari_ago or [])
     ]
     return DayState(mood_logs=logs, reset_events=reset_events)
-
-
-# =============================================================================
-# CETAK HASIL
-# =============================================================================
 
 
 def _judul(teks: str) -> None:
@@ -175,11 +123,6 @@ def cetak_penenang(events: list[dict], logs: list[dict], pemicu: list[str] | Non
         print(f"  catatan : {hasil.catatan}")
     if hasil.manfaat:
         print(f"  manfaat terukur : {hasil.manfaat}")
-
-
-# =============================================================================
-# SKENARIO CONTOH -- edit/tambah sesuka kamu
-# =============================================================================
 
 
 def skenario_mood() -> None:

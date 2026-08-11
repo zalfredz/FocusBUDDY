@@ -1,9 +1,4 @@
-"""Kontrak ketahanan storage lokal FocusBuddy.
-
-Seluruh test memakai direktori sementara. Jangan pernah arahkan suite ini ke
-``~/.focusbuddy``: tujuan test ini justru membuktikan recovery tanpa menyentuh
-data pengguna.
-"""
+"""Tes ketahanan dan pemulihan storage."""
 from __future__ import annotations
 
 import json

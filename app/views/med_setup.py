@@ -1,20 +1,4 @@
-"""Setup Medication Companion -- dibuka sekali di awal, bukan halaman harian.
-
-SOAL PAYWALL: pengingat stok & cari apotek SENGAJA tetap gratis. Nggak
-kehabisan obat resep itu fungsi dasar, bukan kenyamanan -- dan prinsip
-paywall app ini cuma ngunci kedalaman. Yang premium di sini cuma lapisan
-analisisnya (riwayat kepatuhan & ekspor buat dokter), bukan pengingatnya.
-
-
-Setelah user isi di sini, sisanya jalan di belakang layar: stok turun tiap
-user mencet "Udah minum" di Home, dan Home juga yang nampilin pengingat
-kalau stoknya mau habis.
-
-Yang SENGAJA nggak ada di sini: rekomendasi dosis. Angka dosis yang diisi
-user itu yang sudah ditentukan dokternya. FocusBuddy nggak pernah nyaranin
-atau ngitungin "dosis wajar" -- di luar kapasitas app, dan berisiko buat
-obat psikotropika terkontrol seperti metilfenidat.
-"""
+"""Halaman setup, stok, dan kepatuhan obat tanpa rekomendasi dosis."""
 from __future__ import annotations
 
 import flet as ft
@@ -37,12 +21,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     bpom_holder = ft.Container()
 
     def check_name(e=None):
-        """Cek nama obat ke registri BPOM sambil user ngetik.
-
-        Offline & instan (~10 ms buat 8.960 nama), jadi nggak perlu nunggu
-        disimpan dulu. Hasilnya SELALU informasi, nggak pernah ngeblokir --
-        lihat catatan di bawah soal nama yang nggak ketemu.
-        """
         typed = (name_field.value or "").strip()
         if not typed or not bpom.available():
             bpom_holder.content = None
@@ -52,13 +30,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         match = bpom.lookup(typed)
 
         if not match.found:
-            # TETAP BOLEH DISIMPAN. Racikan apotek dan obat yang belum masuk
-            # unduhan registri itu nyata ada -- nolak nyimpen bakal ngunci
-            # pengingat dari orang yang justru paling butuh.
-            # Alasan paling sering kenapa produk yang JELAS ADA nggak ketemu:
-            # jamu, herbal, dan suplemen didaftarin BPOM di daftar TERPISAH
-            # (nomor TR/SD/POM), bukan di Master Produk Komoditi Obat ini.
-            # Diomongin terus terang biar user nggak ngira dia salah ketik.
             bpom_holder.content = _note_row(
                 ft.Icons.HELP_OUTLINE,
                 theme.MUTED,
@@ -140,12 +111,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
         on_change=check_name,
     )
     stock_field = ft.TextField(
-        label="Sisa stok sekarang (jumlah pil)",
+        label="Sisa pil saat ini",
         value=str(int(existing["pills_left"])) if existing else "",
         keyboard_type=ft.KeyboardType.NUMBER,
     )
     dose_field = ft.TextField(
-        label="Sesuai resep dokter, berapa pil per hari",
+        label="Berapa pil sehari? - Sesuai resep dokter",
         value=str(existing["pills_per_day"]) if existing else "1",
         keyboard_type=ft.KeyboardType.NUMBER,
     )
@@ -167,9 +138,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         children: list[ft.Control] = [
             ui_helpers.banner(message, color, "med"),
             ft.Text(
-                f"Sisa {current.pills_remaining:g} pil. Kalem bakal ingetin otomatis "
-                f"{REMINDER_THRESHOLD_DAYS} hari sebelum habis — kamu nggak perlu buka "
-                "halaman ini tiap hari.",
+                f"Tersisa {current.pills_remaining:g} pil. KALEM bakal kasih tahu otomatis "
+                f"{REMINDER_THRESHOLD_DAYS} hari sebelum stok habis.",
                 size=12,
                 color=theme.MUTED,
             ),
@@ -186,9 +156,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 )
             )
 
-        # Hari yang nggak keabsen dianggap nggak diminum. Ditulis sebagai
-        # KETERANGAN, bukan teguran -- dan sekalian ngasih tau kalau angka
-        # stoknya mungkin ketinggalan dari kenyataan.
         missed = missed_streak(storage.get_medication())
         if missed:
             children.append(
@@ -211,18 +178,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         children.append(
             ui_helpers.wide_button(
-                "Cari apotek terdekat", show_pharmacies, icon=ft.Icons.LOCATION_ON
+                "Cari Apotek Terdekat", show_pharmacies, icon=ft.Icons.LOCATION_ON
             )
         )
         status_holder.content = ft.Column(children, spacing=10)
         status_holder.visible = True
 
     def show_pharmacies(e):
-        """Serahin pencarian ke Google Maps -- datanya beneran hidup.
-
-        Sengaja nggak bikin daftar apotek + "stok tersedia" sendiri: itu
-        bakal keliatan meyakinkan padahal isinya karangan.
-        """
         rows: list[ft.Control] = [
             ft.Container(
                 content=ft.Row(
@@ -230,10 +192,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ft.Icon(ft.Icons.MAP, color=theme.PRIMARY, size=20),
                         ft.Column(
                             [
-                                ft.Text("Buka apotek terdekat di Maps",
+                                ft.Text("Cari di Google Maps",
                                         size=13, weight=ft.FontWeight.BOLD,
                                         color=theme.ON_BACKGROUND),
-                                ft.Text("Pakai lokasi kamu sekarang", size=11, color=theme.MUTED),
+                                ft.Text("Pakai lokasi kamu saat ini", size=11, color=theme.MUTED),
                             ],
                             spacing=1,
                             expand=True,
@@ -249,7 +211,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ink=True,
             ),
             ft.Divider(color=theme.BORDER, height=1),
-            ui_helpers.section_header("Atau tebus daring"),
+            ui_helpers.section_header("TEBUS ONLINE"),
         ]
         rows += [
             ft.Container(
@@ -304,18 +266,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
             return
 
         storage.set_medication(name, pills_left, per_day)
-        # Hasil registri ikut disimpan: golongan & NIE dipakai di tempat lain
-        # tanpa perlu cari ulang, dan jadi jejak "ini divalidasi kapan".
         found = bpom.lookup(name)
         if found.found:
             storage.set_medication_registry(
                 {"nama_resmi": found.name, "nie": found.nie,
                  "golongan": found.golongan, "cocok": found.matched_by}
             )
-        # Semua kartu turunan ikut digambar ulang. Sebelumnya cuma
-        # `render_status()` yang jalan, jadi kartu riwayat kepatuhan pakai
-        # `status` hasil hitungan waktu halaman dibangun -- nggak muncul
-        # sampai halamannya dibuka ulang.
         refresh_cards()
         page.update()
 
@@ -345,7 +301,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             buddy.face("tenang", 54),
             ft.Container(
                 content=buddy.speech_bubble(
-                    "Biar aku bisa bantuin ingetin, tanpa kamu harus ngitung-ngitung sendiri."
+                    "Biar kamu nggak perlu repot mikirin sisa stok obat lagi."
                 ),
                 expand=True,
             ),
@@ -362,8 +318,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 leading=ui_helpers.med_icon(26, theme.TERTIARY),
             ),
             ui_helpers.subtitle(
-                "Opsional — buat kamu yang lagi pakai obat resep rutin. "
-                "Cukup diisi sekali, sisanya Kalem yang hitung."
+                "Opsional — cukup isi sekali, nanti KALEM yang bantu hitung sisa stoknya."
             ),
             kalem_note,
             ui_helpers.card(
@@ -373,25 +328,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
             status_holder,
             pharmacy_holder,
             adherence_holder,
-            ui_helpers.card(
-                ft.Column(
-                    [
-                        ui_helpers.section_header("Privasi"),
-                        ft.Text(
-                            "Data obat disimpan lokal di perangkat ini aja, nggak ikut ke-sync "
-                            "ke mana pun. Notifikasi pengingat sengaja ditulis netral "
-                            "(\"Waktunya check-in ya\") — nama obatnya nggak muncul di banner.",
-                            size=12,
-                            color=theme.MUTED,
-                        ),
-                    ],
-                    spacing=6,
-                ),
-                padding=14,
-            ),
             ui_helpers.disclaimer(
-                "Fitur ini bukan alat diagnosis atau pengganti dokter. FocusBuddy nggak "
-                "nyaranin dosis — angka di atas yang kamu isi sesuai resep dokter kamu."
+                "Fitur ini bukan alat medis atau pengganti dokter. KALEM tidak menyarankan "
+                "dosis dan semua angka menyesuaikan resep dokter kamu"
             ),
         ],
         spacing=14,
@@ -401,7 +340,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
 def _note_row(icon: str, color: str, text: str) -> ft.Control:
-    """Satu baris catatan kecil: ikon + teks. Dipakai kartu validasi BPOM."""
     return ft.Row(
         [
             ft.Icon(icon, size=15, color=color),
@@ -413,12 +351,6 @@ def _note_row(icon: str, color: str, text: str) -> ft.Control:
 
 
 def _adherence_card(status) -> ft.Control:
-    """Riwayat kepatuhan -- lapisan PREMIUM di atas pengingat yang gratis.
-
-    Yang dikunci cuma analisisnya (persentase, streak, ekspor buat dokter).
-    Pengingat stok, tombol absen, dan cari apotek tetap kebuka buat semua
-    orang: itu keselamatan, bukan fitur mewah.
-    """
     if not status.active:
         return ft.Container()
 
@@ -428,14 +360,8 @@ def _adherence_card(status) -> ft.Control:
                 [
                     ui_helpers.section_header("Riwayat kepatuhan"),
                     ui_helpers.upgrade_hint(
-                        "Premium: lihat persentase hari kamu absen tepat waktu, "
-                        "pola bolongnya di mana, dan ringkasan yang bisa "
-                        "ditunjukin ke dokter pas kontrol."
-                    ),
-                    ft.Text(
-                        "Pengingat stok & cari apotek tetap gratis selamanya.",
-                        size=10.5,
-                        color=theme.MUTED,
+                        "Fitur Premium: Lihat persentase rutin, pola hari yang terlewat, "
+                        "dan ringkasan siap pakai untuk tunjukkan ke dokter saat kontrol."
                     ),
                 ],
                 spacing=8,
@@ -448,10 +374,6 @@ def _adherence_card(status) -> ft.Control:
     from datetime import date, timedelta
 
     today = clock.today()
-    # Jendelanya dipotong ke UMUR pemakaian, bukan selalu 30 hari. Kalau
-    # nggak, orang yang baru setup kemarin dan patuh 100% ditampilin "3%" --
-    # angka yang salah total, di kartu yang teksnya sendiri nyaranin
-    # ditunjukin ke dokter.
     try:
         start = date.fromisoformat(med.get("start_date", ""))
         age = (today - start).days + 1
@@ -463,7 +385,6 @@ def _adherence_card(status) -> ft.Control:
     hits = sum(1 for d in days if d.isoformat() in taken)
     pct = round(hits / window * 100)
 
-    # Streak berjalan: berapa hari berturut-turut dari hari ini ke belakang.
     streak = 0
     for d in days:
         if d.isoformat() in taken:

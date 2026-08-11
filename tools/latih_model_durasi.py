@@ -1,18 +1,4 @@
-"""Latih model durasi tugas sekali, simpen hasilnya.
-
-KENAPA DIPRA-LATIH
-------------------
-Latih dari nol makan ~1 detik. Kedengeran kecil, tapi itu jeda yang muncul
-persis pas user lagi nambah tugas -- momen paling rawan bikin orang ADHD
-kehilangan momentum. Jadi dilatih sekali di sini, runtime tinggal muat.
-
-JALANIN (cuma perlu diulang kalau datasetnya di-update):
-
-    python tools/latih_model_durasi.py
-
-Kalau file hasilnya nggak ada, app tetap jalan normal -- dia bakal latih
-sendiri saat pertama dipakai.
-"""
+"""Melatih dan menyimpan model estimasi durasi tugas."""
 from __future__ import annotations
 
 import sys
@@ -46,7 +32,6 @@ def main() -> None:
     print(f"dilatih : {n} baris dalam {time.time() - t0:.1f} detik")
     print(f"keluar  : {model_durasi.MODEL_PATH.relative_to(ROOT)}  ({ukuran:.2f} MB)")
 
-    # Cek muat balik + kecepatan prediksi -- kalau ini lambat, percuma.
     model_durasi.reset_model()
     t0 = time.time()
     contoh = model_durasi.perkirakan("kerjakan 20 soal kalkulus", 3, 8)

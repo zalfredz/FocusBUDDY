@@ -1,13 +1,4 @@
-"""Grafik mood bulanan -- upgrade opsional di samping bar chart 7-hari.
-
-CATATAN PENTING: `ft.LineChart` yang disebut di dokumen rencana 3.0 TERNYATA
-NGGAK ADA di Flet 0.86.4 yang kepakai di project ini (dicek langsung lewat
-`dir(ft)` -- nggak ada satupun kelas *Chart). Solusinya dibangun manual
-pakai `flet.canvas` (Path/Points/Circle), yang emang ada di versi ini.
-
-Warnanya ngikut SCORE_COLORS yang udah ada di mood.py -- nggak bikin skema
-warna baru sendiri.
-"""
+"""Renderer grafik mood bulanan."""
 from __future__ import annotations
 
 import calendar
@@ -30,9 +21,8 @@ MONTH_NAMES = [
 
 
 def _y_for_score(score: float) -> float:
-    """Skor 1-5 -> koordinat y kanvas (1 di bawah, 5 di atas)."""
     plot_h = CHART_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM
-    ratio = (score - 1) / 4  # 0..1
+    ratio = (score - 1) / 4
     return CHART_HEIGHT - MARGIN_BOTTOM - ratio * plot_h
 
 
@@ -44,9 +34,6 @@ def _x_for_day(day: int, days_in_month: int) -> float:
 
 
 def build_month_chart(logs: list[dict], year: int, month: int, score_colors: dict) -> ft.Control:
-    """logs: SEMUA mood_logs (belum difilter). Filter+plot cuma yang tanggalnya
-    di bulan `year`-`month`. Hari tanpa catatan dilewatin -- garis nyambung
-    lurus ke titik berikutnya yang beneran ada datanya, nggak dikarang."""
     days_in_month = calendar.monthrange(year, month)[1]
     month_logs = sorted(
         (log for log in logs if log["date"].startswith(f"{year:04d}-{month:02d}")),
@@ -83,8 +70,6 @@ def build_month_chart(logs: list[dict], year: int, month: int, score_colors: dic
 
     shapes: list[cv.Shape] = []
 
-    # Area di bawah garis -- fill tipis, warna dari titik terakhir (paling
-    # relevan/terbaru) biar nggak perlu bikin gradient.
     baseline_y = CHART_HEIGHT - MARGIN_BOTTOM
     area_color = score_colors.get(month_logs[-1]["score"], theme.PRIMARY)
     area_elements: list[cv.Path.PathElement] = [cv.Path.MoveTo(points[0].x, baseline_y)]
@@ -99,7 +84,6 @@ def build_month_chart(logs: list[dict], year: int, month: int, score_colors: dic
         )
     )
 
-    # Garis penghubung.
     if len(points) > 1:
         shapes.append(
             cv.Points(
@@ -118,8 +102,6 @@ def build_month_chart(logs: list[dict], year: int, month: int, score_colors: dic
 
     canvas = cv.Canvas(shapes=shapes, width=CHART_WIDTH, height=CHART_HEIGHT)
 
-    # Label sumbu-x: tanggal 1, tengah, akhir bulan -- cukup buat orientasi,
-    # nggak perlu satu-satu (bakal numpuk di layar sekecil ini).
     axis_labels = ft.Row(
         [
             ft.Text("1", size=9, color=theme.MUTED),

@@ -1,9 +1,4 @@
-"""Supabase Auth + sinkronisasi state FocusBuddy Web.
-
-Setiap sesi browser memiliki client dan JWT sendiri. Satu salinan state
-di-upsert ke Supabase dan dilindungi RLS berdasarkan ``auth.uid()``. Cache
-JSON di server hanya penyangga sesi; Supabase adalah penyimpanan lintas sesi.
-"""
+"""Supabase Auth dan sinkronisasi state per pengguna."""
 from __future__ import annotations
 
 import json
@@ -23,7 +18,7 @@ _log = logging.getLogger(__name__)
 
 
 class CloudUnavailable(RuntimeError):
-    """Koneksi/config cloud belum siap; data lokal tetap aman."""
+    pass
 
 
 @dataclass(frozen=True)
@@ -34,7 +29,6 @@ class CloudUser:
 
 
 def oauth_code_from_url(*candidates: str) -> tuple[str, str]:
-    """Ambil ``code`` atau error dari route/deep-link Flet."""
     for raw in candidates:
         if not raw:
             continue
@@ -50,7 +44,6 @@ def oauth_code_from_url(*candidates: str) -> tuple[str, str]:
 
 
 class FocusBuddyCloud:
-    """Satu instance per ``ft.Page``, tidak pernah global antar-user."""
 
     TABLE = "focusbuddy_states"
     AUTH_STORAGE_KEY = "focusbuddy-auth"
@@ -93,20 +86,21 @@ class FocusBuddyCloud:
         return response.url
 
     def pkce_verifier(self) -> str:
-        """Verifier yang harus dipertahankan saat browser pergi ke Google."""
         return self._auth_storage.get_item(
             f"{self.AUTH_STORAGE_KEY}-code-verifier"
         ) or ""
 
     def restore_pkce_verifier(self, verifier: str) -> None:
-        """Pulihkan verifier setelah callback membuat sesi Flet baru."""
         if verifier:
             self._auth_storage.set_item(
                 f"{self.AUTH_STORAGE_KEY}-code-verifier", verifier
             )
 
-    def exchange_code(self, code: str):
-        return self.auth.exchange_code_for_session({"auth_code": code})
+    def exchange_code(self, code: str, verifier: str = ""):
+        params = {"auth_code": code}
+        if verifier:
+            params["code_verifier"] = verifier
+        return self.auth.exchange_code_for_session(params)
 
     def restore_session(self, access_token: str, refresh_token: str):
         return self.auth.set_session(access_token, refresh_token)
@@ -177,7 +171,6 @@ class FocusBuddyCloud:
         response.raise_for_status()
 
     def enqueue_state(self, user_id: str, state: dict[str, Any]) -> None:
-        """Coalesce save cepat; jaringan tidak boleh membekukan tombol UI."""
         with self._lock:
             self._pending = deepcopy(state)
             if self._worker_running:
@@ -200,7 +193,7 @@ class FocusBuddyCloud:
                     return
             try:
                 self.upload_state(user_id, state)
-            except Exception as exc:  # cache lokal tetap source of truth saat offline
+            except Exception as exc:
                 _log.warning("Sinkronisasi Supabase gagal: %s", exc)
 
     def sign_out(self) -> None:

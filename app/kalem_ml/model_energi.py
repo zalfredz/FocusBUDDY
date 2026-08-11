@@ -1,33 +1,10 @@
-"""MODEL ENERGI & BURNOUT -- "beban kerja segimana yang masuk akal hari ini?"
-
-Bedanya sama `model_mood`: yang ini punya PRIOR yang jalan dari hari pertama,
-karena dilatih dari data sintetis. `model_mood` diam kalau datanya belum ada;
-yang ini nggak boleh diam -- user baru tetap butuh saran beban kerja.
-
-Isi mesinnya dipindah utuh dari `core/energy_predictor.py` (Decision Tree,
-500 baris sintetis). Yang ditambahin di sini cuma LAPISAN KALIBRASI dari
-data user sendiri.
-
-KALIBRASI PERSONAL
-------------------
-Prior-nya nebak buat "orang pada umumnya". Dua hal dari data user yang
-dipakai buat ngoreksi:
-
-  1. `rasio_selesai_7h` -- kalau seminggu ini tugas yang kelar sedikit,
-     nyaranin beban tinggi itu nggak nyambung sama kenyataan.
-  2. `rasio_sesi_kelar` -- sesi fokus yang sering ditinggal di tengah itu
-     sinyal kapasitas lagi tipis, sekalipun mood-nya keliatan oke.
-
-Koreksinya cuma boleh NURUNIN satu tingkat, nggak pernah naikin. Sengaja
-asimetris: salah nyaranin terlalu ringan ruginya kecil, salah nyaranin
-terlalu berat bikin hari gagal dan rasa gagalnya nempel.
-"""
+"""Penilaian beban kerja yang menggabungkan prior dan histori personal."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Optional
 
-from app.core.energy_predictor import (  # dipakai ulang, bukan disalin
+from app.core.energy_predictor import (
     ADVICE_MAP,
     MISSED_MED_THRESHOLD,
     NEGLECT_BURNOUT_THRESHOLD,
@@ -35,12 +12,9 @@ from app.core.energy_predictor import (  # dipakai ulang, bukan disalin
 )
 from app.kalem_ml import fitur as F
 
-# Di bawah ambang ini, penyelesaian user seminggu terakhir dianggap lagi
-# seret -- saran bebannya diturunin. 0.35 = kurang dari sepertiga kelar.
 AMBANG_SELESAI = 0.35
 AMBANG_SESI = 0.4
 
-# Beban -> level energi default yang disaranin (skala 1-6 di ENERGY_BLOCKS).
 BEBAN_KE_ENERGI = {"rendah": 2, "sedang": 4, "tinggi": 5}
 
 _TURUN = {"tinggi": "sedang", "sedang": "rendah", "rendah": "rendah"}
@@ -48,8 +22,8 @@ _TURUN = {"tinggi": "sedang", "sedang": "rendah", "rendah": "rendah"}
 
 @dataclass
 class SaranBeban:
-    label: str                   # "rendah" | "sedang" | "tinggi"
-    level_energi: int            # 1-6
+    label: str
+    level_energi: int
     burnout: bool
     saran: str
     dikoreksi: bool = False
@@ -58,7 +32,6 @@ class SaranBeban:
 
 
 def nilai(f: Optional[F.Fitur] = None, skor_mood: Optional[float] = None) -> SaranBeban:
-    """Saran beban kerja hari ini, sesudah dikalibrasi ke kebiasaan user."""
     f = f or F.bangun_fitur()
 
     mood = skor_mood if skor_mood is not None else (
@@ -77,12 +50,6 @@ def nilai(f: Optional[F.Fitur] = None, skor_mood: Optional[float] = None) -> Sar
     dikoreksi = False
     alasan_koreksi = ""
 
-    # Koreksi cuma jalan kalau datanya ada. User baru (belum ada tugas sama
-    # sekali) nggak boleh kena penalti dari data kosong.
-    #
-    # Pakai flag eksplisit, BUKAN `rasio != 0.5`. Versi lama gitu, dan itu
-    # nutupin kasus rasio 50% yang beneran (1 dari 2 tugas kelar) -- kebaca
-    # sebagai "belum ada data" padahal ada.
     punya_data_tugas = bool(f["ada_data_tugas_7h"])
     if punya_data_tugas and f["rasio_selesai_7h"] < AMBANG_SELESAI and label != "rendah":
         label = _TURUN[label]
@@ -119,7 +86,7 @@ def nilai(f: Optional[F.Fitur] = None, skor_mood: Optional[float] = None) -> Sar
     if dikoreksi:
         saran = f"{ADVICE_MAP[label]} {alasan_koreksi}"
     elif dasar.advice != ADVICE_MAP[dasar.workload_label]:
-        saran = dasar.advice          # bawa peringatan burnout dari prior
+        saran = dasar.advice
 
     return SaranBeban(
         label=label,

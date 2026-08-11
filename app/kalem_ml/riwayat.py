@@ -1,29 +1,4 @@
-"""Rekonstruksi fitur HARIAN dari riwayat -- bahan latih model perilaku.
-
-MASALAHNYA
-----------
-`fitur.bangun_fitur()` ngasih snapshot HARI INI. Buat ngelatih model yang
-belajar dari kebiasaan user, dibutuhin satu baris per HARI LAMPAU, dengan
-nilai yang bener-bener berlaku di hari itu -- bukan nilai hari ini yang
-ditempelin ke tanggal lama.
-
-Salah di titik ini bikin kebocoran data (*leakage*): model keliatan akurat
-pas dites padahal dia cuma ngintip masa depan.
-
-ATURANNYA
----------
-Cuma fitur yang BISA direkonstruksi jujur yang masuk:
-
-    BOLEH  skor mood hari itu, energi, makan/istirahat, hari apa,
-           SOS dalam 7 hari SEBELUMNYA, streak abai sampai hari itu,
-           jumlah tugas dengan deadline hari itu
-    NGGAK  rasio selesai (nggak tau kapan langkahnya dicentang),
-           kalibrasi waktu (nggak ada stempel waktu per sesi lama),
-           stok obat (cuma nilai sekarang yang disimpan)
-
-Yang "NGGAK" itu tetap dipakai buat prediksi HARI INI, cuma nggak dipakai
-buat melatih -- karena nilai historisnya emang nggak ada.
-"""
+"""Rekonstruksi fitur historis tanpa mengarang data pada hari kosong."""
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -31,8 +6,6 @@ from typing import Any, Optional
 
 from app import clock, storage
 
-# Urutan kolom fitur latih. Dikunci di sini biar model & prediksi nggak
-# pernah ketuker urutannya -- bug yang senyap dan susah ketahuan.
 KOLOM = [
     "skor",
     "energi",
@@ -55,11 +28,6 @@ def _tanggal(teks: str) -> Optional[date]:
 
 
 def _tri(nilai) -> float:
-    """Tri-state jadi angka: belum dijawab = 0.5, bukan 0.
-
-    Penting: 0 artinya "belum makan", dan itu beda jauh dari "nggak dijawab".
-    Nyamain keduanya bakal ngajarin model hal yang salah.
-    """
     if nilai is True:
         return 1.0
     if nilai is False:
@@ -68,24 +36,6 @@ def _tri(nilai) -> float:
 
 
 def sidik_jari(X: list[list[float]], meta: list[dict]) -> str:
-    """Sidik jari ISI data latih -- buat kunci cache model.
-
-    KENAPA BUKAN len(X) DOANG
-    -------------------------
-    Dulu model di-cache pakai jumlah baris (`tanda = f"{len(X)}"`). Itu bocor
-    parah: dua user beda yang kebetulan sama-sama punya 12 catatan bakal
-    dianggap "data yang sama", dan user kedua dapet ramalan dari model yang
-    dilatih pakai data user pertama. Kebukti di uji: user mood 1/5 terus
-    dapet skor 2.69 karena kepakai model user mood 5/5.
-
-    Di single-device itu nggak kejadian (satu proses = satu storage), tapi
-    begitu app-nya di-host bareng (satu server buat beberapa orang nyoba),
-    itu jadi kebocoran data antar-user.
-
-    Yang di-hash: tanggal + skor + label per hari. Cukup buat mastiin dua
-    dataset yang beda pasti beda kuncinya, dan murah -- nggak nyentuh matriks
-    fitur penuh yang jauh lebih gede.
-    """
     import hashlib
 
     bahan = "|".join(
@@ -97,16 +47,6 @@ def sidik_jari(X: list[list[float]], meta: list[dict]) -> str:
 def baris_harian(
     sampai: Optional[date] = None, day: Any = None
 ) -> tuple[list[list[float]], list[dict]]:
-    """Satu baris fitur per hari yang ada check-in-nya.
-
-    Return (X, meta). `meta` bawa tanggal + label mentah biar model lain bisa
-    bikin target sendiri tanpa ngulang rekonstruksi ini.
-
-    `day` (kalau dioper) itu `kalem_engine.DayState` -- sumber datanya diambil
-    dari situ, bukan storage. Sama alasannya kayak `fitur.bangun_fitur()`:
-    biar model yang dilatih lewat `decide()`/`build_morning_brief()` beneran
-    belajar dari data yang dioper, bukan dari storage yang lagi aktif.
-    """
     sampai = sampai or clock.today()
     if day is not None:
         semua_log, sos, tugas = day.mood_logs, day.reset_events, day.all_tasks
@@ -123,7 +63,6 @@ def baris_harian(
     )
     hari_sos = set(tgl_sos)
 
-    # Log diurut LAMA -> BARU biar streak abai bisa dihitung maju.
     urut = []
     for log in logs:
         d = _tanggal(log.get("date", ""))
@@ -137,9 +76,8 @@ def baris_harian(
 
     for d, log in urut:
         makan, istirahat = log.get("ate_today"), log.get("rested_enough")
-        # Streak abai dihitung MAJU, pakai keadaan sampai hari itu doang.
         if makan is None and istirahat is None:
-            pass                      # nggak dijawab: streak nggak berubah
+            pass
         elif makan is False or istirahat is False:
             streak_abai += 1
         else:
@@ -150,9 +88,6 @@ def baris_harian(
 
         iso = d.isoformat()
         tugas_hari = [t for t in tugas if t.get("deadline") == iso]
-        # Mendesak dihitung dari deadline, bukan baca flag beku -- lihat
-        # `storage.is_urgent()`. Buat baris riwayat, patokannya AKHIR hari
-        # itu (bukan sekarang), biar rekonstruksinya sesuai konteks hari itu.
         akhir_hari = datetime(d.year, d.month, d.day, 23, 59)
         mendesak = [t for t in tugas_hari if storage.is_urgent(t, akhir_hari)]
 
@@ -178,11 +113,6 @@ def baris_harian(
 
 
 def baris_hari_ini(fitur) -> list[float]:
-    """Baris fitur buat HARI INI, urutan kolomnya sama persis kayak latih.
-
-    Diambil dari snapshot `fitur.Fitur` supaya definisinya nggak kepisah --
-    tapi urutannya tetap dikunci lewat KOLOM di atas.
-    """
     log = fitur.catatan.get("log_hari_ini") or {}
     return [
         float(log.get("score") or fitur["skor_7h"]),

@@ -1,17 +1,4 @@
-"""Ukur retrieval TF-IDF terhadap query berlabel.
-
-Ini sengaja menilai retrieval, bukan kualitas bahasa langkah AI. Retrieval
-dianggap benar hanya jika judul pola yang dipungut sama dengan `target_judul`.
-Query yang tidak dipungut dihitung sebagai fallback; itu lebih aman daripada
-memaksa coverage tinggi dengan pola yang salah.
-
-Jalankan dari root project:
-    python tools/evaluasi_retrieval.py
-
-Default memakai dataset/query Inggris yang memang saling berpasangan. Untuk
-baseline Indonesia, operkan CSV pola dan query berlabel Indonesia sendiri:
-    python tools/evaluasi_retrieval.py pola.csv query.csv
-"""
+"""Mengukur precision, coverage, wrong retrieval, dan fallback rate."""
 from __future__ import annotations
 
 import csv
@@ -34,8 +21,6 @@ def read_patterns(path: Path) -> list[dict]:
                 "title": (row.get("judul") or "").strip(),
                 "description": (row.get("deskripsi") or "").strip(),
                 "steps": [s.strip() for s in (row.get("langkah") or "").split("|") if s.strip()],
-                # Evaluasi ini berbahasa Inggris; language eksplisit agar
-                # tidak tersaring oleh default runtime Indonesia.
                 "language": "en",
                 "source": "dataset",
             }
@@ -67,11 +52,8 @@ def evaluate(patterns: list[dict], queries: list[dict], threshold: float) -> dic
         "retrieved": retrieved,
         "correct": correct,
         "wrong": wrong,
-        # Dari hasil yang berani dipungut, berapa yang tepat?
         "precision": correct / retrieved if retrieved else 0.0,
-        # Berapa bagian input yang selesai tanpa fallback AI?
         "coverage": retrieved / total if total else 0.0,
-        # Metrik risiko utama: salah dibagi seluruh input.
         "wrong_retrieval_rate": wrong / total if total else 0.0,
         "fallback_rate": (total - retrieved) / total if total else 0.0,
     }

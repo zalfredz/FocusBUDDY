@@ -1,8 +1,4 @@
-"""Kalem -- karakter buddy yang nemenin user.
-
-Satu sumber kebenaran buat aset mood, skor mood (yang masuk ke model),
-dan cara nampilin Kalem di UI.
-"""
+"""Renderer karakter KALEM dan balon percakapan."""
 from __future__ import annotations
 
 import flet as ft
@@ -17,12 +13,6 @@ MOOD_ASSETS = {
     "lelah": "kalem_lelah.svg",
 }
 
-# Skor inilah yang jadi fitur input Decision Tree / mood model.
-#
-# Cemas dianggap paling berat -- lebih dari sedih atau lelah -- karena itu
-# state yang paling ngambil alih (kepala muter, susah berhenti mikir),
-# sementara sedih/lelah masih ninggalin ruang buat diem sebentar. Urutan ini
-# keputusan eksplisit, bukan patokan klinis universal.
 MOOD_SCORE = {"cemas": 1, "sedih": 2, "lelah": 3, "tenang": 4, "semangat": 5}
 
 MOOD_LABELS = {
@@ -33,14 +23,10 @@ MOOD_LABELS = {
     "lelah": "Lelah",
 }
 
-# Urutan chip di picker: NAIK dari kiri (paling berat) ke kanan (paling
-# enak), kayak skala rating pada umumnya -- HARUS selalu sinkron sama
-# MOOD_SCORE di atas (dites di tests/test_regresi.py::tes_urutan_mood).
 MOOD_ORDER = ["cemas", "sedih", "lelah", "tenang", "semangat"]
 
 DEFAULT_MOOD = "tenang"
 
-# Sapaan Kalem, disesuaikan mood terakhir.
 GREETINGS = {
     "semangat": "Energi kamu lagi bagus. Yuk pakai buat satu hal yang penting.",
     "tenang": "Hari ini nggak harus produktif banget. Pelan-pelan aja.",
@@ -63,7 +49,6 @@ def greeting_for(mood: str) -> str:
 
 
 def face(mood: str = DEFAULT_MOOD, size: int = 90) -> ft.Image:
-    """Wajah Kalem. Simpan referensinya kalau mau di-update pas mood ganti."""
     return ft.Image(
         src=asset_for(mood),
         width=size,
@@ -74,7 +59,6 @@ def face(mood: str = DEFAULT_MOOD, size: int = 90) -> ft.Image:
 
 
 def speech_bubble(text: str) -> ft.Container:
-    """Balon ucapan Kalem."""
     return ft.Container(
         content=ft.Text(text, size=13, color=theme.ON_BACKGROUND),
         bgcolor=theme.SURFACE,
@@ -85,7 +69,6 @@ def speech_bubble(text: str) -> ft.Container:
 
 
 def mood_picker(selected: str, on_pick) -> ft.Row:
-    """Baris pilihan mood. on_pick(mood: str) dipanggil saat user milih."""
     chips = []
     for mood in MOOD_ORDER:
         active = mood == selected

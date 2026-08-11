@@ -1,19 +1,4 @@
-"""Opsi & data statis buat halaman Reset + deteksi pola distress.
-
-Personalisasi urutan opsi penenang SEKARANG ada di `kalem_ml/model_penenang.py`
-(dulu di sini, frequency-based murni -- ditinggal karena "sering dipakai"
-nggak sama dengan "beneran nolong", lihat docstring modul itu). Yang tersisa
-di sini cuma dua hal yang emang harus rule-based:
-
-1. Deteksi pola distress -- kalau user berulang kali mencet SOS sambil
-   mood-nya rendah, app berhenti nawarin musik lagi dan lebih tegas
-   ngarahin ke bantuan profesional. Ini SENGAJA bukan ML: keputusan nunjuk
-   ke hotline krisis harus bisa dijelasin dalam satu kalimat dan nggak boleh
-   probabilistik.
-
-2. Data statis: opsi jeda, peta trigger->opsi (dipakai model_penenang buat
-   tebakan awal sebelum ada riwayat), hotline, dan partner telehealth.
-"""
+"""Aturan distress dan sumber bantuan; eskalasi krisis tetap rule-based."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,16 +7,6 @@ from typing import Optional
 
 from app import clock
 
-# --- Opsi penenang yang tersedia di halaman Reset ---
-#
-# SEMUANYA MENENANGKAN, NGGAK ADA YANG NARIK TUGAS.
-# Versi lama punya opsi "Satu tugas 60 detik" yang ngambil langkah dari daftar
-# tugas beneran. Itu salah tempat: halaman ini bilang "semua daftar tugas lagi
-# disembunyiin", terus nyodorin tugas. Buat orang yang lagi kewalahan, disodorin
-# kerjaan pas minta jeda itu ngerusak kepercayaan ke halamannya sendiri.
-#
-# Yang gantiin: grounding 5-4-3-2-1 (teknik standar buat cemas) dan gerak badan
-# 60 detik. Dua-duanya ngasih "menang kecil" yang sama tanpa nyentuh backlog.
 OPTIONS = {
     "napas": {
         "label": "Latihan napas 4-7-8",
@@ -55,40 +30,22 @@ OPTIONS = {
     },
 }
 
-# --- Ambang deteksi distress ---
 SOS_WINDOW_DAYS = 7
 SOS_COUNT_THRESHOLD = 3
-LOW_MOOD_THRESHOLD = 2.0  # skor mood rata-rata (skala 1-5)
+LOW_MOOD_THRESHOLD = 2.0
 
 
-# Trigger overwhelm dari onboarding -> opsi mana yang paling masuk akal
-# dimunculin duluan SEBELUM app punya riwayat pilihan user.
-#
-# Pemicu yang diketik sendiri user nggak ada di sini, dan itu nggak apa-apa:
-# `model_penenang.peringkat()` cuma make peta ini buat tebakan awal, terus
-# digantiin sama manfaat terukur begitu ada riwayat.
 TRIGGER_DEFAULTS = {
-    # Kepala penuh / muter-muter -> tarik balik ke indra dulu.
     "tugas_numpuk": "grounding",
     "gagal_fokus": "grounding",
-    # Beku di titik mulai -> gerakin badan, jangan nambah mikir.
     "mulai_susah": "gerak",
-    # Cemas akut -> napas yang paling cepat nurunin.
     "deadline": "napas",
     "sosial": "napas",
-    # Capek fisik -> yang paling nggak nuntut apa-apa.
     "kurang_tidur": "musik",
 }
 
 
 def music_links(query: str) -> list[dict]:
-    """Deep link ke pencarian musik -- BUKAN pemutar audio bawaan.
-
-    `ft.Audio` nggak ada di Flet 0.86.4 yang kepakai di project ini (dicek
-    lewat `dir(ft)`), dan lagian nge-bundle lagu berhak cipta jelas nggak
-    boleh. Jadi polanya sama kayak "cari apotek": serahin ke layanan yang
-    isinya beneran hidup daripada bikin pemutar palsu yang nggak bunyi.
-    """
     from urllib.parse import quote_plus
 
     q = quote_plus(query.strip() or "lofi calm")
@@ -111,14 +68,6 @@ def detect_distress(
     mood_logs: list[dict],
     window_days: int = SOS_WINDOW_DAYS,
 ) -> DistressSignal:
-    """Bedain overwhelm harian biasa vs pola distress yang perlu rujukan.
-
-    Kriteria eskalasi: Reset dibuka di >= 3 HARI dalam 7 hari DAN rata-rata
-    mood <= 2.0. Hitung hari unik sebagai pagar tambahan terhadap event lama
-    yang mungkin tercatat beberapa kali dalam satu kunjungan.
-    Dua-duanya harus kena -- SOS sering tapi mood oke belum tentu distress,
-    dan mood rendah sekali-sekali juga hal yang normal.
-    """
     today = clock.today()
 
     def within_window(iso_day: str) -> bool:
@@ -157,10 +106,6 @@ def detect_distress(
     )
 
 
-# --- Hotline krisis ---
-# Nama dan jam layanan dapat berubah; jangan mengunci klaim "24 jam" tanpa
-# verifikasi. Telepon tetap paling cepat, dan situs resmi disediakan sebagai
-# alternatif untuk chat/WhatsApp serta informasi terbaru.
 CRISIS_HOTLINES = [
     {
         "name": "Healing119.id — Kemenkes",
@@ -171,13 +116,6 @@ CRISIS_HOTLINES = [
     },
 ]
 
-# --- Partner telehealth (deep link, bukan sistem sesi sendiri) ---
-#
-# CATATAN URL: situs partner sering ngubah struktur URL-nya, dan tautan yang
-# mati di halaman krisis itu kegagalan yang paling nggak boleh kejadian.
-# Semua URL di bawah dicek manual (bukan cuma kode 200 -- Halodoc balikin 200
-# buat halaman "Halaman tidak ditemukan"-nya juga, jadi isinya ikut dicek).
-# Kalau ragu, mending nunjuk ke beranda partner daripada deep link yang rapuh.
 TELEHEALTH_PARTNERS = [
     {
         "name": "Into The Light",

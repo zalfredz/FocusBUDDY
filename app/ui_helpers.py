@@ -1,4 +1,4 @@
-"""Komponen UI kecil yang dipakai berulang di banyak halaman."""
+"""Komponen UI bersama FocusBuddy."""
 from __future__ import annotations
 
 from typing import Optional
@@ -45,11 +45,6 @@ def primary_button(label: str, on_click, icon: Optional[str] = None, expand: boo
 
 
 def wide_button(label: str, on_click, icon: Optional[str] = None) -> ft.Row:
-    """Tombol utama yang beneran selebar induknya.
-
-    Di dalam Column, `expand=True` ngatur tinggi -- bukan lebar. Jadi buat
-    CTA full-width tombolnya dibungkus Row dulu.
-    """
     return ft.Row([primary_button(label, on_click, icon=icon, expand=True)], spacing=0)
 
 
@@ -63,13 +58,6 @@ def soft_button(label: str, on_click, icon: Optional[str] = None) -> ft.Outlined
 
 
 def med_icon(size: float = 18, color: str = "#FFFFFF") -> ft.Image:
-    """Ilustrasi botol obat rounded, senada gaya Kalem -- ganti
-    ft.Icons.MEDICATION yang gayanya beda (sudut tajam khas Material).
-
-    SVG-nya cuma placeholder hitam; warna asli di-set di sini lewat
-    color_blend_mode SRC_IN, jadi satu file bisa dipakai putih di banner
-    berwarna maupun warna palet di latar polos.
-    """
     return ft.Image(
         src="med_icon.svg",
         width=size,
@@ -104,7 +92,6 @@ def section_header(text: str) -> ft.Text:
 
 
 def page_header(text: str, on_back=None, leading: Optional[ft.Control] = None) -> ft.Control:
-    """Judul halaman, opsional dengan tombol kembali & ikon kecil di depan judul."""
     title_row: list[ft.Control] = []
     if leading:
         title_row.append(leading)
@@ -145,7 +132,6 @@ def disclaimer(text: str) -> ft.Text:
 
 
 def choice_chip(label: str, active: bool, on_click) -> ft.Container:
-    """Chip pilihan tunggal/ganda -- dipakai onboarding & edit profil di Settings."""
     return ft.Container(
         content=ft.Text(
             label,
@@ -163,7 +149,6 @@ def choice_chip(label: str, active: bool, on_click) -> ft.Container:
 
 
 def nav_link_card(icon: str, icon_color: str, title_text: str, subtitle_text: str, on_click) -> ft.Container:
-    """Kartu 'buka halaman lain' -- ikon + judul + subjudul + chevron."""
     return ft.Container(
         content=ft.Row(
             [
@@ -190,12 +175,6 @@ def nav_link_card(icon: str, icon_color: str, title_text: str, subtitle_text: st
 
 
 def upgrade_hint(text: str, on_click=None) -> ft.Container:
-    """Ajakan upgrade yang halus -- bukan popup yang ngalangin jalan.
-
-    Nada & warnanya sengaja tenang (tertiary, bukan merah/kuning alarm):
-    ini penawaran, bukan error. Fungsi inti app nggak pernah ke-lock,
-    jadi kartu ini nggak boleh kerasa kayak tembok.
-    """
     row: list[ft.Control] = [
         ft.Icon(ft.Icons.WORKSPACE_PREMIUM, color=theme.TERTIARY, size=18),
         ft.Text(text, size=11.5, color=theme.MUTED, expand=True),
@@ -214,12 +193,6 @@ def upgrade_hint(text: str, on_click=None) -> ft.Container:
 
 
 def premium_badge(size: float = 9) -> ft.Container:
-    """Label PREMIUM kecil buat nempel di judul fitur berbayar.
-
-    Dipasang di fitur premium yang KELIHATAN tapi belum kebuka -- jadi user
-    tau apa yang dia dapet kalau upgrade, tanpa harus baca halaman harga.
-    Sengaja kecil & tenang: ini penanda, bukan iklan yang ngalangin.
-    """
     return ft.Container(
         content=ft.Row(
             [
@@ -236,15 +209,12 @@ def premium_badge(size: float = 9) -> ft.Container:
 
 
 def premium_header(judul: str, terkunci: bool) -> ft.Control:
-    """Judul section + badge PREMIUM kalau fiturnya belum kebuka."""
     baris: list[ft.Control] = [section_header(judul)]
     if terkunci:
         baris.append(premium_badge())
     return ft.Row(baris, spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER)
 
 
-# Kalimat rayaan pas tugas kelar. Diacak biar nggak kerasa robot yang
-# ngulang kalimat yang sama tiap kali.
 REWARD_LINES = [
     "Satu kelar! 🎉",
     "Mantap, jalan terus 🌱",
@@ -255,18 +225,6 @@ REWARD_LINES = [
 
 
 def reward_overlay(page: ft.Page, pesan: str = "") -> None:
-    """Rayaan kecil pas tugas selesai -- muncul sebentar terus ilang sendiri.
-
-    KENAPA INI ADA
-    --------------
-    Otak ADHD kurang sensitif ke reward yang jauh & abstrak ("nanti nilai
-    kamu bagus"), tapi responsif ke umpan balik yang LANGSUNG. Nyentang
-    tugas tanpa apa-apa yang terjadi itu momen kosong; satu detik rayaan
-    bikin selesai kerasa selesai.
-
-    Sengaja NGGAK pakai dialog: dialog butuh di-dismiss, dan itu malah
-    nambah kerjaan. Ini muncul-sendiri, ilang-sendiri.
-    """
     import asyncio
     import random
 
@@ -283,8 +241,6 @@ def reward_overlay(page: ft.Page, pesan: str = "") -> None:
         bgcolor=theme.SUCCESS,
         border_radius=16,
         padding=ft.Padding.symmetric(vertical=12, horizontal=18),
-        # Mulai kecil & transparan, lalu mengembang -- gerakannya yang bikin
-        # kerasa "muncul", bukan sekadar teks yang tiba-tiba ada.
         scale=0.7,
         opacity=0.0,
         animate_scale=ft.Animation(220, ft.AnimationCurve.EASE_OUT_BACK),
@@ -299,7 +255,7 @@ def reward_overlay(page: ft.Page, pesan: str = "") -> None:
     async def main():
         page.overlay.append(lapisan)
         page.update()
-        await asyncio.sleep(0.02)          # biar state awal sempat kerender
+        await asyncio.sleep(0.02)
         kartu.scale, kartu.opacity = 1.0, 1.0
         page.update()
         await asyncio.sleep(1.1)
@@ -314,27 +270,7 @@ def reward_overlay(page: ft.Page, pesan: str = "") -> None:
 
 
 class ProgresAI:
-    """Bar progres buat panggilan Gemini -- BERDASAR waktu asli, bukan hiasan.
 
-    KENAPA BAR, BUKAN LINGKARAN MUTER
-    ---------------------------------
-    Spinner cuma bilang "lagi jalan", nggak bilang "sebentar lagi". Buat
-    orang ADHD, nunggu tanpa tau berapa lama itu justru titik paling gampang
-    ditinggal -- dan begitu ditinggal, hasilnya nggak pernah kelihatan.
-
-    Panjangnya dihitung dari MEDIAN lama panggilan sebelumnya
-    (`ai_client.perkiraan_lama()`), jadi angkanya beneran punya dasar.
-
-    DUA ATURAN BIAR NGGAK BOHONG
-    ----------------------------
-    1. Nggak pernah nyentuh 100% sebelum jawabannya nyampe. Mentok 92% terus
-       nunggu di situ. Bar yang penuh tapi layarnya diem itu lebih ngeselin
-       daripada bar yang jujur bilang "masih nunggu".
-    2. Kalau lewat dari perkiraan, teksnya ganti jadi "agak lama nih" --
-       bukan diem-diem nambahin waktu terus.
-    """
-
-    # Batas atas sebelum jawaban nyampe. Sisanya buat lompatan terakhir.
     PLAFON = 0.92
 
     def __init__(self, label: str = "Kalem lagi nyusun..."):
@@ -369,7 +305,6 @@ class ProgresAI:
         )
 
     def tick(self, lewat: float) -> None:
-        """Update tampilan. `lewat` = detik sejak panggilan dimulai."""
         if self.selesai:
             return
         rasio = min(lewat / max(self.perkiraan, 0.5), 1.0)
@@ -393,12 +328,6 @@ class ProgresAI:
 
 
 async def jalankan_dengan_progres(page: ft.Page, holder: ft.Container, kerja, label: str):
-    """Jalanin `kerja()` di thread lain sambil bar progresnya jalan.
-
-    Panggilan Gemini itu blocking. Tanpa dilempar ke thread, seluruh UI beku
-    dan bar progresnya nggak akan pernah gerak -- persis kebalikan dari yang
-    mau dicapai.
-    """
     import asyncio
 
     progres = ProgresAI(label)
@@ -417,12 +346,6 @@ async def jalankan_dengan_progres(page: ft.Page, holder: ft.Container, kerja, la
 
 
 def show_reset_confirm(page: ft.Page, on_confirmed) -> None:
-    """Dialog konfirmasi 'Hapus semua data' -- dipanggil dari Pengaturan.
-
-    Dulu ada jalur dev kedua di Home yang manggil dialog ini juga (di-gate
-    DEMO_MODE); itu udah dibuang -- Pengaturan satu-satunya pintu sekarang,
-    biar nggak ada dua cara ke aksi yang sama-sama nggak bisa dibalikin.
-    """
 
     def do_reset(ev):
         page.pop_dialog()

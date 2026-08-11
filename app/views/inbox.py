@@ -1,14 +1,4 @@
-"""Inbox -- isi quick capture ("Ada yang keinget? Tulis cepat").
-
-Sebelum halaman ini ada, catatan quick capture cuma masuk ke storage dan
-nggak pernah bisa dibaca lagi: `get_inbox()` cuma kepakai buat ngitung
-angka di Home, dan `delete_inbox_note()` nggak pernah dipanggil sama
-sekali. Jadi datanya ke-capture tapi nggak ada jalan keluarnya.
-
-Halaman ini yang nutup lingkarannya: catatan mentah -> tugas beneran di
-Tracker, langkah-langkahnya disusun Kalem (fallback template tetap jalan
-kalau penyusunan generatif tidak tersedia).
-"""
+"""Halaman inbox untuk menangkap tugas dengan cepat."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -20,7 +10,6 @@ from app.core.decomposer_logic import plan_today
 
 
 def _relative_time(iso: str) -> str:
-    """"2 jam lalu" -- biar kerasa antrian, bukan arsip."""
     try:
         when = datetime.fromisoformat(iso)
     except (TypeError, ValueError):
@@ -43,10 +32,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     notes_column = ft.Column(spacing=10)
 
     def to_task(note: dict):
-        """Ubah catatan mentah jadi tugas + langkah kecil."""
         title_field = ft.TextField(label="Jadiin tugas apa?", value=note["text"], multiline=True, max_lines=3)
-        # OPSIONAL -- diisi -> Pecah Tugas mecah dari SINI, bukan cuma judul.
-        # Lihat catatan panjang di decomposer_logic.py.
         description_field = ft.TextField(
             label="Deskripsi (opsional)",
             hint_text="konteks lebih detail, kalau ada",
@@ -55,8 +41,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             max_lines=5,
             helper="Diisi -> Pecah Tugas mecah dari SINI, bukan cuma judul",
         )
-        # Jam deadline, bukan centang "mendesak" -- mendesaknya dihitung
-        # sistem dari tanggal+jam (lihat storage.is_urgent).
         time_field = ft.TextField(
             label="Jam deadline (opsional)",
             hint_text="mis. 17:00",
@@ -68,8 +52,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             label="Pecah otomatis jadi langkah kecil",
             value=True,
         )
-        # Kalau kuotanya abis, bilang terus terang -- jangan biarin checkbox
-        # kepencet terus diem-diem nggak ngapa-ngapain.
         note_text = ft.Text(
             "" if can_use_ai else "Kuota penyusunan Kalem habis: tetap coba pola lokal; "
             "kalau nggak cocok, dipakai template sederhana.",
@@ -94,8 +76,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 description=(description_field.value or "").strip(),
             )
 
-            # Kuota hanya membatasi request API. Outline/retrieval lokal
-            # tetap layak dicoba ketika kuota habis.
             if split_check.value:
                 energy = storage.today_energy() or 3
                 result = plan_today([task], energy, allow_ai=can_use_ai)
@@ -109,7 +89,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 if steps:
                     storage.set_task_steps(task["id"], steps)
 
-            # Catatan mentahnya dibuang -- udah "naik kelas" jadi tugas.
             storage.delete_inbox_note(note["id"])
             page.pop_dialog()
             render_notes()

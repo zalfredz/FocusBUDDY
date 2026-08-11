@@ -1,14 +1,4 @@
-"""Jam aplikasi -- satu-satunya sumber "hari ini" buat seluruh app.
-
-Alasan modul ini ada: fitur yang bergantung riwayat beberapa hari (mood
-model, deteksi distress, prediksi obat habis) mustahil dites kalau harus
-nunggu hari beneran ganti. Dengan offset yang bisa digeser, satu sesi
-testing bisa nyimulasiin dua minggu pemakaian.
-
-Di produksi offset-nya selalu 0, jadi `today()` sama persis dengan
-`date.today()`. Pada Flet Web, offset disimpan per sesi browser supaya tombol
-demo satu peserta tidak mengubah waktu peserta lain.
-"""
+"""Jam aplikasi dengan offset per sesi untuk kebutuhan demo."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,8 +12,6 @@ _SESSION_KEY = "focusbuddy.clock.v1"
 @dataclass
 class _ClockState:
     days: int = 0
-    # Geseran JAM, kepisah dari geseran hari. Perlu sendiri karena ada fitur
-    # yang gerbangnya jam, bukan tanggal.
     hours: int = 0
 
 
@@ -31,7 +19,6 @@ _FALLBACK_STATE = _ClockState()
 
 
 def _state() -> _ClockState:
-    """State sesi browser aktif; fallback global hanya untuk CLI/test."""
     return session_scope.get_or_create(_SESSION_KEY, _ClockState) or _FALLBACK_STATE
 
 
@@ -64,11 +51,6 @@ def advance_hours(hours: int) -> int:
 
 
 def hours_until(target_hour: int) -> int:
-    """Berapa jam lagi biar `now()` nyampe di `target_hour`.
-
-    Kalau sekarang udah lewat jamnya, dilanjut ke hari berikutnya -- jadi
-    tombolnya selalu maju, nggak pernah mundurin waktu.
-    """
     selisih = target_hour - now().hour
     return selisih if selisih > 0 else selisih + 24
 
@@ -85,9 +67,6 @@ def is_simulated() -> bool:
 
 
 def today() -> date:
-    # Diturunin dari now(), bukan dihitung sendiri: geseran jam yang nyebrang
-    # tengah malam harus ikut ganti tanggal juga. Kalau dua-duanya dihitung
-    # terpisah, jam bisa nunjukkin 01.00 tapi tanggalnya masih kemarin.
     return now().date()
 
 

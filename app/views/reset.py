@@ -1,21 +1,4 @@
-"""Page 4 -- Reset. Tujuan halaman ini ruang personal, bukan layar tenang generik.
-
-Tiga lapis:
-1. Opsi penenang -- urutannya menyesuaikan apa yang paling sering ngebantu
-   user (hitung frekuensi, bukan ML).
-2. Rujukan: hotline TELEPON duluan, baru deep link telehealth.
-3. Deteksi pola distress: kalau SOS berulang + mood rendah, app berhenti
-   nawarin musik dan lebih tegas ngarahin ke bantuan profesional.
-
-ATURAN HALAMAN INI: nggak ada satu pun opsi yang nyentuh daftar tugas.
-Halaman ini bilang "semua daftar tugas lagi disembunyiin" -- nyodorin tugas
-di sini, sekecil apa pun, ngebatalin janji itu.
-
-SOAL PENCATATAN SOS: event cuma dicatat SEKALI per pembukaan aktivitas.
-Versi lama nyatet tiap kali layarnya digambar ulang, jadi mencet "Kasih ide
-lain" 4x = 4 event SOS -- cukup buat micu eskalasi rujukan profesional
-padahal user cuma lagi milih-milih.
-"""
+"""Halaman jeda dan bantuan saat pengguna overwhelm."""
 from __future__ import annotations
 
 import asyncio
@@ -34,7 +17,6 @@ from app.core.reset_preferences import (
 )
 from app.kalem_ml import model_penenang
 
-# Saran gerak 60 detik. SENGAJA nggak ada yang narik dari daftar tugas.
 MOVE_ACTIONS = [
     "Berdiri, regangin badan 60 detik.",
     "Jalan bolak-balik di kamar, 60 detik aja.",
@@ -50,8 +32,6 @@ BREATHING_STEPS = [
     ("Buang pelan-pelan...", 8, 0.55),
 ]
 
-# Grounding 5-4-3-2-1 -- teknik standar buat narik perhatian keluar dari
-# spiral pikiran, balik ke indra. Nggak butuh alat, nggak butuh tugas.
 GROUNDING_STEPS = [
     (5, "hal yang bisa kamu LIHAT", ft.Icons.VISIBILITY),
     (4, "hal yang bisa kamu SENTUH", ft.Icons.BACK_HAND),
@@ -67,16 +47,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
     profile = storage.get_profile()
     favorites = storage.get_favorites()
     distress = detect_distress(storage.get_reset_events(), storage.get_mood_logs())
-    # Urutan opsi sekarang dari `model_penenang`: bukan cuma seberapa SERING
-    # dipakai, tapi seberapa sering mood user jadi lebih enak SESUDAHNYA.
-    # Opsi yang diulang terus belum tentu yang nolong -- bisa jadi justru
-    # yang nggak mempan, makanya diulang.
     prefs = model_penenang.peringkat(
         storage.get_reset_events(), storage.get_mood_logs(), storage.all_triggers(profile)
     )
 
-    # Satu KUNJUNGAN Reset = satu event. Mencoba beberapa aktivitas saat
-    # kunjungan yang sama bukan empat kejadian SOS terpisah.
     logged = False
 
     def log_once(choice: str):
@@ -85,14 +59,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
             storage.add_reset_event(choice)
             logged = True
 
-    # ------------------------------------------------------ rujukan pro
 
     def hotline_rows() -> list[ft.Control]:
-        """Nomor telepon ditaruh gede & bisa dipencet.
-
-        Tautan web bisa mati (dan pernah mati di app ini), butuh sinyal data,
-        dan minta orang navigasiin situs dulu. Nomor telepon nggak.
-        """
         rows: list[ft.Control] = []
         for h in CRISIS_HOTLINES:
             rows.append(ft.Container(
@@ -115,8 +83,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 padding=ft.Padding.symmetric(vertical=12, horizontal=14),
                 bgcolor=theme.PRIMARY,
                 border_radius=12,
-                # Telepon 119 lalu pilih ekstensi 8. Sistem dialer tidak
-                # punya format lintas-perangkat yang andal untuk extension.
                 url=h["tel"],
                 ink=True,
             ))
@@ -187,20 +153,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
-        # Pas pola distress kebaca, telepon naik ke paling atas -- di atas
-        # semua tautan web. Kalau nggak, hotline tetap ada tapi di bawah,
-        # biar halaman ini nggak kerasa kayak layar darurat tiap dibuka.
         rows = [*hotline_rows(), *partner_rows] if prominent else [*partner_rows, *hotline_rows()]
 
         return ui_helpers.card(ft.Column([header, *rows], spacing=10), bgcolor=theme.SURFACE)
 
     def person_card() -> Optional[ft.Control]:
-        """"Mau cerita ke [nama]?" -- cuma muncul pas pola SOS berulang.
-
-        Sifatnya PENGINGAT, bukan auto-contact: Kalem nggak nyimpen nomor,
-        nggak ngirim apa-apa. Ditaruh berdampingan sama rujukan profesional,
-        bukan gantiin -- orang terdekat dan tenaga terlatih beda peran.
-        """
         person = favorites.get("orang", "").strip()
         if not person or not distress.escalate:
             return None
@@ -230,13 +187,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
     def snack_card() -> Optional[ft.Control]:
-        """Comfort food favorit user, ditawarin pas lagi kewalahan.
-
-        Kolom `snack` dulu satu-satunya isian Favorit yang nggak punya
-        konsumen -- kesimpen tapi nggak pernah kepakai di mana pun. Di sinilah
-        tempatnya paling masuk akal: aksi paling murah yang ada di halaman
-        ini, nol usaha kognitif, dan pakai kata-kata user sendiri.
-        """
         snack = (favorites.get("snack") or "").strip()
         if not snack:
             return None
@@ -264,7 +214,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
     def encouragement_card() -> Optional[ft.Control]:
-        """Kalimat penyemangat user sendiri, dikutip balik sama Kalem."""
         line = favorites.get("penyemangat", "").strip()
         if not line:
             return None
@@ -289,15 +238,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ]
         page.update()
 
-    # ------------------------------------------------------------- napas
 
     def show_breathing():
         log_once("napas")
         running = {"active": True}
 
-        # Lingkaran yang beneran ikut napas: mengembang 4 detik pas narik,
-        # nahan ukuran 7 detik, nyusut 8 detik pas buang. Ini yang bikin user
-        # punya sesuatu buat DIIKUTIN, bukan cuma angka yang turun sendiri.
         circle = ft.Container(
             width=170,
             height=170,
@@ -323,8 +268,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     if not running["active"]:
                         return
                     phase_text.value = label
-                    # Durasi animasi = durasi fase, jadi lingkarannya nyampe
-                    # ukuran akhir pas hitungannya juga habis.
                     circle.animate_scale = ft.Animation(
                         seconds * 1000, ft.AnimationCurve.EASE_IN_OUT
                     )
@@ -362,7 +305,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
         page.run_task(run_cycles)
 
-    # --------------------------------------------------------- grounding
 
     def show_grounding():
         log_once("grounding")
@@ -430,7 +372,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         render()
 
-    # ------------------------------------------------------------ musik
 
     def show_music():
         log_once("musik")
@@ -493,12 +434,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
             lambda e: show_menu(),
         )
 
-    # ------------------------------------------------------------- gerak
 
     def show_move():
         log_once("gerak")
-        # Favorit user naik ke atas, tapi daftarnya tetap murni self-care --
-        # nggak ada satu pun yang ngambil dari tugas.
         options = list(MOVE_ACTIONS)
         if favorites.get("gerak"):
             options.insert(0, f"Coba {favorites['gerak']} — 60 detik aja, nggak usah niat.")
@@ -581,7 +519,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "gerak": ft.Icons.DIRECTIONS_WALK,
     }
 
-    # ------------------------------------------------------------- menu
 
     def option_row(key: str, highlight: bool) -> ft.Control:
         meta = OPTIONS[key]
@@ -636,8 +573,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ]
 
         if distress.escalate:
-            # Pola distress kebaca: rujukan profesional naik ke atas,
-            # opsi penenang tetap ada tapi jadi pilihan sekunder.
             controls.append(professional_card(prominent=True))
             person = person_card()
             if person:

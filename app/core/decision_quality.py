@@ -1,10 +1,4 @@
-"""Kontrak kecil untuk menilai kualitas keputusan Kalem.
-
-Modul ini sengaja belum memilih tugas atau mengubah UI. Ia mendefinisikan
-fakta yang harus benar sebelum Tracker berani membuat rencana: berapa beban
-yang diketahui, apakah muat di waktu yang tersedia, dan seberapa besar
-overflow-nya. Dengan begitu skenario kualitas bisa diuji tanpa AI/Flet.
-"""
+"""Metrik kapasitas dan kualitas keputusan harian."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -29,12 +23,6 @@ class CapacityAssessment:
 
 
 def assess_capacity(tasks: list[dict], available_minutes: int) -> CapacityAssessment:
-    """Bandingkan beban tugas terbuka dengan waktu yang benar-benar tersedia.
-
-    Tugas tanpa `menit_est` tidak diberi angka palsu; jumlahnya dilaporkan
-    sebagai ketidakpastian. Ini penting karena "muat" dengan dua tugas tanpa
-    estimasi bukan keputusan yang jujur.
-    """
     available = max(0, int(available_minutes or 0))
     known = 0
     unknown = 0

@@ -1,21 +1,4 @@
-"""Halaman Settings -- rumah buat fitur yang tadinya nyebar/nggak punya
-tempat sendiri: edit ulang jawaban onboarding, link ke Obat & Favorit,
-hapus semua data, dan info app.
-
-Gear icon di Home nunjuk ke sini (bukan lagi langsung ke med_setup) --
-"pengaturan app" beda sama "setup obat".
-
-Tiga aturan yang beda dari onboarding:
-
-- UMUR DIKUNCI begitu terisi. Umur nggak berubah gara-gara ganti pikiran,
-  dan ngebiarin dia diedit bebas cuma ngundang data yang nggak konsisten.
-  Yang masih kosong (user lama / hasil skip) tetap boleh diisi sekali.
-- PEKERJAAN boleh lebih dari satu. "Mahasiswa sambil kerja" itu satu orang,
-  dan maksa milih satu bikin datanya bohong.
-- JAM PRODUKTIF diatur pakai slider, bukan preset. Di onboarding preset itu
-  perlu (biar di bawah semenit); di sini user punya waktu buat presisi, dan
-  boleh punya lebih dari satu rentang -- mis. pagi 06-11 DAN malam 20-01.
-"""
+"""Pengaturan profil, cloud, dan kontrol data pengguna."""
 from __future__ import annotations
 
 import flet as ft
@@ -27,8 +10,6 @@ AGE_OPTIONS = ["<18", "18-24", "25-34", "35+"]
 
 APP_VERSION = "5.0.0"
 
-# Rentang yang dipasang pas user mencet "Tambah rentang" -- sore-malam,
-# jam paling umum buat orang ngerjain sesuatu di luar jam wajib.
 DEFAULT_NEW_RANGE = [19, 22]
 
 
@@ -44,9 +25,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "productive_hours": [list(r) for r in (profile.get("productive_hours") or [])],
         "trigger_input_open": False,
     }
-    # Dikunci berdasarkan kondisi AWAL, bukan state yang lagi diedit -- kalau
-    # nggak, umur bakal langsung ngunci diri sendiri sedetik setelah dipilih
-    # dan user nggak sempat benerin kalau salah pencet.
     age_locked = bool(profile.get("age_range"))
 
     name_field = ft.TextField(label="Panggil kamu siapa?", value=state["name"])
@@ -67,7 +45,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         on_submit=lambda e: add_custom_trigger(e),
     )
 
-    # ------------------------------------------------------------ umur
 
     def render_age():
         if age_locked:
@@ -127,7 +104,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_age()
         page.update()
 
-    # -------------------------------------------------------- pekerjaan
 
     def render_status():
         chips = [
@@ -156,7 +132,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_status()
         page.update()
 
-    # ------------------------------------------------------ kondisi tidur
 
     def render_sleep():
         chips = [
@@ -178,7 +153,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_sleep()
         page.update()
 
-    # ------------------------------------------------------ jam produktif
 
     def render_hours():
         rows: list[ft.Control] = [
@@ -255,11 +229,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         hours_holder.content = ft.Column(rows, spacing=8)
 
     def slide(index: int, e, label: ft.Text):
-        """Update label langsung tanpa render ulang seluruh daftar.
-
-        Kalau render ulang penuh, slider-nya kebangun baru di tengah drag dan
-        jarinya "lepas" dari gagang -- gerakannya jadi patah-patah.
-        """
         start = int(round(e.control.start_value))
         end = int(round(e.control.end_value))
         if end <= start:
@@ -278,7 +247,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_hours()
         page.update()
 
-    # ---------------------------------------------------- pemicu kewalahan
 
     def render_triggers():
         picked = state["overwhelm_triggers"] + state["custom_triggers"]
@@ -290,8 +258,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
             for value, label in storage.TRIGGER_OPTIONS.items()
         ]
-        # Pemicu ketikan sendiri tampil sebagai chip juga, biar bisa dimatiin
-        # persis kayak preset -- bukan daftar terpisah yang cuma bisa dilihat.
         chips += [
             ui_helpers.choice_chip(t, True, lambda e, v=t: drop_custom_trigger(v))
             for t in state["custom_triggers"]
@@ -364,7 +330,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def add_custom_trigger(e):
         raw = (trigger_field.value or "").strip()
-        # Dipotong 32 karakter: ini label pemicu, bukan tempat cerita.
         text = raw[:32]
         total = len(state["overwhelm_triggers"]) + len(state["custom_triggers"])
         if text and text not in state["custom_triggers"] and total < storage.MAX_TRIGGERS:
@@ -380,7 +345,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_triggers()
         page.update()
 
-    # ------------------------------------------------------------- simpan
 
     def save_profile(e):
         state["name"] = (name_field.value or "").strip() or "Teman"
@@ -531,12 +495,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
 def _kartu_model() -> ft.Control:
-    """Seberapa jauh Kalem udah kenal kamu -- terbuka, bukan kotak hitam.
-
-    Sengaja ditulis sebagai "udah belajar apa", bukan sebagai persentase atau
-    skor. Angka mentah model (risiko, probabilitas) nggak pernah dipajang:
-    itu bikin cemas dan kesannya pasti, padahal nggak.
-    """
     import app.kalem_ml as ml
 
     ringkas = kfitur.ringkas_untuk_ui()
@@ -623,8 +581,6 @@ def _kartu_model() -> ft.Control:
 
 
 def _med_link_card(navigate) -> ft.Container:
-    """Kartu link ke Obat -- ikonnya ilustrasi custom, bukan Material icon,
-    jadi dibikin manual (nav_link_card cuma nerima ft.Icons.*)."""
     return ft.Container(
         content=ft.Row(
             [

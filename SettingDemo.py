@@ -1,108 +1,4 @@
-"""SettingDemo -- demo harness: kondisi user -> keputusan yang diharapkan ->
-apakah engine BENERAN ngelakuin itu.
-
-=============================================================================
-FILE INI BUAT KAMU ISI SENDIRI. Nggak ada logika app di sini, cuma data
-(plus beberapa generator kecil buat mbangun data itu) DAN metadata soal apa
-yang seharusnya kejadian -- lihat catatan di bawah.
-=============================================================================
-
-MASALAH YANG DISELESAIN
------------------------
-Model di FocusBuddy (mood pattern, energy/burnout classifier, Morning Brief)
-baru kelihatan pinter kalau UDAH ADA HISTORI. Kalau demo pakai akun kosong,
-semua fitur bakal jawab "Kalem masih belajar pola kamu" -- jujur, tapi
-nggak nunjukkin apa-apa ke juri.
-
-DARI GENERATOR DATA JADI ALAT EVALUASI
-----------------------------------------
-Dulu file ini cuma jawab "kondisi user kayak apa yang bisa dipasang". Sekarang
-tiap skenario juga jawab TIGA hal sekaligus:
-
-    1. kondisi user   -> SCENARIOS[key]        (profile/history/tasks/dst)
-    2. keputusan yang
-       diharapkan      -> DEMO_OBJECTIVES[key] (story/tests/expected/wow)
-    3. apakah engine
-       BENERAN gitu    -> evaluate_demo_result()/run_demo() (decide() beneran
-                           dipanggil, hasilnya dibandingin ke expected)
-
-Generator histori (`_riwayat_semester`, `_obat_take_log`), pemasang skenario,
-dan jadwal kuliah dipakai bersama oleh dua jalur: overlay aman dari tombol
-Auto Feel dan penggantian state penuh untuk CLI/evaluasi. ISI skenarionya
-sengaja DIBUAT KONFLIK biar decision engine beneran diuji, bukan cuma "bisa
-baca kondisi user apa nggak".
-
-VALIDATOR CUMA BACA FIELD YANG BENERAN ADA
---------------------------------------------
-`evaluate_demo_result()` di bawah SENGAJA cuma meriksa field asli
-`kalem_engine.KalemDecision` (kind/action_kind/task/step_text/focus_minutes/
-detail/message/mood) plus API model yang udah diverifikasi ada
-(`model_mood.status()`, `model_overwhelm.status()`, `storage.quadrant_of()`,
-`decision_quality.assess_capacity()`). Nggak ada field yang dikarang. Kalau
-satu `expected` key nggak punya pemeriksa yang jujur, dia ditandai "tidak
-dievaluasi" (passed=None) -- BUKAN dipaksa lulus.
-
-KENAPA TUGAS DI TIAP SKENARIO SENGAJA "BERKONFLIK"
------------------------------------------------------
-Satu tugas gampang per skenario cuma ngetes "model bisa baca kondisi user
-apa nggak". Beberapa tugas yang saling tarik-menarik (deadline vs durasi,
-overdue vs penting, mendesak vs gampang) ngetes pertanyaan yang lebih
-berharga: "dengan kondisi ini, FocusBuddy milih tindakan yang masuk akal
-apa nggak?"
-
-JADWAL KULIAH 1 SEMESTER
--------------------------
-Sama seperti sebelumnya: jadwal kuliah (`JADWAL_KULIAH`) dan tugas mingguan
-yang ngikut jadwal itu (quiz Kalkulus & MatDis, tugas Kombistek, diskusi
-Manbis) ditambahin otomatis lewat `_tugas_kelas_hari_ini()` di `apply_scenario()`,
-dan skenario yang butuh beban kuliah aktif tinggal manggil
-`_tugas_mingguan_kuliah()`.
-
-CARA PAKAI
-----------
-1. Edit / tambah skenario di SCENARIOS & DEMO_OBJECTIVES bawah ini.
-2. Buka app -> Beranda -> ikon tongkat sihir (Auto Feel) di pojok kanan atas.
-3. Pilih skenario -> overlay demo ditambahkan, model langsung punya bahan.
-   Nama, profil, favorit, obat, diary, tugas, dan catatan asli tetap ada.
-
-Dari terminal:
-
-    python SettingDemo.py                        # lihat daftar skenario
-    python SettingDemo.py deadline_stack          # pasang doang
-    python SettingDemo.py deadline_stack --evaluasi   # pasang + decide() + cek expected
-
-CATATAN PENTING
----------------
-- Auto Feel dari UI memasang overlay bertanda khusus dan bisa dibersihkan
-  lagi tanpa menghapus data asli user.
-- `apply_scenario()` dari CLI/evaluation tetap mengganti seluruh state supaya
-  hasil 10 skenario deterministik. Jangan panggil fungsi itu dari UI publik.
-- Skor mood: 1 = paling berat, 5 = paling enak. Energi: 1-6.
-- Tiap entri `mood_history` WAJIB punya key `"offset"` (berapa hari lalu,
-  0 = hari ini).
-- Butuh minimal 5 catatan biar model berani ngomongin pola
-  (MIN_LOGS_FOR_PATTERN), dan 10 catatan biar Decision Tree/RandomForest
-  kepakai (MIN_LOGS_FOR_MODEL).
-
-DAFTAR 10 SKENARIO (kunci di DEMO_OBJECTIVES, bukan urutan penting)
-------------------------------------------------------------------------
-  "baru"                  - cold start, honest uncertainty
-  "deadline_stack"        - 3 deadline konflik, waktu cuma ~30 menit
-  "low_energy"             - energi rendah TAPI bukan overwhelm
-  "overwhelmed"            - tugas besar numpuk + histori gampang overwhelmed
-  "productive_streak"      - kondisi bagus, jangan over-protect
-  "after_reset"            - decide() dipanggil ulang sesudah Reset
-  "low_mood_low_workload" - mood rendah tapi beban ringan
-  "chaotic_workload"       - kategori tugas campur, bingung mulai dari mana
-  "overdue_recovery"       - beberapa tugas overdue, waktu mepet
-  "learning_from_history"  - histori cukup panjang, model personal bisa aktif
-
-Catatan jujur: 10 skenario lama (kuliah_2minggu/sebulan_off/3bulan_*/
-krisis_sos/jarang_checkin, fokus ke DURASI histori & toggle premium) DIGANTI
-oleh 10 di atas (fokus ke KUALITAS KEPUTUSAN). Kalau demo krisis SOS/hotline
-atau toggle premium/subscription masih perlu ditunjukkin terpisah, itu belum
-ke-cover di sini -- tinggal bilang, gampang ditambahin sebagai skenario ke-11.
-"""
+"""Kumpulan skenario demo dan validator kualitas keputusan KALEM."""
 from __future__ import annotations
 
 import random
@@ -110,37 +6,33 @@ import uuid
 from datetime import date, timedelta
 from typing import Any, Callable, Optional
 
-# =============================================================================
-# JADWAL KULIAH -- konstanta bersama, dipakai di SEGALA kondisi demo.
-# =============================================================================
-# weekday: 0=Senin ... 6=Minggu. Tiap entri: (jam_mulai, jam_selesai, matkul).
 JADWAL_KULIAH: dict[int, list[tuple[str, str, str]]] = {
-    0: [  # Senin
+    0: [
         ("08:00", "09:40", "Agama Kristen Protestan"),
         ("10:00", "11:40", "Manajemen Bisnis B"),
         ("13:00", "14:40", "Dasar-Dasar Pemrograman 1 (DDP 1) F"),
     ],
-    1: [  # Selasa
+    1: [
         ("08:00", "09:40", "Kombinatorika & Statistika (Kombistek) A"),
         ("10:00", "11:40", "Matematika Diskrit 1 (MatDis 1) C"),
         ("13:00", "14:40", "Kalkulus 1 F"),
         ("16:00", "16:50", "Kalkulus 1 F"),
     ],
-    2: [  # Rabu
+    2: [
         ("11:00", "11:50", "Manajemen Bisnis B"),
         ("14:00", "15:40", "Dasar-Dasar Pemrograman 1 (DDP 1) F"),
     ],
-    3: [  # Kamis
+    3: [
         ("08:00", "08:50", "Kombinatorika & Statistika (Kombistek) A"),
         ("10:00", "10:50", "Matematika Diskrit 1 (MatDis 1) C"),
         ("11:00", "11:50", "Kalkulus 1 F"),
         ("15:00", "16:40", "Dasar-Dasar Pemrograman 1 (DDP 1) F"),
     ],
-    4: [  # Jumat
+    4: [
         ("08:00", "08:50", "Matematika Diskrit 1 (MatDis 1) C"),
     ],
-    5: [],  # Sabtu
-    6: [],  # Minggu
+    5: [],
+    6: [],
 }
 
 MATKUL_TAG = {
@@ -154,14 +46,12 @@ MATKUL_TAG = {
 
 
 def _hari_depan(target_wd: int) -> date:
-    """Tanggal kejadian weekday berikutnya (hari ini kalau kebetulan sama)."""
     today = date.today()
     delta = (target_wd - today.weekday()) % 7
     return today + timedelta(days=delta)
 
 
 def _tugas_mingguan_kuliah() -> list[dict]:
-    """4 tugas rutin yang emang beneran ada tiap minggu di semester ini."""
     return [
         {"title": "Quiz Kalkulus 1", "important": True, "difficulty": 3,
          "steps": ["Latihan soal integral", "Review catatan kelas"],
@@ -177,10 +67,6 @@ def _tugas_mingguan_kuliah() -> list[dict]:
          "deadline_date": _hari_depan(0), "deadline_time": "10:00"},
     ]
 
-
-# =============================================================================
-# GENERATOR RIWAYAT -- ganti nulis manual ratusan baris jadi seed + aturan.
-# =============================================================================
 
 DIARY_NORMAL = [
     "Kelas lumayan lancar hari ini.",
@@ -250,13 +136,6 @@ def _riwayat_semester(
     hari_event: dict[int, str] | None = None,
     hanya_offset: list[int] | None = None,
 ) -> list[dict]:
-    """Bangun mood_history n_hari ke belakang dari hari ini.
-
-    minggu_berat -> indeks minggu (offset // 7, 0 = minggu ini) yang
-                    Kamis-Jumat-nya dibikin berat (quiz/deadline numpuk).
-    hari_event    -> {offset: "senang"|"jenuh"}, nimpa hari itu SEPENUHNYA.
-    hanya_offset  -> kalau diisi, cuma offset di list ini yang dapet catatan.
-    """
     hari_event = hari_event or {}
     today = date.today()
     offsets = hanya_offset if hanya_offset is not None else range(n_hari)
@@ -271,7 +150,7 @@ def _riwayat_semester(
             if jenis == "senang":
                 entry = _log(5, rng.choice([5, 6]), ["senang"],
                              rng.choice(DIARY_SENANG), True, True)
-            else:  # "jenuh"
+            else:
                 entry = _log(1, rng.choice([1, 2]), ["overwhelmed"],
                              rng.choice(DIARY_JENUH), False, False)
         elif wd in (3, 4) and minggu in minggu_berat:
@@ -296,15 +175,11 @@ def _riwayat_semester(
 
 
 def _riwayat_energi_rendah(n_hari: int, rng: random.Random) -> list[dict]:
-    """Energi trending rendah beberapa hari, TAPI mood masih di zona wajar
-    (skor 3) dan makan/istirahat nggak sampai jeblok total -- beda dari
-    "jenuh"/overwhelmed di `_riwayat_semester` yang mood+energinya sama-sama
-    jatuh ke 1-2. Dipakai buat skenario "low_energy"."""
     today = date.today()
     hasil = []
     for offset in range(n_hari):
         d = today - timedelta(days=offset)
-        rested = rng.random() > 0.6  # lebih sering KURANG istirahat, bukan selalu
+        rested = rng.random() > 0.6
         entry = _log(3, rng.choice([1, 2]), ["capek", "kurang_tidur"],
                      rng.choice(DIARY_LELAH_RINGAN), True, rested)
         entry["offset"] = offset
@@ -313,8 +188,6 @@ def _riwayat_energi_rendah(n_hari: int, rng: random.Random) -> list[dict]:
 
 
 def _riwayat_stabil_bagus(n_hari: int, rng: random.Random) -> list[dict]:
-    """Mood & energi konsisten bagus, ate/rested selalu True -- dipakai
-    buat skenario "productive_streak"."""
     today = date.today()
     hasil = []
     for offset in range(n_hari):
@@ -335,7 +208,6 @@ def _obat_take_log(
     n_hari: int = 90,
     adherence: float = 0.9,
 ) -> list[str]:
-    """Tanggal obat diminum (terbaru dulu). Skip pas hari berat/jenuh."""
     hari_event = hari_event or {}
     today = date.today()
     offsets = hanya_offset if hanya_offset is not None else range(n_hari)
@@ -351,12 +223,6 @@ def _obat_take_log(
             taken.append(d.isoformat())
     taken.sort(reverse=True)
     return taken
-
-
-# =============================================================================
-# SKENARIO DEMO -- 10 kondisi, tugasnya SENGAJA berkonflik biar decision
-# engine beneran diuji (bukan cuma "bisa baca kondisi user apa nggak").
-# =============================================================================
 
 
 def _skenario_baru() -> dict:
@@ -525,24 +391,12 @@ def _skenario_after_reset() -> dict:
         ],
         "inbox": [],
         "medication": None,
-        "sos_days_ago": [],  # kosong -- reset event ditambahin dinamis di run_demo()
+        "sos_days_ago": [],
         "show_brief_today": True,
     }
 
 
 def _riwayat_mood_rendah_tanpa_neglect(n_hari: int, rng: random.Random) -> list[dict]:
-    """Mood rendah-STABIL (skor 3 = "lelah", bukan 1-2) TAPI ate/rested tetap
-    True dan nggak ada tag 'overwhelmed' -- beda sengaja dari preset "jenuh"
-    di `_riwayat_semester()` (itu ngebawa neglect + skor 1 sekalian).
-
-    KENAPA SKOR 3, BUKAN 2: `model_overwhelm._prior()` nambah skor kalau
-    `skor_3h <= 2.5`. Kelas jadwal hari ini (`_tugas_kelas_hari_ini()`,
-    otomatis ditambah `apply_scenario()` TERLEPAS dari skenario apa pun)
-    sering sendirian udah bikin `n_mendesak >= 3` (+0.15) -- kalau mood-nya
-    JUGA nyumbang skor via ambang 2.5, gampang numpuk lewat AMBANG_WASPADA
-    (0.35) walau ceritanya "bukan krisis". Skor 3 tetap kebaca sebagai mood
-    yang nggak prima, tapi nggak nembus ambang itu sendirian.
-    """
     today = date.today()
     hasil = []
     for offset in range(n_hari):
@@ -703,12 +557,6 @@ SCENARIOS: dict[str, dict] = {
 }
 
 
-# =============================================================================
-# DEMO OBJECTIVES -- lapisan kedua: cerita manusia, komponen yang diuji,
-# perilaku yang diharapkan (dibaca `evaluate_demo_result()`), dan satu
-# kalimat "wow" buat demo ke dosen/juri/evaluator.
-# =============================================================================
-
 DEMO_OBJECTIVES: dict[str, dict] = {
     "baru": {
         "demo_title": "Kalem Belum Mengenalmu",
@@ -846,12 +694,6 @@ DEMO_OBJECTIVES: dict[str, dict] = {
             ],
         },
         "wow": "Reset bukan sekadar tombol berhenti. Reset mengubah keputusan berikutnya.",
-        # CATATAN JUJUR (bukan bagian dari objective, murni dokumentasi):
-        # per audit tests/test_decision_quality.py::scenario_reset_belum_meringankan,
-        # kode SEKARANG belum implementasi ini -- decide() sesudah 1x/5x Reset
-        # ngasih task/step/durasi yang IDENTIK. Dua check terakhir di atas akan
-        # kebaca GAGAL sampai fitur itu beneran dibangun. Itu bukan bug harness
-        # ini; itu memang belum ada di kode.
     },
     "low_mood_low_workload": {
         "demo_title": "Mood Rendah, Tapi Beban Ringan",
@@ -934,15 +776,7 @@ DEMO_OBJECTIVES: dict[str, dict] = {
 }
 
 
-# =============================================================================
-# Di bawah ini mesinnya -- nggak perlu diubah kecuali mau nambah jenis data.
-# =============================================================================
-
-
 def _tugas_kelas_hari_ini() -> list[dict]:
-    """Kelas hari ini jadi tugas -- ini yang bikin jadwal kuliah kepakai
-    di SEGALA kondisi demo, bukan cuma yang eksplisit manggil
-    `_tugas_mingguan_kuliah()`."""
     wd = date.today().weekday()
     return [
         {
@@ -957,12 +791,6 @@ def _tugas_kelas_hari_ini() -> list[dict]:
 
 
 def apply_scenario(key: str) -> str:
-    """Ganti seluruh storage dengan skenario untuk CLI/evaluation.
-
-    UI wajib memakai :func:`apply_scenario_overlay` agar data user tidak
-    ditimpa. Jalur destructive ini sengaja dipertahankan karena evaluator
-    perlu kondisi awal yang benar-benar identik pada setiap skenario.
-    """
     import sys
     from pathlib import Path
 
@@ -982,7 +810,6 @@ def apply_scenario(key: str) -> str:
 
     state = storage.load_state()
 
-    # --- mood: tiap entri bawa offset-nya sendiri (boleh bolong) ---
     today = clock.today()
     from datetime import timedelta as _td
 
@@ -1008,7 +835,6 @@ def apply_scenario(key: str) -> str:
         )
     state["mood_logs"] = logs
 
-    # --- SOS ---
     state["reset_events"] = [
         {
             "timestamp": (today - _td(days=d)).isoformat(),
@@ -1019,16 +845,11 @@ def apply_scenario(key: str) -> str:
         for d in (scenario.get("sos_days_ago") or [])
     ]
 
-    # --- langganan & brief ---
     state["subscription"] = {"is_premium": bool(scenario.get("premium"))}
     state["last_brief_date"] = "" if scenario.get("show_brief_today", True) else today.isoformat()
 
     storage.save_state(state)
 
-    # --- tugas ---
-    # `estimated_minutes` (atau `menit_est`) opsional per tugas -- dipakai
-    # skenario yang emang mau ngetes capacity-awareness (deadline_stack,
-    # overdue_recovery). Tugas lama yang nggak ngisi ini tetap jalan (default 0).
     for task in (scenario.get("tasks") or []) + _tugas_kelas_hari_ini():
         deadline_time = task.get("deadline_time")
         if deadline_time is None:
@@ -1052,11 +873,9 @@ def apply_scenario(key: str) -> str:
             jumlah_unit=task.get("jumlah_unit", 0),
         )
 
-    # --- inbox ---
     for note in scenario.get("inbox") or []:
         storage.add_inbox_note(note)
 
-    # --- lupain model lama ---
     try:
         from app import kalem_ml
 
@@ -1064,7 +883,6 @@ def apply_scenario(key: str) -> str:
     except Exception:
         pass
 
-    # --- obat ---
     med = scenario.get("medication")
     if med:
         storage.set_medication(med["name"], med["pills_left"], med.get("per_day", 1))
@@ -1093,7 +911,6 @@ _DEMO_COLLECTIONS = ("mood_logs", "reset_events", "tasks", "inbox")
 
 
 def _without_demo_entries(state: dict) -> None:
-    """Buang hanya record buatan Auto Feel; record user tidak disentuh."""
     for collection in _DEMO_COLLECTIONS:
         state[collection] = [
             item
@@ -1103,7 +920,6 @@ def _without_demo_entries(state: dict) -> None:
 
 
 def _reset_models() -> None:
-    """Paksa model membaca ulang gabungan histori user + overlay terbaru."""
     try:
         from app import kalem_ml
 
@@ -1113,18 +929,12 @@ def _reset_models() -> None:
 
 
 def demo_overlay_active() -> bool:
-    """Apakah sesi/user aktif sedang memiliki overlay Auto Feel."""
     from app import storage
 
     return isinstance(storage.load_state().get(_DEMO_META_KEY), dict)
 
 
 def clear_demo_overlay() -> bool:
-    """Hapus data simulasi Auto Feel dan pulihkan metadata sebelum demo.
-
-    Nama, profil, favorit, obat, diary, tugas, inbox, serta histori asli tidak
-    pernah dihapus karena semuanya tidak membawa ``_demo_generated``.
-    """
     from app import storage
 
     state = storage.load_state()
@@ -1148,14 +958,6 @@ def clear_demo_overlay() -> bool:
 
 
 def apply_scenario_overlay(key: str) -> str:
-    """Tambahkan skenario demo tanpa menimpa data personal atau data asli.
-
-    Overlay disimpan di row Supabase user yang sedang login, sama seperti
-    perubahan app lain, tetapi setiap record sintetis diberi marker. Memilih
-    skenario lain mengganti *hanya* overlay sebelumnya; ``clear_demo_overlay``
-    menghapusnya lagi. Log mood pada tanggal yang sudah diisi user tidak
-    ditambahkan agar diary/check-in asli selalu menang.
-    """
     import sys
     from pathlib import Path
 
@@ -1172,15 +974,11 @@ def apply_scenario_overlay(key: str) -> str:
         else state.get("last_brief_date", "")
     )
 
-    # Ganti overlay lama, bukan data user. Ini juga membuat pemilihan skenario
-    # berulang tidak terus menumpuk puluhan task/log sintetis di Supabase.
     _without_demo_entries(state)
 
     today = clock.today()
     from datetime import timedelta as _td
 
-    # Mood asli menang untuk tanggal yang sama. Dengan begitu check-in atau
-    # diary user hari ini tidak pernah hilang gara-gara tombol demo.
     occupied_dates = {
         str(log.get("date"))
         for log in state.get("mood_logs", [])
@@ -1233,8 +1031,6 @@ def apply_scenario_overlay(key: str) -> str:
         reverse=True,
     )
 
-    # Task dibangun langsung di state agar seluruh overlay tersimpan atomik
-    # (satu save/cloud enqueue), bukan satu request Supabase per task.
     for task in (scenario.get("tasks") or []) + _tugas_kelas_hari_ini():
         deadline_time = task.get("deadline_time")
         if deadline_time is None:
@@ -1285,8 +1081,6 @@ def apply_scenario_overlay(key: str) -> str:
             },
         )
 
-    # Yang boleh berubah cuma metadata presentasi. Profile/favorites/obat,
-    # subscription, today_energy, dan seluruh record belajar asli dibiarkan.
     state["last_brief_date"] = (
         "" if scenario.get("show_brief_today", True) else today.isoformat()
     )
@@ -1301,15 +1095,10 @@ def apply_scenario_overlay(key: str) -> str:
 
 
 def _mood_for_score(score: int) -> str:
-    # Harus ngikutin buddy.MOOD_SCORE (cemas=1, sedih=2, lelah=3, tenang=4,
-    # semangat=5) -- ini kebalikannya.
     return {1: "cemas", 2: "sedih", 3: "lelah", 4: "tenang", 5: "semangat"}.get(score, "tenang")
 
 
 def list_scenarios() -> list[tuple[str, str, str, str, str]]:
-    """(key, label, description, demo_title, wow) buat ditampilin di UI Auto
-    Feel. `label`/`description` = technical description lama (tetep berguna
-    buat debug); `demo_title`/`wow` = yang dipakai buat demo ke orang lain."""
     return [
         (
             key,
@@ -1320,12 +1109,6 @@ def list_scenarios() -> list[tuple[str, str, str, str, str]]:
         )
         for key, scenario in SCENARIOS.items()
     ]
-
-
-# =============================================================================
-# EVALUASI -- bandingin KEPUTUSAN BENERAN (`kalem_engine.decide()`) sama
-# `expected` di DEMO_OBJECTIVES. Cuma baca field yang beneran ada.
-# =============================================================================
 
 
 def _cek_pattern_confidence(decision: Any, **ctx: Any) -> Optional[str]:
@@ -1503,7 +1286,6 @@ def _cek_butuh_histori_cukup(decision: Any, **ctx: Any) -> bool:
     return model_mood.status()["n_catatan"] >= model_mood.MIN_POLA
 
 
-# expected-key -> pemeriksa(decision, decision_before=, available_minutes=) -> actual
 _PEMERIKSA: dict[str, Callable[..., Any]] = {
     "pattern_confidence": _cek_pattern_confidence,
     "should_not_claim_personal_pattern": _cek_tidak_klaim_pola_personal,
@@ -1541,19 +1323,6 @@ def evaluate_demo_result(
     decision_before: Optional[Any] = None,
     available_minutes: Optional[int] = None,
 ) -> dict:
-    """Bandingin KEPUTUSAN BENERAN (`decision`, hasil `kalem_engine.decide()`)
-    sama `expected` di `DEMO_OBJECTIVES[key]`.
-
-    SENGAJA cuma baca field yang BENERAN ada di `KalemDecision`
-    (kind/action_kind/task/focus_minutes/detail/dst) plus API model yang
-    udah diverifikasi ada (`model_mood.status()`, `storage.quadrant_of()`,
-    `decision_quality.assess_capacity()`) -- nggak ada field yang dikarang.
-
-    Kalau satu `expected` key butuh konteks yang nggak dioper (mis.
-    `available_minutes` buat skenario yang nggak nyetel itu), checknya
-    ditandai `passed=None` ("tidak dievaluasi") -- BUKAN dipaksa lulus atau
-    gagal. Dipanggil manual atau lewat `run_demo()`.
-    """
     objective = DEMO_OBJECTIVES[key]
     expected = objective.get("expected", {})
     ctx = {"decision_before": decision_before, "available_minutes": available_minutes}
@@ -1594,18 +1363,6 @@ def evaluate_demo_result(
 
 
 def run_demo(key: str) -> dict:
-    """Evaluation layer utuh: apply scenario -> decide() -> evaluate.
-
-    `available_minutes_hint` (kalau diisi skenarionya) dipasang ke
-    `DayState.available_minutes` SEBELUM `decide()` dipanggil -- sejak
-    PHASE 1 `pick_next_action()` beneran baca field itu, jadi ini yang
-    bikin skenario capacity (deadline_stack, overdue_recovery) ngetes
-    HASIL KEPUTUSAN BENERAN, bukan cuma dicek belakangan sama evaluator.
-
-    "after_reset" dapet perlakuan khusus: decide() dipanggil DUA KALI
-    (sebelum & sesudah simulasi satu kunjungan Reset) biar
-    `evaluate_demo_result()` bisa BANDINGIN, bukan cuma liat satu snapshot.
-    """
     import sys
     from pathlib import Path
 

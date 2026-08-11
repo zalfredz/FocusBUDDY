@@ -1,8 +1,4 @@
-"""Halaman Diary -- user cerita ke Kalem.
-
-Selain jadi tempat curhat, tiap cerita diambil kata kuncinya (tag) buat
-ngasih model mood konteks 'momen apa yang kejadian minggu ini'.
-"""
+"""Halaman diary harian."""
 from __future__ import annotations
 
 import flet as ft
@@ -24,8 +20,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     today_iso = clock.today().isoformat()
     existing_today = latest["diary"] if latest and latest["date"] == today_iso else ""
 
-    # Kalau ada tag yang berulang bareng mood rendah, Kalem nanya soal itu
-    # spesifik -- bukan pertanyaan generik yang sama tiap hari.
     prompt = recurring_tag_prompt(storage.get_mood_logs()) or PROMPTS[
         clock.today().toordinal() % len(PROMPTS)
     ]
@@ -96,8 +90,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         current = storage.today_mood()
         current_mood = current["mood"] if current else mood
-        # Kata kunci dari kamus tertutup digabung sama kata yang sering muncul,
-        # biar sinyalnya nggak cuma bergantung pilihan kata user.
         tags = extract_keywords(text) + [
             t for t in extract_tags(text) if t not in extract_keywords(text)
         ]
@@ -107,10 +99,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             energy=current.get("energy", 3) if current else 3,
             diary=text,
             tags=tags[:6],
-            # Jangan sampai nulis cerita ngehapus tag cepat yang udah dipilih.
             quick_tags=current.get("quick_tags", []) if current else [],
-            # Diary dan check-in adalah dua potongan dari hari yang sama.
-            # Jangan sampai nulis cerita menghapus jawaban makan/istirahat.
             ate_today=current.get("ate_today") if current else None,
             rested_enough=current.get("rested_enough") if current else None,
         )
@@ -122,8 +111,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     return ft.Column(
         [
-            # "Cerita Kamu", bukan "Cerita Hari Ini": halaman ini isinya bukan
-            # cuma hari ini -- cerita lama tetap kesimpan & kebaca di bawah.
             ui_helpers.page_header("Cerita Kamu", on_back=lambda e: navigate("mood")),
             ui_helpers.card(
                 ft.Column(

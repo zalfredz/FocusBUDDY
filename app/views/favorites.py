@@ -1,16 +1,4 @@
-"""Menu Favorite -- semuanya opsional.
-
-Bukan data pajangan: isinya jadi kosakata personal yang dipakai ulang di
-fitur lain, biar Kalem ngomongnya pakai bahasa user sendiri.
-
-    musik   -> opsi calming di halaman Reset
-    snack   -> ditawarin di halaman jeda pas user kewalahan
-    hobi    -> rekomendasi micro-task 60 detik yang lebih personal
-    tempat  -> saran tempat pas lagi butuh reset
-
-Framing progresnya senada dengan mood model: "Kalem makin kenal kamu",
-bukan checklist yang harus dipenuhi.
-"""
+"""Halaman preferensi penenang personal."""
 from __future__ import annotations
 
 import flet as ft
@@ -39,7 +27,6 @@ USED_FOR = {
     "jam_capek": "Kalem nurunin ekspektasi otomatis di jam ini.",
 }
 
-# Field yang privasinya paling sensitif -- dikasih catatan sendiri.
 PRIVACY_NOTE = {
     "orang": "Cukup nama panggilan. Kalem nggak nyimpen kontak dan nggak akan "
              "ngehubungin siapa pun otomatis — ini cuma pengingat buat kamu.",
@@ -88,9 +75,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_progress()
         page.update()
 
-    # Dua field ini pilihan tertutup, bukan teks bebas: warna harus kepakai
-    # jadi aksen UI (butuh hex yang valid), dan jam capek harus bisa
-    # dibandingin sama jam sekarang (butuh rentang, bukan tulisan).
     picks: dict[str, str] = {
         "warna": current.get("warna", ""),
         "jam_capek": current.get("jam_capek", ""),
@@ -98,13 +82,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
     pick_holders = {key: ft.Container() for key in picks}
 
     def choose(key: str, value: str):
-        # Pencet lagi = batal pilih, biar bisa dikosongin.
         picks[key] = "" if picks[key] == value else value
         render_picks()
         page.update()
 
     def render_picks():
-        # --- warna: chip berwarna beneran, bukan cuma nama ---
         swatches = []
         for value, (label, hex_code) in storage.FAVORITE_COLORS.items():
             on = picks["warna"] == value
@@ -136,7 +118,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             spacing=8,
         )
 
-        # --- jam capek ---
         hour_chips = [
             ui_helpers.choice_chip(
                 label, picks["jam_capek"] == value, lambda e, v=value: choose("jam_capek", v)

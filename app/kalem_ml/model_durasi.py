@@ -1,56 +1,4 @@
-"""MODEL DURASI TUGAS -- "ini kira-kira makan waktu berapa lama?"
-
-MASALAH YANG DIJAWAB
---------------------
-*Time blindness* itu gejala inti ADHD, bukan efek samping. Perkiraan waktu
-meleset lebih sering dan lebih jauh, dan akibatnya dua-duanya buruk: tugas 20
-menit ditunda berhari-hari karena kerasa "gede", atau lima tugas dijejelin ke
-sore yang cuma muat dua.
-
-SUMBER DATA
------------
-`DATASET/task_duration_dataset_id_lengkap.csv` -- 549 tugas berbahasa
-Indonesia + durasi aslinya. Kolomnya: `tugas` (judul bebas),
-`jatuh_tempo_hari`, `tingkat_kepentingan_1_10`, `durasi_jam`.
-
-Datanya judul BEBAS, bukan kategori+jumlah. Itu justru cocok sama cara orang
-beneran nulis tugas -- makanya modelnya baca TEKSNYA, bukan minta user milih
-kategori dulu.
-
-KENAPA NGELUARIN RENTANG, BUKAN SATU ANGKA
-------------------------------------------
-Ini keputusan paling penting di modul ini, dan dasarnya pengukuran (5-fold CV):
-
-    baseline (selalu tebak median 30 mnt)   MAE_log 0.952
-    TFIDF kata  + RandomForest              MAE_log 0.777
-    TFIDF huruf + RF, semua fitur           MAE_log 0.738   36.7 s
-    TFIDF huruf + RF, max_features=300      MAE_log 0.755    5.6 s   <- dipakai
-
-MAE_log 0.755 artinya tebakan khasnya meleset sekitar FAKTOR 2x. Nampilin
-"45 menit" dari model segitu itu bohong yang keliatan presisi -- dan buat
-orang ADHD, angka pasti yang meleset bikin rasa gagal yang nggak perlu.
-
-`max_features=300` dipilih sadar: akurasinya nyaris sama sama versi penuh
-(0.755 vs 0.738) tapi 6x lebih cepat dilatih. Buat selisih sekecil itu,
-kecepatan lebih berharga.
-
-PITA-NYA DARI SEBARAN ANTAR-POHON
----------------------------------
-Tiap pohon di hutan ngasih tebakan sendiri. Persentil 25-75 dari 300 tebakan
-itu = seberapa nggak yakin modelnya. Diuji kalibrasinya:
-
-    pita 25-75%  -> 50% data asli jatuh di dalamnya (target 50%)  ✓ pas
-
-Modelnya jujur soal ketidaktahuannya sendiri. "Biasanya 20-50 menit" itu
-janji yang bisa ditepati; "45 menit" nggak.
-
-GABUNGAN SAMA KECEPATAN ASLI USER
----------------------------------
-    durasi = 0.6 x model_umum + 0.4 x rata2_personal_kategori_itu
-
-Kalau user belum punya histori, rasionya balik ke 100% model umum -- pola
-"jangan ngarang kalau data belum cukup" yang sama kayak `model_mood`.
-"""
+"""Estimasi rentang durasi tugas dari teks dan histori personal."""
 from __future__ import annotations
 
 import csv
@@ -66,32 +14,19 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DATASET = ROOT / "DATASET" / "task_duration_dataset_id_lengkap.csv"
-# Model yang udah dilatih, disimpen biar app nggak perlu latih ulang tiap
-# dibuka (~1 detik, kerasa banget kalau pas user lagi nambah tugas).
-# Bikin: python tools/latih_model_durasi.py
 MODEL_PATH = ROOT / "app" / "data" / "model_durasi.joblib"
 
-# Jumlah fitur teks. Lihat catatan di docstring soal 300 vs semua fitur.
 MAX_FITUR_TEKS = 300
 N_POHON = 300
 
-# Bobot penggabungan model umum vs kecepatan asli user.
 W_MODEL, W_PERSONAL = 0.6, 0.4
 
-# Minimal sesi di satu kategori sebelum rata-rata personal dipercaya.
 MIN_PERSONAL = 2
 
-# Batas waras -- nggak ada gunanya nyaranin 2 menit atau 8 jam.
 MIN_MENIT, MAX_MENIT = 5, 300
 
-# Kuantil buat pita. 0.25/0.75 dipilih karena kalibrasinya paling pas
-# (47% aktual vs 50% target). Pita yang lebih lebar kelihatan lebih "aman"
-# tapi jadi nggak berguna: "10 sampai 200 menit" nggak nolong siapa pun.
 Q_BAWAH, Q_ATAS = 0.25, 0.75
 
-# Kategori opsional -- dipakai buat NYAMBUNGIN sesi ke rata-rata personal.
-# Tetap ada karena judul tugas user seringkali terlalu pendek buat model teks
-# ("bab 1"), sementara kategori bikin sesinya tetap bisa dipelajari.
 KATEGORI = {
     "baca":    {"label": "Baca / pelajari", "satuan": "halaman"},
     "nulis":   {"label": "Nulis",           "satuan": "kata"},
@@ -107,10 +42,10 @@ KATEGORI = {
 
 @dataclass
 class Perkiraan:
-    menit: int                 # titik tengah, buat nyetel timer
-    bawah: int                 # batas bawah pita
-    atas: int                  # batas atas pita
-    sumber: str                # "gabungan" | "model" | "kasar"
+    menit: int
+    bawah: int
+    atas: int
+    sumber: str
     n_personal: int = 0
     catatan: str = ""
     faktor_personal: float = 1.0
@@ -121,11 +56,8 @@ class Perkiraan:
 
     @property
     def sesi(self) -> int:
-        """Berapa sesi fokus 25 menit kira-kira dibutuhin."""
         return max(1, math.ceil(self.menit / 25))
 
-
-# ------------------------------------------------------------- pelatihan
 
 _vec: Optional[TfidfVectorizer] = None
 _hutan: Optional[RandomForestRegressor] = None
@@ -157,19 +89,12 @@ def _baca_dataset() -> tuple[list[str], np.ndarray, np.ndarray]:
 
 
 def latih_dari_dataset() -> tuple[Optional[TfidfVectorizer], Optional[RandomForestRegressor], int]:
-    """Latih dari CSV. Dipakai runtime DAN skrip pra-latih di tools/."""
     teks, num, menit = _baca_dataset()
     if len(teks) < 50:
         return None, None, 0
 
-    # Target di ruang log: durasi tugas sebarannya menceng berat (2 menit
-    # sampai 25 jam). Tanpa log, model bakal dikuasai segelintir tugas raksasa
-    # dan salah total di tugas kecil -- yang justru paling sering dipakai.
     y = np.log1p(menit)
 
-    # char_wb n-gram, bukan kata: judul tugas pendek dan penuh variasi bentuk
-    # ("bersihkan"/"bersihin"/"beresin"). N-gram huruf nangkep akar katanya
-    # tanpa perlu stemmer bahasa Indonesia.
     vec = TfidfVectorizer(
         analyzer="char_wb", ngram_range=(3, 5), min_df=2,
         sublinear_tf=True, max_features=MAX_FITUR_TEKS,
@@ -182,7 +107,6 @@ def latih_dari_dataset() -> tuple[Optional[TfidfVectorizer], Optional[RandomFore
 
 
 def _latih() -> bool:
-    """Siapin model: muat yang udah dilatih kalau ada, kalau nggak latih baru."""
     global _vec, _hutan, _n_latih, _asal
     if _hutan is not None:
         return True
@@ -196,7 +120,6 @@ def _latih() -> bool:
             _asal = "model pra-latih"
             return True
         except Exception:
-            # File rusak / versi sklearn beda -> latih ulang, jangan mati.
             _vec = _hutan = None
 
     _vec, _hutan, _n_latih = latih_dari_dataset()
@@ -227,12 +150,8 @@ def _batas(nilai: float) -> int:
 
 def _prediksi_umum(judul: str, tempo_hari: float, penting: float) -> tuple[int, int, int]:
     if not _latih():
-        # Cadangan kasar kalau datasetnya hilang: 30 menit, pita lebar.
         return 15, 30, 60
     X = hstack([_vec.transform([judul]), csr_matrix([[tempo_hari, penting]])]).toarray()
-    # Tiap pohon punya tebakan sendiri; sebarannya = ketidakyakinan model.
-    # Ini kenapa pita-nya melebar buat tugas yang bentuknya asing, dan
-    # menyempit buat yang mirip banyak contoh di dataset.
     per_pohon = np.array([p.predict(X)[0] for p in _hutan.estimators_])
     lo = float(np.expm1(np.percentile(per_pohon, Q_BAWAH * 100)))
     mid = float(np.expm1(per_pohon.mean()))
@@ -241,16 +160,7 @@ def _prediksi_umum(judul: str, tempo_hari: float, penting: float) -> tuple[int, 
     return _batas(lo), _batas(mid), _batas(hi)
 
 
-# --------------------------------------------------- kecepatan personal
-
-
 def rata_personal(records: list[dict], kategori: str, jumlah: float) -> tuple[int, int]:
-    """(menit rata-rata user, jumlah sampel) buat kategori ini.
-
-    Diskalain per-unit pakai pangkat < 1, bukan dirata-rata mentah: kalau
-    user biasanya 30 menit buat 10 soal, tugas 20 soal harusnya naik -- tapi
-    NGGAK dua kali lipat, karena ada ongkos mulai yang cuma dibayar sekali.
-    """
     if not kategori or jumlah <= 0:
         return 0, 0
     laju = []
@@ -275,9 +185,6 @@ def _median(nilai: list[float]) -> float:
     return urut[n // 2] if n % 2 else (urut[n // 2 - 1] + urut[n // 2]) / 2
 
 
-# ------------------------------------------------------------- publik
-
-
 def perkirakan(
     judul: str,
     tempo_hari: float = 7,
@@ -288,32 +195,18 @@ def perkirakan(
     kalibrasi: Optional[float] = None,
     energi: Optional[int] = None,
 ) -> Perkiraan:
-    """Perkiraan durasi akhir buat satu tugas.
-
-    `kalibrasi` = faktor time-blindness user. Kalau nggak dioper, dihitung
-    sendiri dari `records` -- dan kalau `energi` juga dikasih, faktornya
-    diambil dari sesi-sesi user DI PITA ENERGI YANG SAMA.
-
-    Itu cara app ini belajar hubungan energi-kecepatan: dari sesi user
-    sendiri, bukan dari kolom karangan di dataset. Lihat penjelasan panjang
-    di `fitur.kalibrasi_waktu()`.
-    """
     if kalibrasi is None:
         from app.kalem_ml import fitur as _f
 
         kalibrasi = _f.kalibrasi_waktu(records or [], energi)
     lo, mid, hi = _prediksi_umum(judul or "tugas", tempo_hari, penting)
 
-    # Kalibrasi personal digeser pelan (setengah jalan), bukan langsung penuh.
-    # Faktor dari sedikit sesi gampang ekstrem, dan pergeseran mendadak bikin
-    # angkanya keliatan nggak stabil.
     geser = 1.0 + (kalibrasi - 1.0) * 0.5
     lo, mid, hi = _batas(lo * geser), _batas(mid * geser), _batas(hi * geser)
 
     personal, n = rata_personal(records or [], kategori, jumlah)
     if personal:
         gabung = W_MODEL * mid + W_PERSONAL * personal
-        # Pita ikut digeser sebanding, biar tetap kepusat di angka gabungan.
         rasio = gabung / mid if mid else 1.0
         lo, mid, hi = _batas(lo * rasio), _batas(gabung), _batas(hi * rasio)
         selisih = personal - int(gabung)

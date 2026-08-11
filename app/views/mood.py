@@ -1,6 +1,4 @@
-"""Page 3 -- Mood. Check-in mood harian + insight pola yang dipelajari
-model dari data user sendiri. Cerita panjangnya ada di halaman Diary.
-"""
+"""Halaman check-in dan insight mood."""
 from __future__ import annotations
 
 import flet as ft
@@ -21,22 +19,12 @@ from app.views import mood_chart
 
 SCORE_COLORS = {5: theme.PRIMARY, 4: theme.PRIMARY, 3: theme.WARN, 2: theme.WARN, 1: theme.DANGER}
 
-# (key, pertanyaan, ikon) -- tri-state: None (belum dijawab) -> True (udah) ->
-# False (belum) -> balik None. Sengaja BUKAN streak yang dipajang/bisa putus,
-# cuma sinyal tambahan buat burnout classifier. Lihat mood_model.neglect_streak.
-#
-# "Udah makan" DIPISAH: dia cuma nongol lewat jam 18 (storage.MEAL_ASK_HOUR).
-# Ditanya pagi, "belum" itu jawaban normal yang nggak berarti apa-apa; ditanya
-# malem, "belum" itu sinyal beneran. "Istirahat cukup semalam" tetap kelihatan
-# terus -- itu pertanyaan soal MALEM KEMAREN, jadi jam berapa pun tetap sah.
 CARE_MAKAN = ("ate_today", "Udah makan hari ini?", ft.Icons.RESTAURANT)
 CARE_ISTIRAHAT = ("rested_enough", "Istirahat cukup semalam?", ft.Icons.BEDTIME)
 CARE_QUESTIONS = [CARE_MAKAN, CARE_ISTIRAHAT]
 
 
 def _care_hari_ini() -> list[tuple]:
-    """Pertanyaan yang layak ditampilin sekarang, urut: makan dulu (di atas
-    istirahat) kalau emang udah waktunya."""
     if storage.waktunya_tanya_makan():
         return [CARE_MAKAN, CARE_ISTIRAHAT]
     return [CARE_ISTIRAHAT]
@@ -47,33 +35,17 @@ def build(page: ft.Page, navigate) -> ft.Control:
     today_log = storage.today_mood()
     state = {
         "mood": latest["mood"] if latest else buddy.DEFAULT_MOOD,
-        # Picker tag "Hari ini isinya apa?" DIBUANG dari check-in. Alasannya:
-        # nggak satu pun model di kalem_ml/ baca `quick_tags` -- dia cuma
-        # kepakai buat milih prompt diary. Jadi dia minta 3 keputusan lagi
-        # dari user di layar yang harusnya bisa kelar dalam dua tap.
-        #
-        # Tapi tag yang UDAH kesimpan hari ini tetap dibawa & ditulis balik
-        # pas nyimpen: buang pickernya boleh, buang datanya jangan.
         "quick_tags": list(today_log.get("quick_tags", [])) if today_log else [],
         "care": {
             "ate_today": today_log.get("ate_today") if today_log else None,
             "rested_enough": today_log.get("rested_enough") if today_log else None,
         },
-        # Level energi PINDAH KE SINI dari Tracker. Di sana dia ketimbun
-        # daftar tugas dan jarang kelihatan, padahal dia yang nyetel skala
-        # hari itu. Di sini dia nyatu sama check-in: satu tempat, satu momen.
-        #
-        # Defaultnya dari catatan hari ini kalau ada, kalau nggak dari skor
-        # mood -- tapi user bisa nimpa, karena capek dan sedih itu dua hal
-        # yang beda (bisa sedih tapi masih ada tenaga, bisa senang tapi drop).
         "energy": (
             today_log.get("energy")
             if today_log and today_log.get("energy")
             else storage.today_energy()
             or _energy_from_score(buddy.score_for(latest["mood"] if latest else buddy.DEFAULT_MOOD))
         ),
-        # True kalau user udah nyentuh slider energi -- biar nggak ketimpa
-        # tebakan dari mood tiap kali dia ganti ekspresi.
         "energy_touched": bool(today_log and today_log.get("energy")),
     }
 
@@ -90,9 +62,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         state["mood"] = mood
         kalem_face.src = buddy.asset_for(mood)
         kalem_words.value = buddy.greeting_for(mood)
-        # Energi ikut nebak dari mood SELAMA user belum nyentuh slidernya
-        # sendiri. Begitu disentuh, tebakan berhenti nimpa -- capek dan
-        # sedih itu dua sumbu yang beda.
         if not state["energy_touched"]:
             state["energy"] = _energy_from_score(buddy.score_for(mood))
             render_energy()
@@ -102,7 +71,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def render_picker():
         picker_holder.content = buddy.mood_picker(state["mood"], pick_mood)
 
-    # --- Level energi: pindahan dari Tracker ---
 
     def pick_energy(level: int):
         state["energy"] = level
@@ -133,11 +101,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ink=True,
                 )
             )
-        # Cuma judul + angka. Dua baris keterangan di bawah chip (teks
-        # "lagi capek banget..." dan efek "sesi fokus jadi n menit") dibuang:
-        # dua-duanya ganti isi tiap kali angkanya dipencet, jadi bikin blok
-        # ini goyang persis pas user lagi milih. Efeknya tetap jalan, cuma
-        # nggak diceramahin di sini.
         energy_holder.content = ft.Column(
             [
                 ui_helpers.subtitle("Tenaga kamu sekarang gimana? (1-6)"),
@@ -146,7 +109,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             spacing=8,
         )
 
-    # --- Eat & Rest Well: 2 toggle opsional, BUKAN streak yang dipajang ---
 
     def cycle_care(key: str):
         current = state["care"][key]
@@ -199,44 +161,29 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def save_checkin(e):
         mood = state["mood"]
         score = buddy.score_for(mood)
-        # Energi dari pilihan user sendiri (slider di halaman ini), bukan
-        # diturunkan dari skor mood -- lihat catatan di `state["energy"]`.
         energy = int(state["energy"])
         existing = storage.today_mood()
         storage.add_mood_log(
             mood=mood,
             score=score,
             energy=energy,
-            # Jangan sampai check-in mood ngehapus cerita yang udah ditulis hari ini.
             diary=existing.get("diary", "") if existing else "",
             tags=existing.get("tags", []) if existing else None,
-            # Pickernya udah nggak ada, tapi tag lama hari ini ditulis balik
-            # apa adanya -- nyimpen check-in nggak boleh ngehapus data yang
-            # user nggak minta dihapus.
             quick_tags=state["quick_tags"],
             ate_today=state["care"]["ate_today"],
             rested_enough=state["care"]["rested_enough"],
         )
-        # Dikunci buat hari ini juga, biar Tracker & tombol FOKUS di Beranda
-        # langsung ikut angka yang sama.
         storage.set_today_energy(energy)
 
         sleep_condition = storage.get_profile().get("sleep_condition", "")
-        # Dihitung SETELAH nyimpen, biar jawaban hari ini ikut kehitung.
         logs_now = storage.get_mood_logs()
         neglect_days = neglect_streak(logs_now)
-        # `streak` di model artinya MOMENTUM (0-10), bukan total tugas selesai.
-        # Dulu di sini dikirim jumlah tugas yang pernah kelar -- angka yang
-        # naik terus, dan bikin model nyaranin beban lebih BERAT justru pas
-        # mood & tidur user lagi paling parah.
         prediction = predict_workload(
             sleep_hours=sleep_hours_for(sleep_condition),
             mood_score=score,
             energy_level=energy,
             streak=checkin_streak(logs_now),
             neglect_days=neglect_days,
-            # Obat yang nggak keabsen dianggap nggak diminum -- konteks yang
-            # bikin hari berat punya penjelasan, bukan misteri.
             missed_med_days=missed_streak(storage.get_medication()),
         )
         color = {
@@ -259,23 +206,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
             spacing=10,
         )
         result_holder.visible = True
-        # Catatan baru = pola baru. Kartu insight & grafik digambar ulang di
-        # sini; kalau nggak, dua-duanya masih nunjukkin data sebelum check-in
-        # dan user ngira simpanannya nggak masuk.
         render_insight()
         render_history()
         page.update()
         offer_diary(mood)
 
     def offer_diary(mood: str):
-        """Habis check-in, langsung tawarin nulis cerita.
-
-        Mood picker cuma ngasih angka; cerita yang ngasih KONTEKS -- dan
-        konteks itu yang bikin insight Kalem berhenti terdengar generik.
-        Ditawarin di sini karena ini satu-satunya momen user udah kepikiran
-        soal harinya. Nanya belakangan artinya nanya pas udah lupa.
-        """
-        # Udah nulis hari ini? Jangan nagih lagi.
         today_entry = storage.today_mood()
         if today_entry and (today_entry.get("diary") or "").strip():
             return
@@ -328,9 +264,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     render_energy()
     render_care()
 
-    # ------------------------------------- kartu rekomendasi (Weekly Insight)
-    # Lazy: baru susun rekomendasi Kalem pas user beneran mau liat, bukan tiap buka
-    # halaman Mood -- hemat kuota & nggak bikin halaman ini lemot dibuka.
     rec_state = {"cards": None, "index": 0}
     rec_holder = ft.Container()
 
@@ -393,7 +326,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         rec_holder.content = ui_helpers.card(ft.Column(children, spacing=8), padding=16)
 
     def fetch_rec(e):
-        # Free tier: 1 kartu per minggu (tiap kartu = penyusunan Kalem).
         if not storage.can_see_reco_card():
             rec_holder.content = ui_helpers.card(
                 ui_helpers.upgrade_hint(
@@ -406,7 +338,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             return
 
         favorites = storage.get_favorites()
-        # Energi diambil dari yang dikunci hari ini, bukan dari mood log lama.
         energy_level = storage.today_energy() or (latest.get("energy", 3) if latest else 3)
 
         async def kerjakan():
@@ -415,8 +346,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 lambda: recommendations.build_cards(favorites, energy_level),
                 "Kalem lagi mikir rekomendasi buat kamu...",
             )
-            # Kartu "isi Favorit dulu" nggak motong kuota -- itu bukan
-            # rekomendasi, itu ajakan ngelengkapin data.
             if not (len(cards) == 1 and cards[0].kind == "empty"):
                 storage.record_reco_card()
             rec_state["cards"] = cards
@@ -435,18 +364,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     render_rec()
 
-    # ------------------------------------------------------------ insight
-    # Dibungkus holder + fungsi render sendiri supaya bisa DIGAMBAR ULANG
-    # setelah check-in. Sebelumnya insight dihitung sekali pas halaman
-    # dibangun, jadi habis nyimpen check-in kartunya masih nunjukkin data
-    # lama sampai user pindah halaman -- keliatan kayak simpanannya gagal.
     insight_holder = ft.Container()
 
     def render_insight():
         insight = analyse(storage.get_mood_logs())
-        # Badge PREMIUM nempel di judul kalau user masih di free tier --
-        # biar kelihatan ada kedalaman yang belum kebuka, tanpa ngunci
-        # temuan pertamanya (itu tetap gratis).
         children: list[ft.Control] = [
             ui_helpers.premium_header(
                 "Yang Kalem pelajari tentang kamu", not storage.is_premium()
@@ -455,9 +376,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     color=theme.ON_BACKGROUND),
         ]
 
-        # Free tier: 1 highlight aja. Premium: semua temuan.
-        # Yang dikunci KEDALAMAN (berapa banyak pola yang dibuka), bukan
-        # aksesnya -- user gratis tetap dapat insight yang beneran kepakai.
         premium = storage.is_premium()
         shown = insight.details if premium else insight.details[:1]
         hidden = 0 if premium else max(0, len(insight.details) - 1)
@@ -495,11 +413,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     render_insight()
 
-    # ------------------------------------------------------- riwayat mood
-    # Bar "7 catatan terakhir" DIBUANG. Dia nampilin hal yang sama sama
-    # grafik bulanan tapi cuma seminggu, jadi dua-duanya rebutan tempat di
-    # halaman yang sama -- dan yang seminggu itu terlalu pendek buat
-    # kelihatan polanya. Sekarang langsung ke grafik bulanan.
     _y, _m = mood_chart.today_year_month()
     history_state = {"year": _y, "month": _m}
     history_holder = ft.Container()
@@ -514,8 +427,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 storage.get_mood_logs(), history_state["year"], history_state["month"], SCORE_COLORS
             ),
         ]
-        # Bulan lampau = tren jangka panjang, itu bagian premium.
-        # Bulan berjalan tetap kebuka gratis.
         if not storage.is_premium():
             children.append(
                 ui_helpers.upgrade_hint(
@@ -530,8 +441,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             y, m = mood_chart.shift_month(
                 history_state["year"], history_state["month"], delta
             )
-            # Free tier dikunci di bulan berjalan. Bukan dibiarin kepencet
-            # terus nggak ngapa-ngapain -- itu kelihatan kayak bug.
             cy, cm = mood_chart.today_year_month()
             if not storage.is_premium() and (y, m) != (cy, cm):
                 page.show_dialog(
@@ -559,11 +468,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     render_history()
 
-    # Favorit turun pangkat dari kartu selebar halaman jadi ikon di pojok --
-    # pola yang sama kayak tombol Pengaturan di Beranda. Dia pintu ke halaman
-    # lain yang jarang dibuka, bukan bagian dari check-in, jadi nggak pantes
-    # makan tempat sebanyak itu tiap hari. Hitungan "n/9 terisi" pindah ke
-    # tooltip -- infonya nggak dibuang, cuma nggak dipajang terus.
     terisi = storage.favorites_filled()
     total_favorit = len(storage.FAVORITE_FIELDS)
     header_row = ft.Row(
@@ -600,8 +504,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 )
             ),
-            # Hasil check-in nempel langsung di bawah tombolnya -- itu umpan
-            # balik buat aksi yang barusan dipencet, jadi nggak boleh kepisah.
             result_holder,
             ui_helpers.nav_link_card(
                 ft.Icons.MENU_BOOK,
@@ -611,9 +513,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 lambda e: navigate("diary"),
             ),
             ui_helpers.card(insight_holder),
-            # Rekomendasi nempel di bawah kartu insight: dua-duanya jawaban
-            # atas "apa yang Kalem tau soal aku", jadi kebaca sebagai satu
-            # alur -- temuannya dulu, baru saran yang keluar dari temuan itu.
             rec_holder,
             ui_helpers.card(history_holder),
             ui_helpers.disclaimer(
@@ -628,5 +527,4 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
 def _energy_from_score(score: int) -> int:
-    """Skor mood (1-5) -> level energi awal (1-6)."""
     return {1: 1, 2: 2, 3: 3, 4: 5, 5: 6}.get(score, 3)

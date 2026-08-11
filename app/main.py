@@ -1,12 +1,8 @@
-"""FocusBuddy -- entry point.
-
-Jalankan:
-    flet run --web --port 8550 app/main.py  (browser lokal)
-    flet run app/main.py           (jendela desktop)
-"""
+"""Entry point aplikasi Flet FocusBuddy."""
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 import flet as ft
@@ -27,19 +23,14 @@ from app.views import (
     tracker,
 )
 
-# Sejajar dengan main.py (app/assets/) -- ini konvensi yang dipakai `flet run`
-# CLI: dia auto-set env var FLET_ASSETS_DIR ke <script_dir>/assets dan itu
-# override parameter assets_dir di bawah kalau nggak sejajar begini.
 ASSETS_DIR = str(Path(__file__).resolve().parent / "assets")
 
-# Route yang muncul di navigation bar bawah.
 NAV_ROUTES = [
     ("home", "Beranda", ft.Icons.HOME_ROUNDED),
     ("tracker", "Tracker", ft.Icons.CALENDAR_MONTH),
     ("mood", "Mood", ft.Icons.FAVORITE_ROUNDED),
 ]
 
-# Semua route (termasuk yang cuma bisa dicapai dari dalam halaman lain).
 ROUTES = {
     "home": home.build,
     "tracker": tracker.build,
@@ -54,30 +45,18 @@ ROUTES = {
     "inbox": inbox.build,
 }
 
-# Halaman yang nutupin seluruh layar -- nav bar disembunyiin biar user
-# nggak bisa kabur di tengah onboarding / brief pagi.
 FULLSCREEN_ROUTES = {"onboarding", "morning_brief"}
 
-# Rute yang tetap boleh dibuka walau sesi fokus lagi jalan. Halaman jeda
-# WAJIB ada di sini -- ngunci jalan keluar orang yang lagi kewalahan itu
-# kebalikan dari tujuan app ini.
 FOKUS_BOLEH = {"home", "reset"}
 
 NAV_INDEX = {name: i for i, (name, _, _) in enumerate(NAV_ROUTES)}
+_log = logging.getLogger(__name__)
 
 
 def _hydrate_user_state(cloud: FocusBuddyCloud, user_id: str) -> str:
-    """Ambil state user dari DB sebelum UI dibangun.
-
-    Return dipakai sebagai bukti/diagnostik sumber awal: ``database`` berarti
-    row lama berhasil di-fetch, ``cache`` berarti DB belum punya row tetapi
-    cache sesi sudah ada, dan ``baru`` berarti akun benar-benar baru.
-    """
     had_user_cache = storage.current_data_file().exists()
     remote = cloud.download_state(user_id)
     if remote is not None:
-        # Database menang saat startup. Seluruh view setelah ini membaca state
-        # yang baru saja ditulis ke cache sesi ini.
         storage.save_state(remote)
         return "database"
     if had_user_cache:
@@ -119,6 +98,7 @@ async def main(page: ft.Page) -> None:
     token_key = "focusbuddy.supabase.session.v1"
     pkce_key = "focusbuddy.supabase.pkce.v1"
     app_started = False
+    oauth_processing = False
 
     async def save_session() -> None:
         session = cloud.session()
@@ -148,7 +128,6 @@ async def main(page: ft.Page) -> None:
         show_login()
 
     async def start_app() -> None:
-        """Pilih cache per-user, tarik cloud, lalu baru bangun seluruh UI."""
         nonlocal app_started
         user = cloud.user()
         if user is None:
@@ -161,8 +140,6 @@ async def main(page: ft.Page) -> None:
         try:
             _hydrate_user_state(cloud, user.id)
         except Exception:
-            # Sesi tetap bisa dibuka dari cache server sementara. Save
-            # berikutnya akan dicoba lagi oleh worker cloud.
             cloud_status = "Sinkronisasi tertunda — koneksi akan dicoba lagi"
             storage.load_state()
 
@@ -177,24 +154,33 @@ async def main(page: ft.Page) -> None:
         build_application()
 
     async def complete_oauth(raw_route: str = "") -> bool:
+        nonlocal oauth_processing
         code, error = oauth_code_from_url(raw_route, page.route, page.url)
         if error:
             show_login(f"Login Google gagal: {error}")
             return True
         if not code:
             return False
+        if oauth_processing:
+            return True
+        oauth_processing = True
         show_login("Menyambungkan akun Google…", busy=True)
         try:
             verifier = await preferences.get(pkce_key)
             if isinstance(verifier, str):
                 cloud.restore_pkce_verifier(verifier)
-            cloud.exchange_code(code)
+                cloud.exchange_code(code, verifier)
+            else:
+                raise RuntimeError("PKCE verifier tidak tersedia saat callback")
             await preferences.remove(pkce_key)
             await start_app()
             if page.route != "/":
                 page.go("/")
         except Exception:
+            _log.exception("OAuth callback FocusBuddy gagal")
             show_login("Login belum berhasil. Silakan coba lagi.")
+        finally:
+            oauth_processing = False
         return True
 
     async def login_google(e) -> None:
@@ -204,9 +190,12 @@ async def main(page: ft.Page) -> None:
             verifier = cloud.pkce_verifier()
             if not verifier:
                 raise RuntimeError("PKCE verifier tidak terbentuk")
-            await preferences.set(pkce_key, verifier)
+            saved = await preferences.set(pkce_key, verifier)
+            if not saved:
+                raise RuntimeError("PKCE verifier tidak bisa disimpan")
             await launcher.launch_url(url, web_only_window_name="_self")
         except Exception:
+            _log.exception("Tidak dapat memulai OAuth FocusBuddy")
             show_login("Nggak bisa membuka login Google. Coba beberapa saat lagi.")
 
     def show_login(message: str = "", busy: bool = False) -> None:
@@ -278,11 +267,9 @@ async def main(page: ft.Page) -> None:
         page.clean()
         content = ft.Container(expand=True, padding=20)
 
-        # Dicatat sekali per pembukaan app sesudah identitas storage terpasang.
         storage.touch_last_open()
 
         def _tolak_keluar_fokus(tujuan: str) -> bool:
-            """True kalau navigasi ditahan karena sesi fokus lagi jalan."""
             if not focus_session.is_running() or tujuan in FOKUS_BOLEH:
                 return False
 
@@ -331,7 +318,6 @@ async def main(page: ft.Page) -> None:
             return True
 
         def navigate(route: str) -> None:
-            # Selama onboarding belum kelar, semua rute dibelokin ke sini.
             if route != "onboarding" and not storage.get_profile().get("onboarded"):
                 route = "onboarding"
 
@@ -340,7 +326,6 @@ async def main(page: ft.Page) -> None:
                 page.update()
                 return
 
-            # Sekali sehari, Kalem nyapa duluan sebelum Home biasa tampil.
             if route == "home" and storage.needs_morning_brief():
                 route = "morning_brief"
 
@@ -365,8 +350,6 @@ async def main(page: ft.Page) -> None:
         page.add(ft.Column([content, nav_bar], expand=True, spacing=0))
         navigate("home")
 
-    # Callback OAuth bisa menjadi route awal setelah halaman web dimuat ulang.
-    # Kalau bukan callback, coba pulihkan sesi dari storage browser.
     if not await complete_oauth(page.route):
         saved = await preferences.get(token_key)
         if isinstance(saved, str) and saved:

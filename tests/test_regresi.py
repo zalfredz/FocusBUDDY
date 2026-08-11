@@ -1,12 +1,4 @@
-"""Regresi FocusBuddy -- jalanin: python tests/test_regresi.py
-
-Sengaja ditaruh DI DALAM project (bukan folder temp) biar ikut ke-commit dan
-nggak ilang tiap sesi ganti. Nggak butuh pytest -- cukup python biasa, karena
-yang paling penting itu tesnya BISA DIJALANIN kapan aja tanpa setup.
-
-Tiap tes bikin storage-nya sendiri di folder temp, jadi data asli user di
-~/.focusbuddy nggak pernah kesentuh.
-"""
+"""Regresi aplikasi yang dapat dijalankan tanpa pytest."""
 from __future__ import annotations
 
 import json
@@ -34,7 +26,6 @@ def bagian(judul: str) -> None:
 
 
 def storage_baru(prefix: str = "fb_") -> Path:
-    """Storage kosong di folder temp. Return path file datanya."""
     d = Path(tempfile.mkdtemp(prefix=prefix))
     storage.DATA_DIR = d / ".focusbuddy"
     storage.DATA_FILE = storage.DATA_DIR / "data.json"
@@ -43,8 +34,6 @@ def storage_baru(prefix: str = "fb_") -> Path:
 
 
 def pasang_logs(skor: int, n: int, energi: int = 3, sos_idx=(), mulai_dari: int = 0):
-    """Isi mood_logs n hari ke belakang. `mulai_dari` nggeser jendelanya
-    (buat nyimulasiin user yang udah lama nggak check-in)."""
     from app import clock
 
     st = storage.load_state()
@@ -67,7 +56,6 @@ def pasang_logs(skor: int, n: int, energi: int = 3, sos_idx=(), mulai_dari: int 
 
 
 class HalamanPalsu:
-    """Cukup buat manggil build() halaman tanpa UI beneran."""
 
     def update(self): pass
     def show_dialog(self, d): pass
@@ -78,9 +66,6 @@ class HalamanPalsu:
 
 
 def cari_tombol_berteks(kontrol, awalan_label: str):
-    """Cari kontrol pertama di tree Flet yang `on_click`-nya keisi & teks
-    di dalamnya diawali `awalan_label`. Dipakai buat nge-tes tombol beneran
-    yang kepasang di halaman, bukan nyimulasiin ulang logikanya."""
     if kontrol is None:
         return None
     on_click = getattr(kontrol, "on_click", None)
@@ -101,7 +86,21 @@ def cari_tombol_berteks(kontrol, awalan_label: str):
     return None
 
 
-# ===================================================================== tes
+def jalan_tree(kontrol):
+    if kontrol is None:
+        return
+    yield kontrol
+    for anak in (getattr(kontrol, "controls", None) or []):
+        yield from jalan_tree(anak)
+    yield from jalan_tree(getattr(kontrol, "content", None))
+
+
+def cari_kontrol(kontrol, kondisi):
+    return next((item for item in jalan_tree(kontrol) if kondisi(item)), None)
+
+
+def punya_teks(kontrol, teks: str) -> bool:
+    return any(getattr(item, "value", None) == teks for item in jalan_tree(kontrol))
 
 
 def tes_mendesak_dari_deadline():
@@ -120,7 +119,6 @@ def tes_mendesak_dari_deadline():
     ok(storage.quadrant_of(t_dekat) == "lakukan", "kuadran: penting+mendesak = lakukan")
     ok(storage.quadrant_of(t_jauh) == "jadwalkan", "kuadran: penting doang = jadwalkan")
 
-    # Jam deadline dihormati
     pagi = storage.add_task("Deadline jam 6 pagi", hari_ini, important=True,
                             deadline_time="06:00")
     sore = datetime.combine(clock.today(), datetime.min.time()).replace(hour=17)
@@ -132,7 +130,6 @@ def tes_mendesak_dari_deadline():
     ok(not storage.is_urgent(t_besok_malam, pagi_ini),
        "jam 08:00, deadline besok 23:00 (39 jam lagi) -> belum mendesak")
 
-    # Tugas tanpa deadline_time nggak bikin error
     ok(storage.is_urgent({"deadline": hari_ini}) is True, "tanpa deadline_time -> tetap jalan")
     ok(storage.is_urgent({}) is False, "tanpa deadline sama sekali -> False, bukan crash")
 
@@ -143,7 +140,6 @@ def tes_data_basi():
     import app.kalem_ml as ml
     from app.kalem_ml import fitur as F
 
-    # User check-in 10 hari lalu, isinya capek banget, terus menghilang.
     storage_baru("basi_")
     pasang_logs(skor=1, n=6, energi=1, mulai_dari=10)
     ml.reset_semua()
@@ -158,7 +154,6 @@ def tes_data_basi():
     ok(f["streak_abai"] == 0.0, "streak abai di-nol-in, bukan diwarisin dari catatan lama")
     ok(f["hari_sejak_checkin"] == 10.0, "fitur hari_sejak_checkin kebaca model")
 
-    # Morning Brief: nyapa, BUKAN ramal dari data basi
     p, day = ke.snapshot()
     brief = ke.build_morning_brief(p, day)
     ok(not brief.ready, "brief nggak meramal pas datanya basi")
@@ -166,7 +161,6 @@ def tes_data_basi():
        f"brief-nya nyapa, bukan nakut-nakutin: {brief.forecast!r}")
     ok(brief.energy_level == 3, "energi default netral, bukan 1 dari catatan lama")
 
-    # Kontrol: user yang check-in kemarin TIDAK dianggap basi
     storage_baru("segar_")
     pasang_logs(skor=1, n=6, energi=1)
     ml.reset_semua()
@@ -183,7 +177,6 @@ def tes_hari_kosong_bukan_hari_buruk():
     from app.kalem_ml import fitur as F, riwayat
 
     storage_baru("kosong_")
-    # Check-in cuma di hari 0, 5, 10 -- sisanya bolong.
     st = storage.load_state()
     logs = []
     for i in (0, 5, 10):
@@ -250,7 +243,7 @@ def tes_isolasi_model_antar_user():
     ra = model_mood.ramal(F.bangun_fitur())
     tanda_a, id_a = model_mood._tanda, id(model_mood._model)
 
-    storage.DATA_FILE = b            # user lain, proses SAMA, tanpa reset
+    storage.DATA_FILE = b
     rb = model_mood.ramal(F.bangun_fitur())
     tanda_b, id_b = model_mood._tanda, id(model_mood._model)
 
@@ -267,11 +260,11 @@ def tes_fungsi_murni():
     from app.core import kalem_engine as ke
 
     storage_baru("murni_")
-    pasang_logs(skor=1, n=12, energi=1, sos_idx=[0, 1, 2])   # storage: BERAT
+    pasang_logs(skor=1, n=12, energi=1, sos_idx=[0, 1, 2])
     ml.reset_semua()
     profile = storage.get_profile()
 
-    hasil = ke.decide(profile, ke.DayState())   # argumen: kosong/tenang
+    hasil = ke.decide(profile, ke.DayState())
     ok(hasil.kind != "pre_escalate",
        f"day kosong -> kind={hasil.kind}, nggak keseret storage yang berat")
 
@@ -282,7 +275,7 @@ def tes_fungsi_murni():
         for i in range(12)
     ]
     storage_baru("murni2_")
-    pasang_logs(skor=5, n=12, energi=5)          # storage: TENANG
+    pasang_logs(skor=5, n=12, energi=5)
     ml.reset_semua()
     profile = storage.get_profile()
     day_berat = ke.DayState(
@@ -358,7 +351,7 @@ def tes_pertanyaan_makan_dan_jam():
     bagian("Pertanyaan 'udah makan?' cuma nongol lewat jam 18, jam app bisa dilompatin buat demo")
     from app import clock
 
-    storage_baru("makan_")  # ini juga nge-reset offset hari & jam lewat reset_all_data()
+    storage_baru("makan_")
 
     try:
         maju = clock.hours_until(18)
@@ -397,7 +390,7 @@ def tes_pertanyaan_makan_dan_jam():
 
         storage.clear_day_offset()
         besok = clock.today() + timedelta(days=1)
-        for _ in range(30):  # dorong lewat tengah malam, nggak peduli jam sekarang berapa
+        for _ in range(30):
             clock.advance_hours(1)
             if clock.today() == besok:
                 break
@@ -430,7 +423,6 @@ def tes_pecah_hemat_api():
          "steps": ["Kumpulin data", "Bikin grafik"], "source": "ai"},
     ]
 
-    # --- pencocokan: yang mirip kena, yang nggak nyambung ditolak ---
     ok(model_pecah.cari("Quiz Kalkulus 1", "latihan soal integral bab 3", rec).ketemu,
        "judul+deskripsi sama persis -> kepungut")
     ok(model_pecah.cari("Quiz Kalkulus 1", "", rec).ketemu,
@@ -441,7 +433,6 @@ def tes_pecah_hemat_api():
     ok(not model_pecah.cari("Quiz Matematika Diskrit", "kombinatorik", rec).ketemu,
        "quiz matkul LAIN -> ditolak (mirip dikit doang nggak cukup)")
 
-    # --- deskripsi terstruktur: langkahnya dipakai apa adanya, nol API ---
     tugas = {"title": "Bikin proposal", "description": "Cari ide\nCari solusi\nTulis draft",
              "important": True, "kategori": "", "jumlah_unit": 0, "menit_est": 0}
     langkah, sumber = dl._langkah_lokal(tugas)
@@ -449,7 +440,6 @@ def tes_pecah_hemat_api():
     ok(langkah == ["Cari ide", "Cari solusi", "Tulis draft"],
        "langkahnya dipakai APA ADANYA, nggak dikirim ke AI buat dipecah lagi")
 
-    # --- alur penuh: AI cuma kepanggil buat yang beneran baru ---
     dipanggil = {"n": 0}
     asli = dl._ai_steps
     dl._ai_steps = lambda t, e: (dipanggil.__setitem__("n", dipanggil["n"] + 1),
@@ -474,7 +464,6 @@ def tes_pecah_hemat_api():
     finally:
         dl._ai_steps = asli
 
-    # --- hasil AI ikut kesimpen buat dipungut lain kali ---
     storage_baru("pecah2_")
     storage.add_decompose_record("Tugas X", "", ["langkah 1", "langkah 2"], "ai")
     ok(len(storage.get_decompose_records()) == 1, "hasil pecahan kesimpen")
@@ -487,20 +476,12 @@ def tes_pecah_hemat_api():
 
 
 def tes_retrieval_bahasa_natural():
-    """Paraphrase realistis (bukan variasi awalan) buat SATU niat yang sama:
-    "kamar berantakan, nggak tau mulai dari mana". Beda dari uji retrieval
-    yang cuma ngecek "ketemu apa nggak" -- ini negasiin WRONG retrieval
-    secara eksplisit, termasuk ke entri dataset lain yang kata-katanya mirip
-    ("kamar mandi") tapi identitas tugasnya beda. Target: wrong-retrieval
-    0%, coverage boleh turun (fallback ke AI/template itu aman)."""
     bagian("Pecah Tugas: retrieval bahasa natural (paraphrase, bukan variasi awalan)")
     from app.kalem_ml import model_pecah
 
     bawaan = list(model_pecah._pola_bawaan())
     target = "Beresin kamar"
 
-    # (query, wajib_ketemu) -- "wajib_ketemu" diukur lebih dulu lewat
-    # model_pecah.cari() langsung (bukan ditebak), lihat riwayat percakapan.
     kasus = [
         ("gue harus beresin kamar", False),
         ("kamar gue udah berantakan", True),
@@ -523,27 +504,17 @@ def tes_retrieval_bahasa_natural():
                       f"(skor {hasil.skor:.2f}), harusnya {target!r}")
     ok(salah == 0, f"wrong-retrieval-rate = 0% di lima paraphrase kamar berantakan (dapet {salah}/5 salah)")
 
-    # Kontrol: kata "kamar" muncul, tapi identitas tugasnya BEDA (kamar mandi,
-    # bukan kamar tidur) -- ini yang paling gampang ketuker kalau retrieval
-    # cuma modal kata kunci, bukan kemiripan dokumen penuh.
     kamar_mandi = model_pecah.cari("kamar mandi gue kotor banget", records=bawaan)
     ok(not kamar_mandi.ketemu or kamar_mandi.dari_judul != target,
        f"'kamar mandi kotor' TIDAK nyasar ke {target!r} "
        f"(dapet: {'fallback' if not kamar_mandi.ketemu else kamar_mandi.dari_judul!r})")
 
-    # Kontrol: query yang sama sekali nggak nyambung ke beres-beres kamar.
     tugas_lain = model_pecah.cari("bikin proposal buat ikut lomba hackathon", records=bawaan)
     ok(not tugas_lain.ketemu or tugas_lain.dari_judul != target,
        "query yang nggak nyambung sama sekali TIDAK nyasar ke 'Beresin kamar'")
 
 
 def tes_fallback_ai_valid():
-    """Kasus yang SENGAJA dibuat sulit buat retrieval lokal ("gue stuck
-    banget sama skripsi" -- diverifikasi dulu skornya 0.43, jauh di bawah
-    ambang 0.72). Yang diuji bukan cuma "AI menghasilkan output", tapi
-    seluruh rantainya: confidence lokal rendah -> fallback ke AI beneran
-    kejadian -> output AI dipakai -> source label bilang "ai" (bukan ngaku
-    "lokal") -> hasilnya kesimpen dengan source="ai" (bukan "dataset")."""
     bagian("Pecah Tugas: fallback AI buat kasus yang lokal-nya nggak yakin")
     from unittest.mock import patch
 
@@ -553,7 +524,6 @@ def tes_fallback_ai_valid():
     storage_baru("fallback_ai_")
 
     judul = "gue stuck banget sama skripsi"
-    # Pastiin dulu premisnya BENERAN: lokal nggak yakin (di bawah AMBANG_MIRIP).
     cek_lokal = model_pecah.cari(judul, records=list(model_pecah._pola_bawaan()))
     ok(not cek_lokal.ketemu and cek_lokal.skor < model_pecah.AMBANG_MIRIP,
        f"premis: retrieval lokal beneran nggak yakin buat '{judul}' "
@@ -613,8 +583,6 @@ def tes_label_keputusan():
     ok(storage.record_decision_acted("next_action", "focus"), "penandaan dipencet berhasil")
     ok(storage.get_decision_records()[0]["acted"], "acted jadi True")
 
-    # Sesudah dipencet, tampilan berikutnya jadi catatan BARU -- itu keputusan
-    # yang beda (konteksnya udah berubah), bukan lanjutan yang lama.
     storage.record_decision_shown("next_action", "focus", f, "FOKUS 20 menit")
     ok(len(storage.get_decision_records()) == 2,
        "sesudah dipencet, tampilan berikutnya jadi catatan baru")
@@ -625,13 +593,6 @@ def tes_label_keputusan():
 
 
 def tes_ml_kalem_tidak_kontaminasi():
-    """Pastiin fitur yang dipakai buat TRAINING model_kalem itu snapshot
-    DECISION TIME (pas keputusan ditampilin), bukan ikut kena update sama
-    apa pun yang kejadian SESUDAHNYA (klik, atau tampilan ulang dengan
-    kondisi yang udah beda). Kalau `fitur` diam-diam ketimpa data yang lebih
-    baru, model bisa belajar dari sesuatu yang sebenernya cuma keliatan
-    SESUDAH keputusan itu dibuat -- prediksi yang keliatan akurat padahal
-    cuma ngintip hasilnya sendiri."""
     bagian("ML_KALEM: fitur decision-time TIDAK boleh ketimpa data outcome-time")
     from app.kalem_ml import fitur as F
     from app.kalem_ml import model_kalem
@@ -644,9 +605,6 @@ def tes_ml_kalem_tidak_kontaminasi():
     )
     storage.record_decision_shown("next_action", "focus", fitur_awal, "FOKUS 15 menit")
 
-    # Simulasikan kondisi user BERUBAH di render berikutnya hari yang sama
-    # (mis. tugas baru diselesain, energi kecatet ulang) SEBELUM diklik --
-    # fitur yang kesimpen HARUS tetap yang pertama, bukan yang belakangan.
     fitur_belakangan = F.Fitur(
         nilai={"energi_terakhir": 6.0, "skor_3h": 5.0, "n_belum_selesai": 0.0},
         tanggal=storage.clock.today().isoformat(), catatan={},
@@ -657,25 +615,16 @@ def tes_ml_kalem_tidak_kontaminasi():
        "tampilan ulang dengan kondisi yang UDAH BEDA tidak menimpa fitur decision-time "
        f"yang tercatat pertama kali (tetap energi_terakhir={tersimpan_sebelum_klik['energi_terakhir']})")
 
-    # Klik terjadi SESUDAHNYA -- pastiin itu nggak diam-diam ngubah fitur juga.
     storage.record_decision_acted("next_action", "focus")
     tersimpan_sesudah_klik = storage.get_decision_records()[0]["fitur"]
     ok(tersimpan_sesudah_klik == tersimpan_sebelum_klik,
        "record_decision_acted() (outcome time) TIDAK mengubah field fitur (decision time) sama sekali")
 
-    # Struktural: FEATURES model_kalem nggak boleh ada nama field yang
-    # cuma kebaca SESUDAH keputusan dibuat (acted/n_tampil/acted_at, atau
-    # started/completed andaikata nanti ditambah) -- kalau salah satu masuk
-    # FEATURES, model bisa "mempredik'si dirinya sendiri" dari outcome-nya.
     field_outcome = {"acted", "acted_at", "n_tampil", "started", "started_at",
                      "completed", "completed_at"}
     bocor = field_outcome & set(model_kalem.FEATURES)
     ok(not bocor, f"model_kalem.FEATURES nggak nyerempet field outcome-only (dapet bocor: {bocor})")
 
-    # Dokumentasi granularitas data SEKARANG: skema decision_records baru
-    # nyatet shown (n_tampil/timestamp) & acted (klik) -- BELUM ada
-    # started/completed. Kalau field itu ditambah nanti, test ini yang
-    # pertama kali harus diperbarui buat mikirin ulang kontaminasinya.
     kolom_skema = set(storage.get_decision_records()[0].keys())
     ok({"started", "completed"} & kolom_skema == set(),
        "[KARAKTERISASI] skema decision_records saat ini cuma shown+acted -- "
@@ -683,34 +632,29 @@ def tes_ml_kalem_tidak_kontaminasi():
 
 
 def tes_regresi_data_dan_tugas_berulang():
-    """Bug yang mudah kambuh karena UI-nya menulis ke storage yang sama."""
     bagian("Diary, Reset, overdue, dan tugas berulang")
     from app import clock
     from app.core.reset_preferences import detect_distress
 
     storage_baru("regresi_baru_")
 
-    # Diary/check-in adalah satu record harian; field care nggak boleh lenyap.
     storage.add_mood_log("lelah", 2, 2, ate_today=True, rested_enough=False)
     storage.add_mood_log("lelah", 2, 2, diary="Hari ini berat")
     log = storage.today_mood()
     ok(log["ate_today"] is True and log["rested_enough"] is False,
        "simpan Diary nggak menghapus jawaban makan/istirahat")
 
-    # Banyak aktivitas dalam satu kunjungan lama tidak boleh jadi eskalasi.
     today = clock.today()
     logs = [{"date": today.isoformat(), "score": 1}]
     events_same_day = [{"date": today.isoformat(), "choice": "napas"} for _ in range(4)]
     ok(not detect_distress(events_same_day, logs).escalate,
        "4 event di hari sama bukan 4 hari distress")
 
-    # Tugas sekali jalan yang lewat tetap masuk kandidat Beranda.
     yesterday = (today - timedelta(days=1)).isoformat()
     overdue = storage.add_task("Tugas kemarin", yesterday, steps=[{"text": "mulai", "done": False}])
     ok(any(t["id"] == overdue["id"] for t in storage.tasks_actionable_today()),
        "tugas terlambat tidak menghilang dari next action")
 
-    # Checklist occurrence mingguan terisolasi dari minggu berikutnya.
     weekly = storage.add_task(
         "Review mingguan", today.isoformat(), steps=[{"text": "baca", "done": False}], repeat="weekly"
     )
@@ -739,9 +683,6 @@ def tes_langkah_tambahan_dan_ml_kalem():
     ok(teks[1:3] == ["Ambil pensil", "Siapkan kalkulator"],
        "langkah tambahan disisipkan setelah langkah pembuka Kalem")
 
-    # Riwayat sintetis dipakai HANYA untuk mengetes gerbang/arah model,
-    # bukan sebagai data produk. Energi rendah -> sering tidak dipencet;
-    # energi tinggi -> sering dipencet.
     records = []
     for i in range(24):
         low = i < 12
@@ -773,17 +714,11 @@ def tes_fokus_pakai_decision_task():
     pasang_logs(skor=4, n=5, energi=4)
     today = storage.clock.today().isoformat()
 
-    # Decoy ditambahin DULUAN dengan kesulitan lebih berat -- kalau ada kode
-    # yang nyari ulang tugas lewat storage.tasks_actionable_today() dicocokin
-    # ke JUDUL (bug lama), `next()` bakal kena tugas ini duluan karena dia
-    # yang pertama nangkring di storage, walau bukan yang dipilih engine.
     storage.add_task(
         "Tugas kembar", today, important=True, difficulty_est=3,
         kategori="Rumah", jumlah_unit=99,
         steps=[{"text": "langkah decoy", "done": False}],
     )
-    # Ini yang beneran dipilih pick_next_action(): kesulitan lebih rendah
-    # menang di kuadran yang sama (lihat kalem_engine.pick_next_action).
     storage.add_task(
         "Tugas kembar", today, important=True, difficulty_est=1,
         kategori="Akademik", jumlah_unit=5,
@@ -817,16 +752,11 @@ def tes_fokus_pakai_decision_task_tugas_berulang():
     pasang_logs(skor=4, n=5, energi=4)
     today = storage.clock.today().isoformat()
 
-    # Tugas SEKALI JALAN, judul sama, kesulitan lebih berat -- decoy.
     storage.add_task(
         "Tugas", today, important=True, difficulty_est=3,
         kategori="Organisasi", jumlah_unit=7,
         steps=[{"text": "langkah organisasi", "done": False}],
     )
-    # Tugas BERULANG (harian), judul sama, kesulitan lebih rendah -> menang.
-    # occurrence-nya dibentuk lewat storage.tasks_for()/tasks_actionable_today()
-    # sebagai SALINAN task dict (bertanda _occurrence_date), bukan objek yang
-    # sama persis -- ini yang mau dipastikan tetap ke-resolve dengan benar.
     tugas_berulang = storage.add_task(
         "Tugas", today, important=True, difficulty_est=1,
         kategori="Kuliah", jumlah_unit=3,
@@ -849,8 +779,6 @@ def tes_fokus_pakai_decision_task_tugas_berulang():
        f"(dapet kategori={snap['kategori']!r}, jumlah_unit={snap['jumlah_unit']!r}), "
        "bukan tugas sekali-jalan yang judulnya kebetulan sama")
 
-    # ID tugas HARUS tetap ID tugas dasarnya -- occurrence itu salinan
-    # tampilan, bukan tugas baru yang beda identitas tiap hari.
     ulang = storage.tasks_actionable_today()
     dipilih = next((t for t in ulang if t.get("kategori") == "Kuliah"), None)
     ok(dipilih is not None and dipilih["id"] == tugas_berulang["id"]
@@ -860,7 +788,6 @@ def tes_fokus_pakai_decision_task_tugas_berulang():
 
 
 def tes_pecah_tugas_judul_kembar():
-    """Rencana dan write-back harus tetap memakai ID, bukan judul tugas."""
     bagian("Pecah Tugas: judul kembar tidak saling menimpa")
     from app.core import decomposer_logic as dl
 
@@ -876,6 +803,85 @@ def tes_pecah_tugas_judul_kembar():
        "tugas judul kembar pertama mempertahankan langkahnya sendiri")
     ok([s["text"] for s in result.task_steps[kedua["id"]]] == ["Buka catatan B", "Tandai rumus B"],
        "tugas judul kembar kedua tidak tertimpa langkah tugas pertama")
+
+
+def tes_onboarding_entry_dan_status_custom():
+    import flet as ft
+    from app.views import onboarding
+
+    bagian("Entry onboarding: copy baru & kesibukan custom")
+    storage_baru("onboarding_copy_")
+    tujuan: list[str] = []
+    root = onboarding.build(HalamanPalsu(), tujuan.append)
+
+    name = cari_kontrol(
+        root, lambda c: isinstance(c, ft.TextField) and c.label == "Nama panggilan kamu"
+    )
+    ok(name is not None and not name.hint_text,
+       "field nama pakai 'Nama panggilan kamu' tanpa contoh placeholder")
+    ok(punya_teks(root, "Halo! Aku KALEM.")
+       and punya_teks(root, "Developed By ATURLAH - FASILKOM UI"),
+       "entry memakai identitas KALEM dan credit developer baru")
+    ok(
+        list(storage.PRODUCTIVE_TIME_OPTIONS.values())
+        == ["Pagi", "Siang", "Sore", "Malam", "Tidak tentu"],
+        "pilihan waktu fokus ringkas: Pagi–Siang–Sore–Malam–Tidak tentu",
+    )
+    ok(list(storage.MEDICATION_OPTIONS.values())
+       == ["Ada, rutin", "Nggak ada", "Kadang-kadang aja"],
+       "pilihan obat sesuai copy baru")
+    ok(list(storage.TRIGGER_OPTIONS.values())
+       == ["Tugas numpuk", "Deadline mepet", "Susah mulai sesuatu",
+           "Gampang terdistraksi", "Kurang tidur", "Interaksi sosial"],
+       "pilihan pemicu overwhelm sesuai copy baru")
+    if name is None:
+        return
+
+    name.value = "Raka"
+    lanjut = cari_tombol_berteks(root, "Lanjut")
+    if lanjut is None:
+        ok(False, "tombol lanjut entry ditemukan")
+        return
+    lanjut.on_click(None)
+
+    umur = cari_tombol_berteks(root, "18-24")
+    if umur is None:
+        ok(False, "chip usia ditemukan")
+        return
+    umur.on_click(None)
+
+    lainnya = cari_kontrol(
+        root, lambda c: getattr(c, "on_click", None) is not None and punya_teks(c, "Lainnya")
+    )
+    if lainnya is None:
+        ok(False, "chip Lainnya kesibukan ditemukan")
+        return
+    lainnya.on_click(None)
+    status = cari_kontrol(
+        root, lambda c: isinstance(c, ft.TextField) and c.hint_text == "Tulis kesibukan kamu"
+    )
+    if status is None:
+        ok(False, "Lainnya membuka input kesibukan")
+        return
+    status.value = "Content creator"
+    simpan_status = cari_kontrol(
+        root, lambda c: isinstance(c, ft.IconButton)
+        and c.icon == ft.Icons.CHECK and getattr(c, "on_click", None) is not None
+    )
+    if simpan_status is None:
+        ok(False, "tombol simpan kesibukan custom ditemukan")
+        return
+    simpan_status.on_click(None)
+    lewati = cari_tombol_berteks(root, "Lewati, langsung ke Beranda")
+    if lewati is None:
+        ok(False, "tombol lewati ditemukan")
+        return
+    lewati.on_click(None)
+
+    profile = storage.get_profile()
+    ok(profile["name"] == "Raka" and profile["status"] == ["Content creator"]
+       and tujuan == ["home"],
+       "kesibukan custom tersimpan ke profil dan ikut batas maksimal status")
 
 
 def main() -> int:
@@ -902,6 +908,7 @@ def main() -> int:
         tes_fokus_pakai_decision_task,
         tes_fokus_pakai_decision_task_tugas_berulang,
         tes_pecah_tugas_judul_kembar,
+        tes_onboarding_entry_dan_status_custom,
         tes_halaman_kebangun,
     ):
         tes()

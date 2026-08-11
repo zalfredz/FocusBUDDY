@@ -1,4 +1,4 @@
-"""Tes unit boundary Auth/cloud tanpa memanggil jaringan."""
+"""Tes Auth, sinkronisasi cloud, dan isolasi sesi."""
 from __future__ import annotations
 
 import tempfile
@@ -51,6 +51,19 @@ def test_pkce_verifier_bisa_dipulihkan_setelah_redirect():
     assert cloud.pkce_verifier() == "verifier-browser"
 
 
+def test_exchange_oauth_memakai_verifier_callback_yang_eksplisit():
+    cloud = FocusBuddyCloud()
+    try:
+        with patch.object(cloud.auth, "exchange_code_for_session") as exchange:
+            cloud.exchange_code("kode-oauth", "verifier-browser")
+        assert exchange.call_args.args[0] == {
+            "auth_code": "kode-oauth",
+            "code_verifier": "verifier-browser",
+        }
+    finally:
+        cloud._http.close()
+
+
 def test_fetch_database_selalu_difilter_dengan_uid_login():
     cloud = FocusBuddyCloud()
     response = SimpleNamespace(
@@ -90,7 +103,6 @@ def test_storage_user_dipisah_dan_hook_dipanggil():
 
 
 def test_dua_sesi_browser_tidak_berbagi_state_runtime():
-    """Storage, jam demo, dan timer wajib terpisah dalam satu proses web."""
     stores = {"a": _StorePalsu(), "b": _StorePalsu()}
     active = ["a"]
 

@@ -1,25 +1,4 @@
-"""MODEL MOOD -- "hari ini kemungkinan bakal kayak gimana?"
-
-Yang diramal: skor mood hari ini (1-5), SEBELUM user check-in. Dipakai
-Morning Brief buat nyusun ramalan, dan `model_energi` buat nentuin beban
-kerja yang masuk akal.
-
-TIGA TAHAP, JUJUR SOAL TAHAPNYA
--------------------------------
-    < 5 catatan    ->  nggak meramal sama sekali. Kalem bilang apa adanya
-                       "belum cukup data" -- ini yang bikin kepercayaan
-                       kebangun, dan sekali dilanggar susah balik.
-    5-9 catatan    ->  rata-rata hari yang sama (mis. rata-rata Selasa).
-    >= 10 catatan  ->  RandomForest dari riwayat user sendiri, dicampur
-                       rata-rata hari biar nggak liar.
-
-BEDA SAMA `energy_predictor`
-----------------------------
-`model_energi` dilatih dari data SINTETIS -- dia nebak beban kerja yang
-wajar buat kondisi apa pun, termasuk buat user yang baru instal. Yang ini
-cuma belajar dari data USER SENDIRI, dan diam kalau datanya belum ada.
-Dua peran yang beda, sengaja nggak digabung.
-"""
+"""Prediksi mood personal dengan fallback saat histori belum cukup."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -34,8 +13,8 @@ from app import clock, storage
 from app.kalem_ml import fitur as F
 from app.kalem_ml import riwayat
 
-MIN_POLA = 5      # sebelum ini: nggak meramal
-MIN_MODEL = 10    # sebelum ini: rata-rata hari yang sama
+MIN_POLA = 5
+MIN_MODEL = 10
 
 HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 
@@ -44,7 +23,7 @@ HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 class RamalanMood:
     siap: bool
     skor: Optional[float] = None
-    sumber: str = ""              # "" | "rata_hari" | "model"
+    sumber: str = ""
     n_data: int = 0
     alasan: list[str] = field(default_factory=list)
 
@@ -102,16 +81,10 @@ def _latih(day: Any = None) -> bool:
     if len(X) < MIN_MODEL:
         return False
 
-    # Kunci cache dari ISI data, bukan jumlah barisnya -- lihat penjelasan
-    # panjang di `riwayat.sidik_jari()`. Versi lama (`f"{len(X)}"`) bikin dua
-    # user beda yang sama-sama punya N catatan dianggap identik.
     tanda = riwayat.sidik_jari(X, meta)
     if _model is not None and _tanda == tanda:
         return True
 
-    # Target = skor HARI BERIKUTNYA. Ini yang bikin modelnya meramal, bukan
-    # ngapalin: kalau targetnya skor hari itu sendiri, kolom "skor" di fitur
-    # adalah jawabannya (kebocoran total, akurasi 100% tapi gunanya nol).
     Xa, y = [], []
     for i in range(len(X) - 1):
         Xa.append(X[i])
@@ -119,12 +92,6 @@ def _latih(day: Any = None) -> bool:
     if len(Xa) < MIN_MODEL - 1:
         return False
 
-    # 100 pohon, TANPA n_jobs=-1 -- diukur: predict() 1 baris kena overhead
-    # spin-up joblib parallel yang lebih mahal dari kerjaannya sendiri buat
-    # kerjaan sekecil ini (48ms -> 23ms cuma dari buang n_jobs, -> 12ms lagi
-    # dari 200 ke 100 pohon, hasil prediksi nggak berubah di data uji).
-    # `decide()`/`build_morning_brief()` motong bagian ini tiap kali halaman
-    # dibuka, jadi latensi predict-nya kerasa langsung ke user.
     _model = RandomForestRegressor(
         100, max_depth=6, min_samples_leaf=2, random_state=42
     ).fit(np.array(Xa, dtype=float), np.array(y, dtype=float))
@@ -136,9 +103,6 @@ def _latih(day: Any = None) -> bool:
 @_locked
 def ramal(f: Optional[F.Fitur] = None) -> RamalanMood:
     f = f or F.bangun_fitur()
-    # Catatan diambil dari snapshot yang dioper, BUKAN baca storage lagi.
-    # Kalau baca ulang, `f` yang dibangun dari DayState buatan bakal
-    # diam-diam dicampur data storage yang lagi aktif.
     logs = f.catatan.get("logs") or []
     day = f.catatan.get("day")
     n = len(logs)
@@ -152,7 +116,6 @@ def ramal(f: Optional[F.Fitur] = None) -> RamalanMood:
 
     if not _latih(day) or dasar is None:
         if dasar is None:
-            # Belum pernah check-in di hari ini -> pakai rata-rata semua.
             dasar = sum(l["score"] for l in logs) / n
             alasan = ["dari rata-rata catatan kamu"]
         else:
@@ -163,7 +126,6 @@ def ramal(f: Optional[F.Fitur] = None) -> RamalanMood:
     baris = riwayat.baris_hari_ini(f)
     p = float(_model.predict([baris])[0])
 
-    # Dicampur rata-rata hari. Bobot model naik pelan seiring data numpuk.
     w = _n_latih / (_n_latih + 15.0)
     gabung = w * p + (1 - w) * dasar
 

@@ -1,20 +1,4 @@
-"""Page 2 -- Tracker. Halaman kerja: lihat beban, atur energi, pecah tugas.
-
-Perubahan penting dari versi sebelumnya:
-
-- SESI FOKUS PINDAH KE BERANDA. Dulu tombol FOKUS di Beranda cuma nitip niat
-  terus mental ke sini -- satu aksi kepecah dua halaman, dan timernya mati
-  tiap user pindah halaman. Sekarang timernya hidup di `focus_session` dan
-  ditampilin di Beranda. Di sini tinggal PRATINJAU-nya, biar efek level
-  energi tetap kelihatan tanpa timernya diduplikat.
-- PECAH TUGAS BISA DIPILIH. Nggak lagi maksa semua tugas hari ini sekaligus.
-- TUGAS SELESAI DILIPAT jadi satu baris judul, langkah-langkahnya disembunyiin.
-  Checklist yang udah kelar semua cuma bikin halaman panjang tanpa info baru.
-- RENCANA IKUT DISUSUN ULANG kalau ada tugas yang dihapus -- blok tugas itu
-  dibuang dan sisanya digeser, bukan ninggalin jadwal yang jamnya bolong.
-- Grid 4 kuadran Eisenhower ada di sini, bukan di Beranda: di halaman pertama
-  dia bikin overwhelm, di halaman kerja dia baru berguna.
-"""
+"""Tracker tugas, kalender, dan pecah tugas."""
 from __future__ import annotations
 
 import calendar
@@ -50,9 +34,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     latest_mood = storage.latest_mood()
     default_energy = energy_to_mood_default(latest_mood["score"]) if latest_mood else 3
 
-    # Level energi yang udah dikunci hari ini (dari Morning Brief atau
-    # koreksi manual sebelumnya) menang atas tebakan dari mood log --
-    # inilah yang bikin ramalan pagi kerasa "kepasang", bukan cuma kalimat.
     locked_energy = storage.today_energy()
     if locked_energy:
         default_energy = locked_energy
@@ -63,14 +44,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "selected": today.isoformat(),
         "energy": default_energy,
         "show_month": False,
-        # Filter daftar tugas. Kalender tetap jadi pemilih tanggal; klik
-        # tanggal tertentu otomatis mempersempit daftar ke hari itu.
         "time_filter": "weekly",
     }
 
-    # Rencana disimpen sebagai DATA (judul, langkah, menit), bukan cuma baris
-    # yang udah jadi. Bentuk ini yang bikin jadwalnya bisa disusun ulang pas
-    # ada tugas dihapus -- tanpa manggil AI-nya lagi.
     plan_state: dict = {"steps": [], "source": "", "reason": "", "quota_msg": "",
                         "n_lokal": 0, "n_ai": 0}
 
@@ -82,7 +58,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     timeline_column = ft.Column(spacing=8)
     plan_column = ft.Column(spacing=8, visible=False)
 
-    # ---------------------------------------------------------- kalender
 
     def day_has_task(day_iso: str) -> bool:
         return bool(storage.tasks_for(day_iso))
@@ -172,7 +147,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                               on_click=lambda e: shift_month(1)),
             ]
         else:
-            # Strip 7 hari: minggu berjalan, dimulai dari Senin.
             start = today - timedelta(days=today.weekday())
             week = [start + timedelta(days=i) for i in range(7)]
             month_label.value = f"{MONTH_NAMES[today.month - 1]} {today.year}"
@@ -217,7 +191,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             render_day_tasks()
         page.update()
 
-    # ------------------------------------------------ ringkasan Eisenhower
 
     def quadrant_chip(key: str, count: int) -> ft.Container:
         label, color = QUADRANT_META[key]
@@ -245,7 +218,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ft.Row([quadrant_chip(k, len(buckets[k])) for k in ["delegasikan", "nanti"]], spacing=10),
         ]
 
-    # ------------------------------------------------------- mini-timeline
 
     def render_timeline():
         tasks = [t for t in storage.tasks_for(state["selected"]) if not storage.task_is_done(t)]
@@ -292,7 +264,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             *labels,
         ]
 
-    # ------------------------------------------------------ daftar tugas
 
     filter_holder = ft.Row(spacing=6)
 
@@ -303,7 +274,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.update()
 
     def render_time_filter():
-        # Urutan mengikuti rentang waktu dari yang paling dekat ke paling luas.
         labels = [("daily", "Harian"), ("weekly", "Mingguan"), ("monthly", "Bulanan")]
         filter_holder.controls = [
             ui_helpers.choice_chip(
@@ -321,8 +291,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             selected = date.fromisoformat(state["selected"])
             start = selected - timedelta(days=selected.weekday())
             return [task for i in range(7) for task in storage.tasks_for((start + timedelta(days=i)).isoformat())]
-        # Ambil occurrence per tanggal, bukan template mentah, agar centang
-        # tugas berulang selalu tersimpan pada tanggal yang tepat.
         year, month = state["year"], state["month"]
         days = calendar.monthrange(year, month)[1]
         return [
@@ -332,9 +300,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ]
 
     def toggle_step(task_id: str, index: int, value: bool, occurrence_date: str | None = None):
-        # Cek SEBELUM & SESUDAH: rayaannya cuma buat momen tugas beneran
-        # BERUBAH jadi kelar, bukan tiap centang langkah. Kalau tiap langkah
-        # dirayain, rayaannya kehilangan arti.
         before_task = next((t for t in tasks_in_filter() if t["id"] == task_id and
                             t.get("_occurrence_date") == occurrence_date), None)
         sebelum = storage.task_is_done(before_task) if before_task else False
@@ -347,7 +312,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ui_helpers.reward_overlay(page)
 
     def reopen_task(task_id: str, occurrence_date: str | None = None):
-        """Buka lagi tugas yang udah dilipat -- semua centangnya dilepas."""
         tasks = storage.tasks_for(occurrence_date) if occurrence_date else storage.get_tasks()
         for task in tasks:
             if task["id"] == task_id:
@@ -357,17 +321,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
         refresh_all()
 
     def confirm_remove(task: dict):
-        """Hapus tugas SELALU lewat konfirmasi.
-
-        Ini satu-satunya aksi di app yang ngebuang kerjaan user permanen, dan
-        tombolnya duduk sebaris sama checkbox -- kepencet nggak sengaja itu
-        soal waktu doang.
-        """
         def do_delete(ev):
             page.pop_dialog()
             storage.delete_task(task["id"])
-            # Rencana ikut disusun ulang: blok punya tugas ini dibuang, sisanya
-            # digeser biar jamnya nggak bolong.
             refresh_all()
 
         page.show_dialog(
@@ -393,12 +349,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
     def done_card(task: dict) -> ft.Control:
-        """Tugas kelar dilipat jadi SATU baris.
-
-        Nampilin checklist yang semua kotaknya kecentang nggak nambah info
-        apa-apa, cuma manjangin halaman -- dan halaman panjang itu persis yang
-        bikin overwhelm.
-        """
         return ui_helpers.card(
             ft.Row(
                 [
@@ -489,8 +439,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 )
             )
 
-        # Tugas yang punya kategori dapet baris perkiraan waktu + tombol yang
-        # langsung nyetel sesi fokus SEPANJANG itu -- bukan durasi standar.
         if task.get("menit_est"):
             head.append(
                 ft.Row(
@@ -513,12 +461,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         return ui_helpers.card(ft.Column([*head, *step_controls], spacing=6), padding=14)
 
     def start_task_focus(task: dict):
-        """Sesi fokus sepanjang perkiraan tugas ini, bukan durasi standar.
-
-        Konteks kategori & jumlah ikut dibawa, jadi begitu sesinya kelar,
-        waktu ASLI yang kepakai kecatat dan jadi bahan belajar kecepatan
-        personal user buat kategori itu.
-        """
         pending = next((s["text"] for s in task.get("steps", []) if not s.get("done")), task["title"])
         focus_session.start(
             max(int(task.get("menit_est") or kalem_engine.focus_minutes_for(state["energy"])), 1),
@@ -541,7 +483,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             day_tasks_column.controls = [ui_helpers.empty_state(empty, ft.Icons.EVENT_AVAILABLE)]
             return
 
-        # Yang belum kelar naik ke atas -- itu yang perlu dilihat.
         open_tasks = [t for t in tasks if not storage.task_is_done(t)]
         done_tasks = [t for t in tasks if storage.task_is_done(t)]
 
@@ -561,15 +502,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_plan()
         page.update()
 
-    # -------------------------------------------------------- tambah tugas
 
     def open_add_task(e):
         title_field = ft.TextField(label="Nama tugas", hint_text="mis. Bikin Skripsi Bab 1")
-        # OPSIONAL. Judul doang ("Bikin proposal hackathon") sering nggak
-        # cukup buat Pecah Tugas ngerti APA yang mau dikerjain -- deskripsi
-        # ini yang jadi bahan utamanya kalau diisi (lihat catatan panjang
-        # di decomposer_logic.py). Kosong = tetap jalan, pecah dari judul
-        # doang kayak biasa.
         description_field = ft.TextField(
             label="Deskripsi (opsional)",
             hint_text="mis. bikin proposal buat ikut hackathon kampus, "
@@ -579,11 +514,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             max_lines=5,
             helper="Diisi -> Pecah Tugas mecah dari SINI, bukan cuma judul",
         )
-        # Jam deadline GANTIIN centang "Mendesak". Dulu user disuruh nilai
-        # sendiri mendesak atau nggak -- padahal itu hal yang app-nya udah
-        # tau dari tanggal, dan centangnya jadi bohong begitu harinya lewat.
-        # Sekarang user cuma ngasih tau KAPAN; mendesaknya dihitung sistem
-        # tiap kali dibaca (storage.is_urgent).
         time_field = ft.TextField(
             label="Jam kerja / deadline (opsional)",
             hint_text="mis. 17:00",
@@ -616,12 +546,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ),
         )
 
-        # --- Perkiraan durasi ---
-        # Diramal dari JUDUL tugas, bukan dari kategori+jumlah. Modelnya
-        # dilatih dari 499 tugas berbahasa Indonesia, jadi user nggak perlu
-        # milih apa-apa dulu -- ngetik judul aja udah dapet perkiraan.
-        # Kategori tetap ada tapi OPSIONAL: gunanya nyambungin sesi ke
-        # rata-rata kecepatan personal per jenis tugas.
         picked = {"kategori": "", "jumlah": 0.0, "menit": 0}
         kategori_holder = ft.Container()
         buka_lanjutan = {"on": False}
@@ -687,8 +611,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             except ValueError:
                 tempo = 0
             penting = 8 if important_check.value else 4
-            # Deadline hari ini/besok = lebih mendesak. Diturunin dari tanggal,
-            # bukan dari centang user (lihat catatan di `time_field`).
             if tempo <= 1:
                 penting = min(10, penting + 2)
 
@@ -699,9 +621,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 kategori=kategori,
                 jumlah=picked["jumlah"],
                 records=storage.get_focus_records(),
-                # Energi hari ini ikut dioper: kalau user udah punya beberapa
-                # sesi di pita energi yang sama, faktor kalibrasinya diambil
-                # dari situ -- bukan dari rata-rata semua kondisi.
                 energi=state["energy"],
             )
             picked["menit"] = est.menit
@@ -789,23 +708,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
-    # Kartu level energi DIPINDAH ke halaman Mood. Alasannya: di sini dia
-    # ketimbun daftar tugas dan jarang kelihatan, padahal dia yang nyetel
-    # skala hari itu. Di Mood dia nyatu sama check-in -- satu tempat, satu
-    # momen, dan datanya langsung kepakai.
-    #
-    # Tracker tetap PAKAI `state["energy"]` (buat durasi sesi & Pecah Tugas),
-    # cuma nggak ngasih UI buat ngubahnya lagi.
-
-    # ------------------------------------------------------- pecah tugas
 
     def open_split_picker(e):
-        """Pilih tugas mana yang dipecah -- default semua yang belum kelar.
-
-        Dulu tombolnya langsung ngegas semua tugas hari ini. Buat user yang
-        cuma pengen mecah satu tugas berat, itu ngabisin kuota AI harian dan
-        nimpa langkah tugas lain yang udah rapi.
-        """
         tasks = [t for t in storage.tasks_today() if not storage.task_is_done(t)]
         if not tasks:
             plan_state.update(steps=[], source="", reason="", quota_msg="", n_lokal=0, n_ai=0)
@@ -817,8 +721,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             page.update()
             return
 
-        # `ft.Checkbox` di Flet 0.86.4 nggak punya parameter `subtitle`, jadi
-        # keterangan "udah punya N langkah" ditaruh sebagai baris sendiri.
         boxes = {t["id"]: ft.Checkbox(label=t["title"], value=True) for t in tasks}
         extra_fields = {
             t["id"]: ft.TextField(
@@ -909,13 +811,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
     def run_split(tasks: list[dict]):
-        # Kuota free tier hanya membatasi penyusunan generatif Kalem;
-        # nambah dan mengerjakan tugas manual tetap bebas.
         allow_ai = storage.can_use("decompose")
 
-        # Bar progres jalan sementara panggilan API-nya diproses di thread
-        # lain. Panjang bar-nya dari median lama panggilan sebelumnya --
-        # lihat ui_helpers.ProgresAI.
         progres_holder = ft.Container()
         plan_column.controls = [progres_holder]
         plan_column.visible = True
@@ -932,22 +829,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.run_task(kerjakan)
 
     def selesaikan(result, tasks: list[dict]):
-        """Bagian sesudah panggilan API balik. Dipisah dari `run_split` karena
-        sekarang jalannya asinkron -- `tasks` dioper eksplisit, bukan diambil
-        dari closure, biar nggak ketuker sama daftar yang udah berubah."""
-        # Cuma dihitung kalau penyusunan generatif Kalem benar-benar dipakai.
         if result.n_ai:
             storage.record_usage("decompose")
 
-        # Tulis balik langkah-langkahnya ke tiap tugas, bukan cuma ditampilin
-        # sekali di sini terus hilang. Ini yang dipakai Beranda (next-action)
-        # dan checklist di bawah. `set_task_steps` yang njaga centang lama.
         by_title: dict[str, list[dict]] = {}
         for title, step, _minutes in result.steps:
             by_title.setdefault(title, []).append({"text": step, "done": False})
         for task in tasks:
-            # `task_steps` memakai ID dan tersedia dari plan baru. Fallback
-            # title dipertahankan hanya untuk PlanResult lama/tes eksternal.
             steps = result.task_steps.get(task["id"]) if result.task_steps else by_title.get(task["title"])
             if steps:
                 storage.set_task_steps(task["id"], steps, task.get("_occurrence_date"))
@@ -964,12 +852,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         refresh_all()
 
     def render_plan():
-        """Gambar ulang rencana dari langkah yang MASIH punya tugas.
-
-        Dipanggil tiap daftar tugas berubah. Tugas yang dihapus otomatis
-        ilang dari jadwal, dan sisanya disusun ulang lewat `lay_out()` --
-        jadi jamnya rapat lagi, nggak ninggalin lubang.
-        """
         if not plan_state["steps"]:
             if not plan_column.controls:
                 plan_column.visible = False
@@ -1000,10 +882,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ui_helpers.banner(label, theme.PRIMARY, ft.Icons.AUTO_AWESOME)
             ]
         elif plan_state["source"] == "lokal":
-            # SENGAJA bukan warna/ikon "offline". Ini bukan mode darurat --
-            # langkahnya dari outline user sendiri atau pungutan pecahan lama
-            # yang kualitasnya setara AI, cuma nggak makan kuota. Nampilin ini
-            # sebagai "mode offline" itu bohong dan bikin user ngira gagal.
             rows = [
                 ui_helpers.banner(
                     "Disusun dari pola Kalem — hemat kuota", theme.SUCCESS, ft.Icons.BOLT
@@ -1022,8 +900,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             label = "Disusun dengan template Kalem"
             rows = [ui_helpers.banner(label, theme.WARN, ft.Icons.OFFLINE_BOLT)]
 
-        # Penghematannya ditulis eksplisit kalau emang ada campuran -- biar
-        # user (dan juri) lihat mekanismenya kerja, bukan cuma percaya.
         if n_lokal and n_ai:
             rows.append(
                 ft.Text(
@@ -1089,7 +965,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         plan_column.controls = rows
         plan_column.visible = True
 
-    # ------------------------------------------------------------ render
 
     render_calendar()
     render_time_filter()

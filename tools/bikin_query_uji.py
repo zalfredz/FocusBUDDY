@@ -1,35 +1,4 @@
-"""Bikin & jalanin uji akurasi retrieval `model_pecah`.
-
-KENAPA PERLU ALAT SENDIRI
--------------------------
-Ambang kemiripan (`model_pecah.AMBANG_MIRIP`) itu satu angka yang nentuin
-dua hal yang saling tarik-menarik:
-
-    ambang ketinggian -> banyak tugas yang sebenernya cocok jadi DITOLAK,
-                         dan tiap penolakan = satu panggilan API yang
-                         sebenernya nggak perlu (biaya).
-    ambang kerendahan -> tugas yang NGGAK nyambung ikut kepungut, dan user
-                         dapet langkah yang salah tanpa dikasih tau. Ini
-                         yang lebih bahaya: gagal senyap.
-
-Nyetel angka itu pakai perasaan gampang meleset. Skrip ini yang bikin
-angkanya bisa DIUKUR.
-
-DUA JENIS QUERY, DUA GUNA BEDA
--------------------------------
-1. MUDAH  -- variasi awalan ("kerjain X", "mau X"). Ngukur cakupan dasar.
-2. SUSAH  -- parafrase yang HAMPIR NGGAK BERBAGI KATA sama judulnya, mis.
-             "kamar gue berantakan banget" -> "Beresin kamar". Ini yang
-             mirip cara user beneran nulis, dan ini yang paling jujur
-             nunjukkin batas kemampuan pencocokan huruf (TF-IDF n-gram).
-3. NEGATIF -- tugas yang JELAS nggak ada di dataset. Harus DITOLAK. Tanpa
-             ini, sweep ambang bakal bilang "makin rendah makin bagus",
-             padahal itu cuma artefak test set yang isinya positif semua.
-
-JALANIN:
-    python tools/bikin_query_uji.py           # ukur di ambang sekarang
-    python tools/bikin_query_uji.py --sweep   # coba beberapa ambang
-"""
+"""Membuat dan menjalankan query uji retrieval pecah tugas."""
 from __future__ import annotations
 
 import sys
@@ -43,9 +12,6 @@ from tools.muat_dataset_pecah import baca  # noqa: E402
 
 AWALAN = ["", "kerjain ", "mulai ", "mau ", "harus ", "lagi mau ", "belum "]
 
-# Parafrase SUSAH: sengaja dipilih yang nyaris nggak berbagi kata sama
-# judulnya, karena itu yang paling sering kejadian di dunia nyata -- user
-# nulis keluhannya, bukan nama tugasnya.
 SUSAH: list[tuple[str, str]] = [
     ("kamar gue berantakan banget", "Beresin kamar"),
     ("baju numpuk belum dicuci", "Cuci baju"),
@@ -79,7 +45,6 @@ SUSAH: list[tuple[str, str]] = [
     ("motor udah lama nggak diservis", "Servis kendaraan"),
 ]
 
-# Tugas yang JELAS nggak ada di dataset -> harus ditolak.
 NEGATIF = [
     "ngecat pagar rumah", "latihan gitar lagu baru", "jemput adek di stasiun",
     "bikin kue ulang tahun", "pasang rak dinding", "nyari kos semester depan",

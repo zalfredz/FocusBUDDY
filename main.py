@@ -1,4 +1,4 @@
-"""Entry point packaging Flet dari root repository."""
+"""Entry point kompatibilitas untuk menjalankan aplikasi."""
 import os
 
 import flet as ft

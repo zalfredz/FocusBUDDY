@@ -1,12 +1,4 @@
-"""Model pola mood personal.
-
-Beda dari Energy Predictor (yang dilatih dari data sintetis), model ini
-belajar HANYA dari data user sendiri: mood per hari, weekday vs weekend,
-dan tag aktivitas dari diary. Makin lama dipakai, makin banyak datanya.
-
-Karena itu model ini sengaja punya tahap: di bawah MIN_LOGS_FOR_PATTERN
-dia jujur bilang "masih belajar" daripada ngarang pola dari 2-3 entri.
-"""
+"""Analisis pola mood dari histori check-in pengguna."""
 from __future__ import annotations
 
 import re
@@ -19,9 +11,9 @@ from sklearn.tree import DecisionTreeRegressor
 
 from app import clock
 
-MIN_LOGS_FOR_PATTERN = 5   # minimal entri sebelum berani ngomongin pola
-MIN_LOGS_FOR_MODEL = 10    # minimal entri sebelum pakai Decision Tree
-MIN_PER_DAYTYPE = 2        # minimal entri per tipe hari buat banding weekday/weekend
+MIN_LOGS_FOR_PATTERN = 5
+MIN_LOGS_FOR_MODEL = 10
+MIN_PER_DAYTYPE = 2
 
 DAY_NAMES = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 
@@ -34,10 +26,6 @@ STOPWORDS = {
 }
 
 
-# Tag cepat: dipencet dalam hitungan detik, tanpa harus nulis cerita.
-# Ini yang bikin data tetap masuk di hari-hari user males ngetik -- pola
-# yang paling dipakai app journaling sukses (Daylio) bukan yang paling
-# ekspresif nulisnya, tapi yang paling gampang diisi tiap hari.
 QUICK_TAGS = {
     "kuliah": "Kuliah",
     "kerja": "Kerja",
@@ -49,9 +37,6 @@ QUICK_TAGS = {
     "istirahat": "Istirahat",
 }
 
-# Kamus kata kunci terbatas -- sengaja BUKAN sentiment analysis penuh.
-# Cukup cocokin ke daftar tertutup biar hasilnya bisa dijelasin, dan
-# dipakai sebagai sinyal tambahan buat Energy/Burnout Classifier.
 KEYWORD_MAP = {
     "capek": ["capek", "lelah", "ngantuk", "letih", "drained", "burnout"],
     "deadline": ["deadline", "dikejar", "mepet", "telat", "buru"],
@@ -64,17 +49,11 @@ KEYWORD_MAP = {
 
 
 def extract_keywords(diary_text: str) -> list[str]:
-    """Cocokin cerita ke kamus tertutup di atas. Return nama kategorinya."""
     text = (diary_text or "").lower()
     return [key for key, words in KEYWORD_MAP.items() if any(w in text for w in words)]
 
 
 def recurring_tag_prompt(logs: list[dict], min_count: int = 2) -> Optional[str]:
-    """Pertanyaan lanjutan kalau ada tag yang sering muncul bareng mood rendah.
-
-    Bikin Kalem kelihatan 'inget' hal spesifik dari entri sebelumnya, bukan
-    nanya generik terus -- ini yang bikin app AI journaling kerasa personal.
-    """
     paired: dict[str, list[int]] = defaultdict(list)
     for log in logs:
         score = log.get("score")
@@ -91,15 +70,6 @@ def recurring_tag_prompt(logs: list[dict], min_count: int = 2) -> Optional[str]:
 
 
 def neglect_streak(logs: list[dict]) -> int:
-    """Berapa kali CEK-IN terakhir berturut-turut user bilang 'belum makan'
-    atau 'kurang istirahat'. Dipakai buat nambahin sinyal burnout_risk di
-    energy_predictor -- BUKAN buat ditampilin sebagai streak yang bisa putus
-    (itu justru yang mau kita hindari, lihat evaluasi ide 'Eat & Rest Well').
-
-    `logs` diasumsikan urut terbaru dulu (kebiasaan add_mood_log: insert(0)).
-    Hari yang kedua toggle-nya nggak dijawab (None, None) dilewatin -- nggak
-    mutusin streak, karena jawabnya emang opsional.
-    """
     streak = 0
     for log in logs:
         ate = log.get("ate_today")
@@ -114,20 +84,6 @@ def neglect_streak(logs: list[dict]) -> int:
 
 
 def checkin_streak(logs: list[dict], today: Optional[date] = None) -> int:
-    """Berapa hari berturut-turut user check-in, dihitung mundur dari hari ini.
-
-    Ini yang dimaksud fitur `streak` di energy_predictor: MOMENTUM, angka
-    kecil 0-10 yang naik kalau orangnya lagi konsisten.
-
-    Sebelum ini halaman Mood ngirim "jumlah tugas yang pernah selesai" ke
-    situ -- angka yang naik terus tanpa batas dan artinya beda total. Efeknya
-    kebalik: makin banyak tugas kelar, makin model nyaranin beban BERAT justru
-    pas mood & tidur user lagi paling parah. Morning Brief malah nggak ngirim
-    apa-apa, jadi dua halaman bisa kasih vonis beda di hari yang sama.
-
-    CATATAN: angka ini nggak pernah ditampilin ke user sebagai streak yang
-    bisa putus -- cuma masuk ke model, sama kayak `neglect_streak`.
-    """
     today = today or clock.today()
     seen = set()
     for log in logs:
@@ -138,8 +94,6 @@ def checkin_streak(logs: list[dict], today: Optional[date] = None) -> int:
     if not seen:
         return 0
 
-    # Boleh mulai dari hari ini ATAU kemarin: jam 9 pagi user belum sempat
-    # check-in, dan streak-nya nggak pantes dianggap putus gara-gara itu.
     from datetime import timedelta
 
     cursor = today if today in seen else today - timedelta(days=1)
@@ -163,7 +117,6 @@ class MoodInsight:
 
 
 def extract_tags(diary_text: str, limit: int = 5) -> list[str]:
-    """Ambil kata kunci sederhana dari cerita user (buat lacak 'momen')."""
     words = re.findall(r"[a-zA-ZÀ-ÿ]{4,}", (diary_text or "").lower())
     meaningful = [w for w in words if w not in STOPWORDS]
     return [w for w, _ in Counter(meaningful).most_common(limit)]
@@ -194,11 +147,6 @@ def _is_weekend(log: dict) -> bool:
 
 
 def _predict_today(logs: list[dict]) -> Optional[float]:
-    """Prediksi skor mood hari ini dari pola sendiri.
-
-    Decision Tree kalau datanya cukup; kalau nggak, pakai rata-rata hari
-    yang sama. Return None kalau nggak ada dasar sama sekali.
-    """
     today = clock.today()
     weekday = today.weekday()
 
@@ -262,8 +210,6 @@ def analyse(logs: list[dict]) -> MoodInsight:
         else:
             details.append("Mood kamu relatif stabil antara hari kerja dan weekend.")
 
-    # Tag cepat dihitung duluan: dia terstruktur, jadi lebih bisa dipercaya
-    # daripada kata yang kebetulan sering muncul di cerita bebas.
     tag_counter: Counter[str] = Counter()
     for log in logs:
         tag_counter.update(QUICK_TAGS.get(t, t) for t in (log.get("quick_tags") or []))

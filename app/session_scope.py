@@ -1,13 +1,4 @@
-"""State sementara yang terisolasi per koneksi/browser Flet.
-
-Flet Web menjalankan banyak pengguna di satu proses Python. Karena itu state
-runtime tidak boleh ditaruh sebagai global module biasa. ``page.session.store``
-memberi ruang terpisah untuk setiap sesi browser dan Flet memasang page yang
-benar di ``ft.context`` setiap kali handler dijalankan.
-
-Fungsi di sini sengaja mengembalikan ``None`` saat dipanggil di luar Flet,
-supaya script CLI dan regression test lama tetap bisa memakai fallback lokal.
-"""
+"""Penyimpanan runtime yang terisolasi per sesi Flet Web."""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -17,7 +8,6 @@ T = TypeVar("T")
 
 
 def current_store() -> Optional[Any]:
-    """Ambil SessionStore aktif, atau ``None`` di luar callback Flet."""
     try:
         import flet as ft
 
@@ -27,7 +17,6 @@ def current_store() -> Optional[Any]:
 
 
 def current_session_id() -> str:
-    """ID acak sesi Flet aktif; string kosong di luar Flet."""
     try:
         import flet as ft
 
@@ -37,7 +26,6 @@ def current_session_id() -> str:
 
 
 def get_or_create(key: str, factory: Callable[[], T]) -> Optional[T]:
-    """Ambil value per-session; buat sekali kalau key belum tersedia."""
     store = current_store()
     if store is None:
         return None
@@ -49,7 +37,6 @@ def get_or_create(key: str, factory: Callable[[], T]) -> Optional[T]:
 
 
 def set_value(key: str, value: Any) -> bool:
-    """Set value di sesi aktif. Return False bila tidak ada sesi Flet."""
     store = current_store()
     if store is None:
         return False
@@ -58,7 +45,6 @@ def set_value(key: str, value: Any) -> bool:
 
 
 def remove_value(key: str) -> bool:
-    """Hapus value dari sesi aktif tanpa menyentuh sesi browser lain."""
     store = current_store()
     if store is None:
         return False

@@ -1,29 +1,4 @@
-"""Rubric low-friction first action -- BUKAN dites lewat struktur dataset,
-tapi lewat baca beneran tiap langkah pertama dan nilai manusia.
-
-Jalankan:
-    python tests/test_low_friction.py
-
-RUBRIK
-------
-    0 = abstrak         -- butuh keputusan/strategi dulu sebelum bisa mulai
-                            ("Tentukan strategi penulisan laporan").
-    1 = actionable       -- bisa mulai SEKARANG, tapi objeknya agak luas/
-                            butuh mikir dikit, atau bergantung pihak lain.
-    2 = actionable +      -- bisa mulai SEKARANG, objeknya spesifik, dan
-        konkret + progress   menyelesaikannya ninggalin jejak/progres yang
-                              kelihatan (dokumen kebuka di bagian yang tepat,
-                              daftar tertulis, dst).
-
-50 baris pertama `DATASET/focusbuddy_dekomposisi_id.csv` DINILAI MANUAL
-(bukan heuristik kata kunci) mengikuti rubrik di atas -- lihat `SKOR_MANUAL`.
-Kalau dataset-nya berubah, skor di sini JADI BASI dan harus dinilai ulang;
-skrip ini sengaja MEMBANDINGKAN ULANG teks yang tersimpan supaya perubahan
-tanpa re-review ketahuan, bukan diam-diam lolos dengan skor lama.
-
-Target rata-rata: >= 1.8. Kalau di bawah itu, itu temuan asli soal kualitas
-dataset -- bukan bug di skrip ini.
-"""
+"""Evaluasi apakah langkah pertama cukup kecil dan konkret."""
 from __future__ import annotations
 
 import csv
@@ -35,9 +10,6 @@ sys.path.insert(0, str(ROOT))
 DATASET = ROOT / "DATASET" / "focusbuddy_dekomposisi_id.csv"
 TARGET_RATA = 1.8
 
-# (judul, langkah_pertama PERSIS seperti di CSV, skor 0-2, catatan kalau < 2)
-# Skor 2 nggak dikasih catatan -- konkret+actionable+produces-progress udah
-# jelas dari teksnya sendiri.
 SKOR_MANUAL: list[tuple[str, str, int, str]] = [
     ("Baca catatan kuliah", "Buka catatan mata kuliah yang mau dibaca", 2, ""),
     ("Belajar buat ujian", "Buka silabus atau grup kelas dan tulis daftar topik yang bakal diujiin", 2, ""),

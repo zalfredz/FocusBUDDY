@@ -1,10 +1,4 @@
-"""ML_KALEM -- kalibrasi lokal untuk seberapa kecil next action perlu dibuat.
-
-Model ini TIDAK mengganti prioritas obat, krisis, Reset, atau pemilihan tugas.
-Ia hanya belajar dari keputusan `focus` yang ditampilkan lalu dipencet/tidak,
-dan bila sinyal keterlibatannya rendah ia boleh MENURUNKAN durasi fokus satu
-tingkat. Jadi kegagalan model paling buruk hanya membuat target lebih ringan.
-"""
+"""Model perilaku KALEM yang hanya boleh meringankan rekomendasi."""
 from __future__ import annotations
 
 import hashlib
@@ -58,7 +52,6 @@ def _locked(fn):
 
 
 def _records_layak(records: list[dict]) -> list[dict]:
-    """Hanya keputusan fokus dengan outcome yang cukup jelas."""
     return [
         record for record in records
         if record.get("kind") == "next_action"
@@ -98,7 +91,6 @@ def _latih(records: list[dict]) -> bool:
 
     X = np.asarray([_baris(record["fitur"]) for record in layak], dtype=float)
     y = np.asarray(label, dtype=int)
-    # Banyak tampilan tanpa klik adalah sinyal lebih kuat daripada satu tampilan.
     bobot = np.asarray([max(1, int(record.get("n_tampil", 1))) for record in layak], dtype=float)
     _scaler = StandardScaler().fit(X)
     _model = LogisticRegression(
@@ -111,7 +103,6 @@ def _latih(records: list[dict]) -> bool:
 
 @_locked
 def nilai(fitur: Any, records: Optional[list[dict]] = None) -> SinyalKalem:
-    """Prediksi peluang pengguna memulai sesi fokus yang ditawarkan."""
     if records is None:
         from app import storage
 

@@ -1,4 +1,4 @@
-"""SettingDemo harus menguji engine nyata tanpa menyentuh data pengguna."""
+"""Tes skenario dan overlay demo."""
 from __future__ import annotations
 
 import sys
@@ -84,11 +84,9 @@ def _test_overlay_tidak_merusak_data_user() -> None:
         log.get("diary") == "Diary ini tidak boleh hilang"
         for log in overlaid["mood_logs"]
     )
-    # Entri user pada tanggal yang sama harus menang atas mood sintetis.
     today_logs = [log for log in overlaid["mood_logs"] if log.get("date") == date.today().isoformat()]
     assert len(today_logs) == 1 and not today_logs[0].get("_demo_generated")
 
-    # Memilih skenario lain mengganti overlay lama, bukan menumpuk keduanya.
     SettingDemo.apply_scenario_overlay("deadline_stack")
     replaced = storage.load_state()
     demo_entries = [
@@ -140,7 +138,6 @@ def main() -> int:
         finally:
             storage.DATA_DIR, storage.DATA_FILE, storage.BACKUP_FILE = original
 
-    # `after_reset` adalah gap produk yang disengaja, bukan PASS palsu.
     assert results["after_reset"]["passed"] is False, "gap recovery harus terlihat gagal secara jujur"
     assert any(item["passed"] is False for item in results["after_reset"]["checks"])
     assert all(result["passed"] in (True, False) for result in results.values())

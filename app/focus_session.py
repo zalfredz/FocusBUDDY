@@ -1,31 +1,4 @@
-"""Sesi fokus -- satu sesi untuk seluruh app, hidup di luar halaman mana pun.
-
-KENAPA MODUL SENDIRI, BUKAN STATE DI DALAM HALAMAN
---------------------------------------------------
-Dulu timernya tinggal di dalam `tracker.build()`. Dua akibatnya:
-
-1. Sesi MATI begitu pindah halaman. Buka Mood sebentar buat check-in, balik
-   ke Tracker, timernya udah balik ke awal. Buat orang ADHD yang emang
-   gampang kesenggol pindah konteks, itu ngehukum persis kelakuan yang
-   paling sering kejadian.
-2. Tombol FOKUS di Beranda cuma "nitip niat" lewat nav.set_intent(), terus
-   mental ke halaman lain. Aksinya kepecah dua halaman padahal niatnya satu.
-
-Sekarang sesinya di sini: Beranda yang nampilin & ngendaliin, halaman lain
-tinggal baca kalau perlu, dan sesinya tetap jalan pas user keliling app.
-Di Flet Web state ini tetap terpisah untuk setiap sesi browser.
-
-SISA WAKTU DIHITUNG DARI JAM DINDING, BUKAN DIKURANGI TIAP DETIK
-----------------------------------------------------------------
-`remaining()` ngitung selisih ke waktu akhir sesi. Jadi kalau UI-nya telat
-nge-tick (halaman lagi sibuk, app ke-background, user pindah tab), sisa
-waktunya tetap bener -- nggak ngambang ngikutin berapa kali layar sempat
-digambar ulang.
-
-Sengaja pakai `datetime.now()` asli, BUKAN `clock.now()`: `clock` punya
-geseran hari buat testing, dan durasi sesi fokus nggak boleh ikut kegeser
-gara-gara tombol "Maju 1 hari".
-"""
+"""State sesi fokus yang terisolasi per browser."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,11 +15,9 @@ class _FocusState:
     total_seconds: int = 0
     label: str = ""
     task_title: str = ""
-    ends_at: Optional[datetime] = None   # keisi kalau lagi jalan
-    paused_left: Optional[int] = None    # keisi kalau lagi dijeda
+    ends_at: Optional[datetime] = None
+    paused_left: Optional[int] = None
     finished: bool = False
-    # Konteks tugas buat prediksi durasi. Kosong = tidak ada kategori yang
-    # dapat dipakai model durasi personal.
     kategori: str = ""
     jumlah_unit: float = 0.0
     energi: int = 4
@@ -57,7 +28,6 @@ _FALLBACK_STATE = _FocusState()
 
 
 def _state() -> _FocusState:
-    """Timer sesi browser aktif; fallback global hanya untuk CLI/test."""
     return session_scope.get_or_create(_SESSION_KEY, _FocusState) or _FALLBACK_STATE
 
 
@@ -69,7 +39,6 @@ def start(
     jumlah_unit: float = 0,
     energi: int = 4,
 ) -> None:
-    """Mulai sesi baru. Sesi yang lagi jalan ditimpa."""
     state = _state()
     state.total_seconds = max(int(minutes), 1) * 60
     state.label = label
@@ -84,30 +53,17 @@ def start(
 
 
 def elapsed_minutes() -> float:
-    """Berapa menit yang beneran kepakai, bukan yang direncanain."""
     state = _state()
     return max(0.0, (state.total_seconds - remaining()) / 60.0)
 
 
 def record_if_worthwhile() -> Optional[dict]:
-    """Catat sesi ini sebagai bahan belajar kecepatan personal.
-
-    Yang dicatat MENIT ASLI YANG KEPAKAI, bukan durasi yang direncanain --
-    kalau nggak, model cuma bakal belajar dari tebakannya sendiri dan
-    angkanya nggak akan pernah bergerak (umpan balik yang muter di tempat).
-
-    Aman dipanggil berkali-kali: flag ``recorded`` njaga biar nggak dobel.
-    """
     from app import storage
 
     state = _state()
     if state.recorded or state.total_seconds <= 0:
         return None
     state.recorded = True
-    # Sesi TANPA kategori tetap dicatat. Dia nggak dipakai buat nebak durasi
-    # (`personal_average` nyaring per kategori), tapi tetap ngasih dua sinyal
-    # yang berharga: rasio sesi yang bertahan sampai habis, dan seberapa jauh
-    # perkiraan waktu meleset dari kenyataan.
     return storage.add_focus_record(
         kategori=state.kategori,
         jumlah_unit=state.jumlah_unit,
@@ -136,7 +92,6 @@ def resume() -> None:
 
 
 def reset() -> None:
-    """Balikin ke awal durasi yang sama, dalam keadaan berhenti."""
     state = _state()
     state.ends_at = None
     state.paused_left = state.total_seconds
@@ -144,12 +99,6 @@ def reset() -> None:
 
 
 def stop() -> None:
-    """Sudahi sesinya sama sekali -- Beranda balik ke kartu aksi biasa.
-
-    Dicatat DULU sebelum dibersihin: user yang mencet "Sudahi" sesudah
-    ngerjain 18 dari 20 menit tetap ngasih sinyal yang berharga. Yang di
-    bawah 3 menit disaring di `storage.add_focus_record`.
-    """
     record_if_worthwhile()
     state = _state()
     state.total_seconds = 0
@@ -183,16 +132,10 @@ def is_paused() -> bool:
 
 
 def is_active() -> bool:
-    """Ada sesi yang lagi dipegang user (jalan, dijeda, atau baru kelar)."""
     return _state().total_seconds > 0
 
 
 def just_finished() -> bool:
-    """True sekali aja pas hitungannya nyampe nol -- biar pesan selesainya
-    nggak nongol berulang tiap layar digambar ulang.
-
-    Ini juga titik di mana sesi yang kelar penuh dicatat.
-    """
     state = _state()
     if state.total_seconds > 0 and remaining() <= 0 and state.ends_at is not None:
         _ends_at_none()
@@ -208,7 +151,6 @@ def _ends_at_none() -> None:
 
 
 def progress() -> float:
-    """1.0 di awal, 0.0 pas habis -- lingkarannya MENYUSUT, bukan ngisi."""
     state = _state()
     if state.total_seconds <= 0:
         return 0.0
@@ -216,8 +158,6 @@ def progress() -> float:
 
 
 def snapshot() -> dict[str, Any]:
-    # UI manggil ini tiap detik, jadi ini titik paling andal buat nangkep
-    # momen "hitungannya baru aja nyampe nol" dan nyatet sesinya.
     just_finished()
     state = _state()
     left = remaining()

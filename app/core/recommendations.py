@@ -1,14 +1,4 @@
-"""Kartu rekomendasi personal -- perluasan Weekly Insight (ide #4).
-
-Reuse infrastruktur AI yang sama kayak Task Decomposer (`ai_client` --
-provider-nya Gemini/OpenAI/DeepSeek, lihat `ai_client.active_provider()`).
-BUKAN integrasi Spotify/resep API beneran (di luar scope 3 hari) -- cukup
-teks rekomendasi singkat dari LLM, dipersonalisasi dari data Favorite yang
-user isi sendiri di menu Favorit.
-
-Kalau Favorite belum diisi sama sekali, `build_cards()` balikin satu kartu
-ajakan isi Favorite dulu -- bukan kartu kosong atau nge-skip diem-diem.
-"""
+"""Kartu rekomendasi personal dengan fallback lokal."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,8 +8,6 @@ from app.core import ai_client
 
 COOKING_KEYWORDS = ["masak", "cooking", "baking", "kue", "koki", "dapur", "resep"]
 
-# JSON Schema standar (huruf kecil) -- `ai_client` nerjemahin ke konvensi
-# Gemini atau bentuk OpenAI sendiri, jadi file ini nggak perlu tau bedanya.
 RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -32,15 +20,14 @@ RESPONSE_SCHEMA = {
 
 @dataclass
 class RecCard:
-    kind: str            # "music" | "recipe" | "empty"
+    kind: str
     title: str
     body: str
-    source: str = "ai"    # "ai" | "fallback" | "empty"
+    source: str = "ai"
     reason: str = ""
 
 
 def _generate(prompt: str) -> tuple[Optional[dict], str]:
-    """Return (parsed {'judul','isi'} | None, alasan-gagal)."""
     parsed, reason = ai_client.generate_json(
         system_instruction=(
             "Kamu Kalem, buddy hangat buat orang ADHD. Kasih rekomendasi "
@@ -114,11 +101,6 @@ def _empty_card() -> RecCard:
 
 
 def build_cards(favorites: dict, energy_level: int = 3) -> list[RecCard]:
-    """Susun kartu yang relevan berdasarkan Favorite yang udah diisi user.
-
-    Nggak manggil Gemini kalau Favorite-nya belum diisi -- nggak ada
-    gunanya generate rekomendasi dari data kosong.
-    """
     musik = (favorites.get("musik") or "").strip()
     hobi = (favorites.get("hobi") or "").strip()
 

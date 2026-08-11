@@ -1,27 +1,4 @@
-"""Onboarding -- 6 pertanyaan singkat, di bawah semenit.
-
-Aturan yang dipegang halaman ini:
-
-- Tiap jawaban HARUS nyetir minimal satu fitur. Nggak ada pertanyaan yang
-  datanya cuma nganggur di database.
-- Nggak nanya diagnosis ADHD formal (biar user yang belum/nggak sempat
-  diagnosis tetap kepakai) dan nggak pakai skala klinis panjang (ASRS dsb).
-- Nama & umur WAJIB dijawab (nggak ada opsi lewat di dua pertanyaan itu).
-  Pertanyaan sesudahnya (status dst) boleh di-skip -- begitu skip dipencet,
-  onboarding LANGSUNG selesai ke Beranda, bukan lompat ke pertanyaan
-  berikutnya. Sisanya pakai default netral.
-- KECEPATAN menang atas presisi di sini. Jam produktif ditanya lewat preset
-  kasar (pagi/siang/malam), bukan slider -- slidernya ada di Settings buat
-  yang mau ngatur persis. Preset di sini langsung diterjemahin jadi rentang
-  jam beneran, jadi datanya tetap satu bentuk.
-
-Peta jawaban -> fitur:
-    status           -> default rigiditas jadwal (boleh lebih dari satu)
-    productive_time  -> rentang Jam Produktif -> nada pesan Kalem
-    sleep_condition  -> input Energy/Burnout Classifier
-    on_medication    -> trigger setup Medication Companion
-    triggers         -> urutan default opsi di halaman Reset
-"""
+"""Onboarding singkat untuk membentuk profil awal KALEM."""
 from __future__ import annotations
 
 import flet as ft
@@ -42,9 +19,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "overwhelm_triggers": [],
         "custom_triggers": [],
     }
-    step = {"index": 0, "custom_open": False}
+    step = {"index": 0, "custom_open": False, "status_custom_open": False}
 
-    name_field = ft.TextField(label="Panggil kamu siapa?", hint_text="mis. Alfredo")
+    name_field = ft.TextField(label="Nama panggilan kamu")
+    status_field = ft.TextField(
+        hint_text="Tulis kesibukan kamu",
+        text_size=12,
+        height=42,
+        content_padding=ft.Padding.symmetric(vertical=4, horizontal=10),
+        expand=True,
+        autofocus=True,
+        on_submit=lambda e: add_custom_status(),
+    )
     custom_field = ft.TextField(
         hint_text="Tulis sendiri, mis. rapat mendadak",
         text_size=12,
@@ -59,47 +45,41 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def finish(skipped: bool = False):
         answers["name"] = (name_field.value or "").strip() or "Teman"
         answers["skipped_detail"] = skipped
-        # Preset jam produktif diterjemahin jadi rentang jam beneran di sini,
-        # biar Settings tinggal ngedit angka yang sama -- bukan dua sumber
-        # kebenaran yang harus disamain terus.
         preset = storage.PRODUCTIVE_PRESETS.get(answers.get("productive_time", ""))
         answers["productive_hours"] = [[preset[0], preset[1]]] if preset else []
         storage.save_profile(answers)
-        # Morning Brief ditandai udah "tampil" hari ini biar nggak langsung
-        # nongol sedetik setelah onboarding -- user baru belum punya catatan
-        # apa pun, jadi isinya cuma bakal "belum cukup data". Brief-nya mulai
-        # nyapa besok, pas udah ada yang bisa dibaca.
         storage.set_last_brief_date()
-        # Kalau user bilang lagi minum obat rutin, langsung tawarin setup-nya.
         navigate("med_setup" if answers.get("on_medication") == "ya" else "home")
 
-    # ---------------------------------------------------------- pertanyaan
-    # (key, judul, opsi, multi?, maks pilihan)
     QUESTIONS = [
-        ("age_range", "Umur kamu di rentang mana?", {a: a for a in AGE_OPTIONS}, False, 1),
-        ("status", "Sehari-hari kamu lagi...", storage.STATUS_OPTIONS, True, storage.MAX_STATUS),
-        ("productive_time", "Jam Produktif kamu kapan?", storage.PRODUCTIVE_TIME_OPTIONS, False, 1),
-        ("sleep_condition", "Tidur kamu belakangan gimana?", storage.SLEEP_OPTIONS, False, 1),
-        ("on_medication", "Lagi minum obat rutin dari dokter?", storage.MEDICATION_OPTIONS, False, 1),
-        ("overwhelm_triggers", "Apa yang paling sering bikin kamu kewalahan?",
+        ("age_range", "Berapa usia kamu sekarang?", {a: a for a in AGE_OPTIONS}, False, 1),
+        ("status", "Apa kesibukan kamu saat ini?",
+         {key: label for key, label in storage.STATUS_OPTIONS.items() if key != "lainnya"},
+         True, storage.MAX_STATUS),
+        ("productive_time", "Kapan biasanya kamu paling enak buat fokus?",
+         storage.PRODUCTIVE_TIME_OPTIONS, False, 1),
+        ("sleep_condition", "Pola tidur kamu akhir-akhir ini gimana?",
+         storage.SLEEP_OPTIONS, False, 1),
+        ("on_medication", "Ada obat atau suplemen yang lagi kamu minum rutin?",
+         storage.MEDICATION_OPTIONS, False, 1),
+        ("overwhelm_triggers", "Hal apa yang paling sering bikin kamu overwhelm?",
          storage.TRIGGER_OPTIONS, True, storage.MAX_TRIGGERS),
     ]
 
-    # Alasan tiap pertanyaan -- ditulis apa adanya biar nggak kerasa diinterogasi.
     WHY = {
-        "age_range": "Cuma buat nyesuain bahasa Kalem. Nggak bisa diubah nanti.",
-        "status": f"Biar Kalem tau seberapa kaku jadwal kamu. Boleh pilih sampai {storage.MAX_STATUS} — "
-                  "mahasiswa sambil kerja itu wajar.",
-        "productive_time": "Kalem bakal lebih pelan kalau kamu buka di luar jam ini. "
-                           "Jamnya bisa diatur persis nanti di Pengaturan.",
-        "sleep_condition": "Dipakai buat nebak beban kerja yang masuk akal hari ini.",
-        "on_medication": "Kalau iya, Kalem bisa bantu ingetin stok obat. Kalau nggak, dilewat aja.",
-        "overwhelm_triggers": f"Nentuin opsi mana yang muncul duluan pas kamu lagi kewalahan. "
-                              f"Boleh pilih sampai {storage.MAX_TRIGGERS}, atau tulis sendiri.",
+        "age_range": "Buat nyesuain gaya bahasa KALEM biar pas sama kamu.",
+        "status": f"Biar KALEM tahu gambaran ritme hari-harimu. Boleh pilih maksimal "
+                  f"{storage.MAX_STATUS} ya.",
+        "productive_time": "Biar KALEM tahu kapan harus bantu kamu fokus atau nurunin "
+                           "ekspektasi pas kamu lagi capek.",
+        "sleep_condition": "Biar KALEM tahu seberapa ramah target hari ini buat energi kamu.",
+        "on_medication": "Biar KALEM bantu pantau sisa stok dan ngingetin jadwalnya. "
+                         "Bisa dilewati kalau nggak ada.",
+        "overwhelm_triggers": f"Biar KALEM paham pemicunya dan bisa bantu kasih penenang "
+                              f"yang tepat pas kamu butuh. (Pilih maks. {storage.MAX_TRIGGERS})",
     }
 
     def picked_count(key: str) -> int:
-        """Buat pertanyaan pemicu, yang diketik sendiri ikut kehitung kuotanya."""
         if key == "overwhelm_triggers":
             return len(answers["overwhelm_triggers"]) + len(answers["custom_triggers"])
         return len(answers[key])
@@ -134,19 +114,35 @@ def build(page: ft.Page, navigate) -> ft.Control:
             answers["custom_triggers"].remove(value)
         render()
 
+    def custom_statuses() -> list[str]:
+        return [value for value in answers["status"] if value not in storage.STATUS_OPTIONS]
+
+    def add_custom_status():
+        raw = (status_field.value or "").strip()
+        text = raw[:32]
+        if text and text not in answers["status"] and len(answers["status"]) < storage.MAX_STATUS:
+            answers["status"].append(text)
+        status_field.value = ""
+        step["status_custom_open"] = False
+        render()
+
+    def drop_custom_status(value: str):
+        if value in answers["status"]:
+            answers["status"].remove(value)
+        render()
+
     def render():
         i = step["index"]
 
-        # --- Layar 0: nama (selalu ditanya) ---
         if i == 0:
             body.controls = [
                 ui_helpers.card(
                     ft.Column(
                         [
                             buddy.face("tenang", 110),
-                            ui_helpers.title("Halo! Aku Kalem."),
+                            ui_helpers.title("Halo! Aku KALEM."),
                             ft.Text(
-                                "Aku bakal nemenin kamu ngerjain hal-hal kecil tiap hari. "
+                                "Bakal nemenin kamu nemuin ritme hari yang lebih pas. "
                                 "Boleh kenalan dulu?",
                                 size=13,
                                 color=theme.MUTED,
@@ -160,13 +156,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     )
                 ),
                 ui_helpers.disclaimer(
-                    "Semua jawaban disimpan lokal di HP kamu aja, dan boleh diubah kapan pun."
+                    "Developed By ATURLAH - FASILKOM UI"
                 ),
             ]
             page.update()
             return
 
-        # --- Selesai ---
         if i > len(QUESTIONS):
             finish()
             return
@@ -174,6 +169,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         key, question, options, multi, limit = QUESTIONS[i - 1]
         selected = answers[key]
         is_triggers = key == "overwhelm_triggers"
+        is_status = key == "status"
 
         chips: list[ft.Control] = [
             ui_helpers.choice_chip(
@@ -184,7 +180,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             for value, label in options.items()
         ]
 
-        # Pemicu ketikan sendiri: tampil sebagai chip aktif, pencet buat batal.
         if is_triggers:
             chips += [
                 ui_helpers.choice_chip(t, True, lambda e, v=t: drop_custom_trigger(v))
@@ -205,6 +200,30 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         border_radius=12,
                         padding=ft.Padding.symmetric(vertical=10, horizontal=12),
                         on_click=lambda e: open_custom(),
+                        ink=True,
+                    )
+                )
+
+        if is_status:
+            chips += [
+                ui_helpers.choice_chip(t, True, lambda e, v=t: drop_custom_status(v))
+                for t in custom_statuses()
+            ]
+            if len(answers["status"]) < limit:
+                chips.append(
+                    ft.Container(
+                        content=ft.Row(
+                            [
+                                ft.Icon(ft.Icons.ADD, size=13, color=theme.MUTED),
+                                ft.Text("Lainnya", size=12.5, color=theme.MUTED),
+                            ],
+                            spacing=3,
+                            tight=True,
+                        ),
+                        border=ft.Border.all(1, theme.BORDER),
+                        border_radius=12,
+                        padding=ft.Padding.symmetric(vertical=10, horizontal=12),
+                        on_click=lambda e: open_status_custom(),
                         ink=True,
                     )
                 )
@@ -231,6 +250,22 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 )
             )
 
+        if is_status and step["status_custom_open"] and len(answers["status"]) < limit:
+            card_items.append(
+                ft.Row(
+                    [
+                        status_field,
+                        ft.IconButton(
+                            icon=ft.Icons.CHECK,
+                            icon_color=theme.PRIMARY,
+                            icon_size=20,
+                            on_click=lambda e: add_custom_status(),
+                        ),
+                    ],
+                    spacing=4,
+                )
+            )
+
         controls: list[ft.Control] = [
             ft.Row(
                 [
@@ -248,8 +283,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ui_helpers.card(ft.Column(card_items, spacing=12)),
         ]
 
-        # Pertanyaan multi-pilih butuh tombol lanjut sendiri (nggak auto-maju
-        # kayak pilihan tunggal, karena user belum tentu selesai milih).
         nav: list[ft.Control] = []
         if i > 1:
             nav.append(ft.TextButton(content=ft.Text("Kembali"), on_click=lambda e: go_back()))
@@ -265,10 +298,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         if nav:
             controls.append(ft.Row(nav, spacing=8))
 
-        # Umur (i == 1) wajib dijawab, jadi nggak ada tombol skip di situ.
-        # Mulai pertanyaan berikutnya skip SELALU tersedia -- termasuk di
-        # pertanyaan multi-pilih, biar aturannya konsisten: begitu skip
-        # dipencet, onboarding langsung selesai ke Beranda.
         if i > 1:
             controls.append(
                 ft.Row(
@@ -289,6 +318,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
         step["custom_open"] = True
         render()
 
+    def open_status_custom():
+        step["status_custom_open"] = True
+        render()
+
     def next_from_name():
         if not (name_field.value or "").strip():
             name_field.error = "Isi dulu ya"
@@ -301,18 +334,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def go_next():
         step["index"] += 1
         step["custom_open"] = False
+        step["status_custom_open"] = False
         render()
 
     def go_back():
         step["index"] = max(step["index"] - 1, 0)
         step["custom_open"] = False
+        step["status_custom_open"] = False
         render()
 
     def skip_to_home():
-        """Dipencet dari pertanyaan status dst (i > 1). Nama & umur udah
-        kejawab duluan sebelum tombol ini bisa muncul, jadi aman langsung
-        disimpan -- sisanya default netral. Ini LANGSUNG selesai, bukan
-        lompat ke pertanyaan berikutnya."""
         finish(skipped=True)
 
     render()

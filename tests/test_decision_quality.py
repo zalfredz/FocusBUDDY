@@ -1,12 +1,4 @@
-"""Scenario suite untuk decision quality, bukan sekadar fungsi tidak crash.
-
-Jalankan:
-    python tests/test_decision_quality.py
-
-Setiap scenario punya keputusan yang bisa dinilai manusia. Jangan menambah
-heuristik/model baru sebelum scenario ini tetap lulus atau diperbarui dengan
-alasan produk yang eksplisit.
-"""
+"""Skenario kualitas keputusan KALEM."""
 from __future__ import annotations
 
 import sys
@@ -65,7 +57,6 @@ def scenario_pick_next_action() -> None:
     future = (clock.today() + timedelta(days=5)).isoformat()
     overdue = (clock.today() - timedelta(days=1)).isoformat()
 
-    # Urgensi nyata harus menang atas tugas nyaman tetapi bisa ditunda.
     result = pick_next_action([
         task("Rapikan folder", deadline=future, difficulty=1),
         task("Kirim formulir hari ini", deadline=today, difficulty=3),
@@ -73,7 +64,6 @@ def scenario_pick_next_action() -> None:
     check(result is not None and result[0]["title"] == "Kirim formulir hari ini",
           "deadline hari ini mengalahkan tugas mudah yang belum mendesak")
 
-    # Saat urgensinya sama, pintu masuk termudah harus menang.
     result = pick_next_action([
         task("Laporan besar", deadline=today, difficulty=3),
         task("Balas email penting", deadline=today, difficulty=1),
@@ -101,8 +91,6 @@ def scenario_priority_and_reset() -> None:
     profile = {"name": "Ari", "productive_hours": []}
     workload = task("Tugas penting", difficulty=1)
 
-    # Kita menguji prioritas engine, bukan akurasi model overwhelm. Model
-    # sendiri punya suite/data terpisah; di sini risiko disuntik eksplisit.
     with patch(
         "app.kalem_ml.model_overwhelm.nilai",
         return_value=Risiko(0.5, "waspada", "prior"),
@@ -155,20 +143,11 @@ def scenario_capacity() -> None:
 
 
 def scenario_pick_next_action_agresif() -> None:
-    """Matriks agresif: deadline x durasi x kesulitan x overdue.
-
-    Tujuannya nyari KONFLIK ATURAN, bukan cuma nge-cek jalur yang udah pasti
-    benar. Dua check terakhir SENGAJA didokumentasikan sebagai TEMUAN --
-    perilaku asli yang terverifikasi, bukan yang seharusnya terjadi menurut
-    asumsi siapa pun.
-    """
     print("\n=== pick_next_action -- matriks agresif (deadline x durasi x kesulitan) ===")
     today = clock.today().isoformat()
     besok = (clock.today() + timedelta(days=5)).isoformat()
     kemarin = (clock.today() - timedelta(days=1)).isoformat()
 
-    # Durasi TIDAK BOLEH ngalahin urgensi: 90 menit BESOK kalah dari
-    # 15 menit HARI INI, walau "keliatan lebih cepat kelar".
     result = pick_next_action([
         task("A besar besok", deadline=besok, minutes=90, difficulty=2),
         task("B kecil hari ini", deadline=today, minutes=15, difficulty=2),
@@ -177,7 +156,6 @@ def scenario_pick_next_action_agresif() -> None:
           "tugas 90 menit BESOK kalah dari tugas 15 menit HARI INI -- "
           "durasi nggak boleh ngalahin urgensi")
 
-    # Overdue + lebih gampang menang telak atas hari-ini + lebih susah.
     result = pick_next_action([
         task("B kecil hari ini", deadline=today, minutes=15, difficulty=2),
         task("C overdue gampang", deadline=kemarin, minutes=30, difficulty=1),
@@ -185,9 +163,6 @@ def scenario_pick_next_action_agresif() -> None:
     check(result is not None and result[0]["title"] == "C overdue gampang",
           "overdue + lebih gampang menang atas hari-ini + lebih susah")
 
-    # Sebelum Phase 2, ini adalah karakterisasi bug: dua tugas yang sama-sama
-    # urgent jatuh ke created_at. Sekarang overdue yang lebih lama harus
-    # menang berdasarkan deadline nyata, walaupun dibuat belakangan.
     result = pick_next_action([
         task("B due 2 jam lagi", deadline=today, minutes=15, difficulty=2,
              created="2026-01-01T08:00:00", deadline_time="23:59"),
@@ -197,20 +172,11 @@ def scenario_pick_next_action_agresif() -> None:
     check(result is not None and result[0]["title"] == "C overdue 5 hari",
           "overdue 5 hari mengalahkan deadline dekat walau dibuat belakangan")
 
-    # --- Kalau available_minutes NGGAK dioper (default None), pick_next_action
-    # tetap milih tugas ini -- BUKAN lagi karena fungsinya "nggak punya
-    # parameter itu sama sekali" (sejak PHASE 1 dia punya), tapi karena
-    # None secara sengaja berarti "nggak ada info waktu tersedia, jangan
-    # ngefek ke apa pun". Lihat scenario_capacity_terhubung() buat kasus
-    # PAS available_minutes BENERAN dioper.
     hasil = pick_next_action([task("Tugas 90 menit", deadline=today, minutes=90, difficulty=1)])
     check(hasil is not None and hasil[0]["title"] == "Tugas 90 menit",
           "tanpa available_minutes dioper (default None) -> tugas 90 menit tetap "
           "kepilih normal, capacity nggak ngefek kalau nggak ada datanya")
 
-    # ...dan sesi yang BENERAN ditawarkan ke user tetap dibatesin
-    # `focus_minutes_for(energy)` (5-30 menit dari level energi), independen
-    # dari menit_est tugas -- lapisan mitigasi ini nggak berubah oleh PHASE 1.
     ditawarkan = focus_minutes_for(3)
     check(ditawarkan <= 20,
           f"...sesi yang BENERAN ditawarkan cuma {ditawarkan} menit (dari energi, "
@@ -232,31 +198,14 @@ def scenario_capacity_agresif() -> None:
     check(mepet.fits and round(mepet.utilization, 2) == 0.83,
           "30 menit tersedia vs 25 menit beban -> muat MEPET (utilization ~83%), bukan overload")
 
-    # --- [DIPERBAIKI PHASE 1] assess_capacity() BENAR ngedeteksi overload di
-    # atas, dan sekarang DayState.available_minutes (kalau diisi pemanggil)
-    # BENERAN nyampe ke pick_next_action() lewat decide() -- lihat
-    # scenario_capacity_terhubung() buat bukti end-to-end-nya. assess_capacity()
-    # sendiri TETAP nggak dipanggil langsung di dalam decide() -- yang
-    # dipakai `pick_next_action._muat_kapasitas()`, satu fungsi kecil yang
-    # manggil assess_capacity() per tugas, biar logikanya tetap satu sumber.
     check("available_minutes" in DayState().__dataclass_fields__,
           "DayState sekarang punya field available_minutes -- decide() punya jalur "
           "buat nerima 'waktu tersedia' (default None kalau nggak ada pemanggil yang ngisi)")
 
 
 def scenario_capacity_terhubung() -> None:
-    """PHASE 1 -- available_minutes beneran nyampe ke pick_next_action().
-
-    Kasus A-F persis spesifikasi audit: A/B nunjukin tugas yang MUAT menang
-    di kuadran+kesulitan yang sama, C mastiin tugas besar yang MASIH MUAT
-    nggak salah ditolak, D mastiin `available_minutes=None` sama PERSIS
-    kayak nggak dioper sama sekali (regresi-aman), E mastiin `0` DIBEDAIN
-    dari `None` (bukan bug falsy-check), F mastiin satu-satunya tugas yang
-    nggak muat TETEP ditawarin (bukan didiemin/dihilangin).
-    """
     print("\n=== [PHASE 1] Capacity terhubung ke pick_next_action() ===")
 
-    # --- A: available=60, A=90 vs B=30, "otherwise comparable" (kuadran & kesulitan sama) ---
     hasil = pick_next_action(
         [task("A besar", minutes=90, difficulty=2, task_id="a"),
          task("B kecil", minutes=30, difficulty=2, task_id="b")],
@@ -265,7 +214,6 @@ def scenario_capacity_terhubung() -> None:
     check(hasil is not None and hasil[0]["id"] == "b",
           "A: available=60, A=90 vs B=30 (kesulitan sama) -> B menang karena MUAT")
 
-    # --- B: available=20, A=90 vs B=15 ---
     hasil = pick_next_action(
         [task("A besar", minutes=90, difficulty=2, task_id="a"),
          task("B kecil", minutes=15, difficulty=2, task_id="b")],
@@ -274,7 +222,6 @@ def scenario_capacity_terhubung() -> None:
     check(hasil is not None and hasil[0]["id"] == "b",
           "B: available=20, A=90 vs B=15 -> B menang karena MUAT")
 
-    # --- C: available=120, A=90 (lebih gampang) vs B=30 -- A muat, jangan salah tolak ---
     hasil = pick_next_action(
         [task("A besar gampang", minutes=90, difficulty=1, task_id="a"),
          task("B kecil susah", minutes=30, difficulty=3, task_id="b")],
@@ -284,7 +231,6 @@ def scenario_capacity_terhubung() -> None:
           "C: available=120, A=90(diff1) vs B=30(diff3) -- A MUAT (90<=120) jadi "
           "nggak ditolak salah, tie-break kesulitan normal yang menang (A)")
 
-    # --- D: available_minutes=None HARUS sama persis kayak nggak dioper sama sekali ---
     tugas_d = [task("A besar", minutes=90, difficulty=3, task_id="a"),
                task("B kecil", minutes=15, difficulty=1, task_id="b")]
     default_lama = pick_next_action(tugas_d)
@@ -294,7 +240,6 @@ def scenario_capacity_terhubung() -> None:
           "D: available_minutes=None eksplisit == nggak dioper sama sekali "
           "(dua-duanya jatuh ke tie-break kesulitan lama, B menang karena diff=1)")
 
-    # --- E: available=0 HARUS beda dari None -- bukan falsy-check yang ke-skip ---
     hasil = pick_next_action(
         [task("Ada estimasi", minutes=10, difficulty=2, task_id="ada"),
          task("Tanpa estimasi", minutes=0, difficulty=2, task_id="tanpa")],
@@ -305,7 +250,6 @@ def scenario_capacity_terhubung() -> None:
           "(0 diperlakukan beda dari None), tugas TANPA estimasi menang karena "
           "'nggak tau' bukan berarti 'nggak muat' (assess_capacity: unknown != overflow)")
 
-    # --- F: satu-satunya tugas actionable nggak muat -- tetap ditawarin, bukan didiemin ---
     hasil = pick_next_action(
         [task("Satu-satunya tugas", minutes=90, difficulty=2, task_id="satu")],
         available_minutes=10,
@@ -317,7 +261,6 @@ def scenario_capacity_terhubung() -> None:
 
 
 def scenario_urgency_ranking() -> None:
-    """PHASE 2 -- deadline adalah sinyal berurutan, bukan boolean saja."""
     print("\n=== [PHASE 2] Urgency ranking dari deadline nyata ===")
     today = clock.today()
     now = datetime.combine(today, datetime.min.time()).replace(hour=12)
@@ -375,16 +318,10 @@ def scenario_urgency_ranking() -> None:
 
 
 def scenario_model_kalem_modifier() -> None:
-    """Guardrail: model_kalem cuma boleh meringankan DURASI, nggak pernah
-    ganti TUGAS yang kepilih. Risiko/model_kalem disuntik eksplisit -- yang
-    diuji di sini perilaku `decide()`, bukan akurasi model_kalem sendiri
-    (itu punya suite terpisah di tests/test_regresi.py)."""
     print("\n=== model_kalem cuma modifier durasi, bukan pemilih tugas (guardrail) ===")
     from app.kalem_ml.model_kalem import SinyalKalem
 
     profile = {"name": "Ari", "productive_hours": []}
-    # Task A menang telak (kesulitan paling rendah) -- Task B cuma pembanding
-    # buat mastiin dia TIDAK PERNAH kepilih gantiin Task A.
     tugas_a = task("Task A", difficulty=1, minutes=30, task_id="a")
     tugas_b = task("Task B", difficulty=3, minutes=30, task_id="b")
     day = DayState(
@@ -394,7 +331,6 @@ def scenario_model_kalem_modifier() -> None:
     now = datetime.combine(clock.today(), datetime.min.time()).replace(hour=10)
 
     with patch("app.kalem_ml.model_overwhelm.nilai", return_value=Risiko(0.0, "tenang", "prior")):
-        # model_kalem BELUM siap (data belum cukup) -> nggak boleh ngubah apa-apa.
         with patch("app.kalem_ml.model_kalem.nilai",
                    return_value=SinyalKalem(skor=0.5, siap=False)):
             belum_aktif = decide(profile, day, now=now)
@@ -402,8 +338,6 @@ def scenario_model_kalem_modifier() -> None:
               and belum_aktif.focus_minutes == 30,
               "model_kalem BELUM siap -> Task A tetap kepilih, durasi 30 menit nggak disentuh")
 
-        # model_kalem AKTIF & sinyal keterlibatan rendah -> BOLEH turunin
-        # durasi, TAPI TIDAK BOLEH ganti tugas yang kepilih.
         with patch("app.kalem_ml.model_kalem.nilai",
                    return_value=SinyalKalem(skor=0.1, siap=True, n_latih=24, sumber="belajar")):
             aktif = decide(profile, day, now=now)
@@ -416,24 +350,9 @@ def scenario_model_kalem_modifier() -> None:
 
 
 def scenario_reset_belum_meringankan() -> None:
-    """[KARAKTERISASI] -- BUKAN test 'perilaku ideal', tapi baseline perilaku
-    SEKARANG: riwayat Reset TIDAK membuat next-action berikutnya lebih
-    ringan (task/step/durasi identik, dengan energi & mood ditahan konstan
-    supaya perbandingannya bersih -- bukan ketuker sama efek energi yang
-    memang SEHARUSNYA mengubah durasi).
-
-    Kalau desain "lebih ringan setelah Reset" diimplementasikan nanti, test
-    ini yang pertama kali harus diperbarui. Sampai saat itu, dia jadi
-    penjaga: kalau `decide()` diubah dan diam-diam MULAI berbeda gara-gara
-    reset_events, test ini bakal ribut duluan -- baik itu perubahan yang
-    disengaja (perbarui test-nya) maupun nggak (itu regresi).
-    """
     print("\n=== [KARAKTERISASI] Reset -> next action: belum ada mekanisme 'lebih ringan' ===")
     profile = {"name": "Ari", "productive_hours": []}
     tugas = task("Kerjakan laporan praktikum", difficulty=2, minutes=45, task_id="lapo")
-    # Energi & mood DITAHAN KONSTAN di semua kondisi di bawah -- yang divariasikan
-    # cuma reset_events, biar efeknya (atau bukti nggak-ada-efeknya) nggak
-    # ketuker sama efek energi/mood yang memang seharusnya mengubah durasi.
     mood_logs = [{"date": clock.today().isoformat(), "score": 3, "energy": 4}]
     now = datetime.combine(clock.today(), datetime.min.time()).replace(hour=10)
 

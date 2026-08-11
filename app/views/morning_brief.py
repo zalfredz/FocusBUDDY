@@ -1,17 +1,4 @@
-"""Morning Brief -- Kalem nyapa duluan, sekali sehari, sebelum Home.
-
-Ini yang ngebalik arah interaksi FocusBuddy: fitur lain nunggu user buka
-app dan ngisi sesuatu dulu; halaman ini yang ngajak duluan. Hambatan ADHD
-paling kritis ada di titik INISIASI (Delay Aversion Model), dan app yang
-nunggu dibuka nggak nolongin di titik itu.
-
-Halaman ini nggak ngitung apa-apa sendiri -- ramalannya dari
-`kalem_engine.build_morning_brief()`, yang di baliknya manggil
-`kalem_ml.model_mood` (skor mood hari ini) + `kalem_ml.model_energi`
-(beban kerja & burnout). Yang beda dari halaman Mood: hasilnya dibungkus
-jadi AKSI DEFAULT (nyetel energi + durasi sesi hari itu), bukan cuma
-kalimat info.
-"""
+"""Halaman ringkasan kondisi dan target harian."""
 from __future__ import annotations
 
 import flet as ft
@@ -25,26 +12,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
     brief = kalem_engine.build_morning_brief(profile, day)
 
     def dismiss(route: str):
-        """Tandai brief hari ini udah tampil, lalu pindah halaman.
-
-        Ditandai di SEMUA jalan keluar -- biar brief nggak nongol lagi
-        tiap balik ke Home di hari yang sama.
-        """
         storage.set_last_brief_date()
         navigate(route)
 
     def accept(e):
-        # Inilah yang bikin ramalan jadi AKSI, bukan cuma kalimat: level
-        # energi hari ini langsung dikunci, jadi durasi sesi fokus di
-        # Tracker DAN di tombol FOKUS Home ikut nyesuain.
         storage.set_today_energy(brief.energy_level)
         dismiss("home")
 
     def override(e):
-        # Kontrol energi ada di halaman Mood, bukan Tracker.
         dismiss("mood")
 
-    # ------------------------------------------------------------ isi kartu
 
     card_children: list[ft.Control] = [
         buddy.face(brief.mood, 120),
@@ -64,7 +41,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ),
     ]
 
-    # Alasan ramalan -- ditunjukkin biar nggak kerasa kotak hitam.
     if brief.reasons:
         card_children.append(
             ft.Container(
@@ -107,7 +83,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
     )
 
-    # --- Premium: pola lintas minggu ---
     if brief.long_pattern:
         card_children.append(
             ft.Container(
@@ -148,7 +123,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
-    # Kalimat penyemangat versi user sendiri, dikutip balik pas harinya berat.
     if brief.encouragement and (brief.energy_level <= 2 or brief.burnout_risk):
         card_children.append(
             ft.Text(
