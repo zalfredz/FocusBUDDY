@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import calendar
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 import flet as ft
 
@@ -45,6 +45,10 @@ def _date_label(day_iso: str) -> str:
         f"{DAY_NAMES[selected.weekday()]}, {selected.day} "
         f"{MONTH_NAMES[selected.month - 1]} {selected.year}"
     )
+
+
+def _deadline_label(value: datetime) -> str:
+    return f"{value.day} {MONTH_NAMES[value.month - 1][:3]} · {value.strftime('%H:%M')}"
 
 
 def _history_stat(value: str, label: str) -> ft.Control:
@@ -105,6 +109,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "n_retrieval": 0,
         "n_manual": 0,
         "n_ai": 0,
+        "blocks": [],
+        "total_minutes": 0,
+        "tasks": [],
     }
 
     calendar_grid = ft.Column(spacing=6)
@@ -1010,14 +1017,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
             first_date=date(today.year - 5, 1, 1),
             current_date=date.fromisoformat(task_date_state["value"]),
             last_date=date(today.year + 10, 12, 31),
-            help_text="Pilih tanggal tugas",
+            help_text="Pilih tanggal deadline",
             cancel_text="Batal",
             confirm_text="Pilih",
             on_change=choose_task_date,
         )
         task_date_holder = ft.Column(
             [
-                ft.Text("Tanggal tugas", size=11, color=theme.MUTED),
+                ft.Text("Tanggal deadline", size=11, color=theme.MUTED),
                 ft.Row(
                     [
                         ft.OutlinedButton(
@@ -1076,6 +1083,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         deadline_time_picker = ft.TimePicker(
             value=None,
             entry_mode=ft.TimePickerEntryMode.DIAL,
+            hour_format=ft.TimePickerHourFormat.H24,
             help_text="Pilih jam deadline",
             hour_label_text="Jam",
             minute_label_text="Menit",
@@ -1123,7 +1131,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
         deadline_time_holder = ft.Column(
             [
-                ft.Text("Jam deadline (opsional)", size=11, color=theme.MUTED),
+                ft.Text("Jam deadline", size=11, color=theme.MUTED),
                 ft.Row(
                     [deadline_time_button, deadline_time_label, deadline_time_clear],
                     spacing=6,
@@ -1205,8 +1213,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         repeat_group.on_change = change_repeat
 
         picked = {
-            "kategori": "",
-            "jumlah": 0.0,
             "menit": 0,
             "prediction_source": "",
             "prediction_model_version": "",
@@ -1218,70 +1224,22 @@ def build(page: ft.Page, navigate) -> ft.Control:
             "prediction_importance": None,
             "prediction_deadline_days": None,
         }
-        kategori_holder = ft.Container()
-        buka_lanjutan = {"on": False}
-        jumlah_field = ft.TextField(
-            label="Berapa banyak?",
-            keyboard_type=ft.KeyboardType.NUMBER,
-            visible=False,
-            on_change=lambda ev: render_estimate(),
-        )
         estimate_holder = ft.Container()
 
         def render_deadline():
-            deadline_time_button.disabled = bool(no_deadline.value)
-            deadline_time_clear.disabled = bool(no_deadline.value)
+            has_deadline = not bool(no_deadline.value)
+            task_date_holder.visible = has_deadline
+            deadline_time_holder.visible = has_deadline
             if no_deadline.value:
                 set_deadline_time(None)
-                deadline_time_label.value = "Tidak ada deadline"
             elif not deadline_time_state["value"]:
                 deadline_time_label.value = "Belum dipilih"
             render_estimate()
 
         no_deadline.on_change = lambda ev: render_deadline()
 
-        def pick_kategori(key: str):
-            picked["kategori"] = "" if picked["kategori"] == key else key
-            render_kategori()
-            render_estimate()
-
-        def render_kategori():
-            if not buka_lanjutan["on"]:
-                kategori_holder.content = ft.TextButton(
-                    content=ft.Text("+ Kasih tau jenis & jumlahnya (opsional)",
-                                    size=11.5, color=theme.PRIMARY),
-                    on_click=lambda ev: (buka_lanjutan.update(on=True), render_kategori(),
-                                         render_estimate()),
-                )
-                return
-            chips = [
-                ui_helpers.choice_chip(
-                    meta["label"], picked["kategori"] == key,
-                    lambda ev, k=key: pick_kategori(k),
-                )
-                for key, meta in duration_predictions.categories.items()
-            ]
-            kategori_holder.content = ft.Column(
-                [
-                    ft.Text("Jenis tugasnya apa? Bikin KALEM inget kecepatan kamu "
-                            "di jenis ini.", size=11, color=theme.MUTED),
-                    ft.Row(chips, spacing=6, wrap=True, run_spacing=6),
-                ],
-                spacing=6,
-            )
-
         def render_estimate():
             judul = (title_field.value or "").strip()
-            kategori = picked["kategori"]
-
-            jumlah_field.visible = bool(kategori) and buka_lanjutan["on"]
-            if kategori:
-                satuan = duration_predictions.unit_for_category(kategori)
-                jumlah_field.label = f"Berapa {satuan}?"
-            try:
-                picked["jumlah"] = float((jumlah_field.value or "").strip())
-            except ValueError:
-                picked["jumlah"] = 0.0
 
             if len(judul) < 3:
                 estimate_holder.content = None
@@ -1307,8 +1265,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 judul,
                 deadline_days=tempo,
                 importance=penting,
-                category=kategori,
-                quantity=picked["jumlah"],
+                category="",
+                quantity=0.0,
                 focus_records=storage.get_focus_records(),
                 energy=state["energy"],
             )
@@ -1352,7 +1310,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         title_field.on_change = lambda ev: render_estimate()
         important_check.on_change = lambda ev: render_estimate()
 
-        render_kategori()
         render_deadline()
         render_estimate()
 
@@ -1380,8 +1337,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 deadline_time=deadline_time_state["value"] if deadline else "",
                 steps=[{"text": name, "done": False}],
                 difficulty_est=int(difficulty.value or 2),
-                kategori=picked["kategori"],
-                jumlah_unit=picked["jumlah"],
+                kategori="",
+                jumlah_unit=0.0,
                 menit_est=picked["menit"],
                 description=(description_field.value or "").strip(),
                 repeat=repeat,
@@ -1427,8 +1384,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         title_field,
                         description_field,
                         voice_status,
-                        task_date_holder,
                         no_deadline,
+                        task_date_holder,
                         deadline_time_holder,
                         ft.Text("Ulangi tugas", size=11, color=theme.MUTED),
                         repeat_group,
@@ -1438,8 +1395,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ft.Text("Seberat apa buat dimulai?", size=11, color=theme.MUTED),
                         difficulty,
                         ft.Divider(color=theme.BORDER, height=1),
-                        kategori_holder,
-                        jumlah_field,
                         estimate_holder,
                     ],
                     spacing=8,
@@ -1464,7 +1419,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         if not tasks:
             plan_state.update(
                 saved_count=0, source="", reason="", quota_msg="", n_lokal=0,
-                n_retrieval=0, n_manual=0, n_ai=0,
+                n_retrieval=0, n_manual=0, n_ai=0, blocks=[], total_minutes=0,
+                tasks=[],
             )
             plan_column.controls = [
                 ui_helpers.banner("Belum ada tugas aktif di periode ini buat dipecah.",
@@ -1553,6 +1509,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def run_split(tasks: list[dict]):
         allow_ai = storage.can_use("decompose")
+        tasks = sorted(
+            tasks,
+            key=lambda task: (
+                storage.deadline_at(task) is None,
+                storage.deadline_at(task) or datetime.max,
+                task.get("title", ""),
+            ),
+        )
 
         progres_holder = ft.Container()
         plan_column.controls = [progres_holder]
@@ -1590,6 +1554,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
             n_retrieval=result.n_retrieval,
             n_manual=result.n_manual,
             n_ai=result.n_ai,
+            blocks=list(result.blocks),
+            total_minutes=result.total_minutes,
+            tasks=[dict(task) for task in tasks],
         )
         if not saved_count:
             plan_column.controls = [
@@ -1613,41 +1580,128 @@ def build(page: ft.Page, navigate) -> ft.Control:
         n_manual = plan_state.get("n_manual", 0)
         n_ai = plan_state.get("n_ai", 0)
         if plan_state["source"] == "ai":
-            source = "Disusun KALEM" + plan_state["quota_msg"]
+            source = "oleh KALEM" + plan_state["quota_msg"]
             color, icon = theme.PRIMARY, ft.Icons.AUTO_AWESOME
         elif plan_state["source"] == "lokal":
             if n_manual and n_retrieval:
-                source = "Disusun dari deskripsi kamu dan pola KALEM — hemat kuota"
+                source = "dari deskripsi kamu dan pola KALEM — hemat kuota"
             elif n_manual:
-                source = "Menggunakan langkah dari deskripsi kamu — hemat kuota"
+                source = "dari deskripsi kamu — hemat kuota"
             else:
-                source = "Disusun dari pola KALEM — hemat kuota"
+                source = "dari pola KALEM — hemat kuota"
             color, icon = theme.SUCCESS, ft.Icons.BOLT
         elif plan_state["source"] == "campuran":
             if n_ai:
                 if n_manual and n_retrieval:
-                    source = "Sebagian dari deskripsi kamu/pola KALEM, sisanya disusun KALEM" + plan_state["quota_msg"]
+                    source = "dari deskripsi kamu/pola KALEM, sisanya oleh KALEM" + plan_state["quota_msg"]
                 elif n_manual:
-                    source = "Sebagian dari deskripsi kamu, sisanya disusun KALEM" + plan_state["quota_msg"]
+                    source = "dari deskripsi kamu, sisanya oleh KALEM" + plan_state["quota_msg"]
                 elif n_retrieval:
-                    source = "Sebagian dari pola KALEM, sisanya disusun KALEM" + plan_state["quota_msg"]
+                    source = "dari pola KALEM, sisanya oleh KALEM" + plan_state["quota_msg"]
                 else:
-                    source = "Sebagian disusun KALEM, sisanya template KALEM" + plan_state["quota_msg"]
+                    source = "oleh KALEM dan template lokal" + plan_state["quota_msg"]
                 color, icon = theme.PRIMARY, ft.Icons.AUTO_AWESOME
             else:
-                source = "Sebagian dari catatan kamu, sisanya template KALEM"
+                source = "dari catatan kamu dan template KALEM"
                 color, icon = theme.WARN, ft.Icons.OFFLINE_BOLT
         else:
-            source = "Disusun dengan template KALEM"
+            source = "dengan template KALEM"
             color, icon = theme.WARN, ft.Icons.OFFLINE_BOLT
 
-        plan_column.controls = [
-            ui_helpers.banner(
-                f"Langkah untuk {saved_count} tugas tersimpan di card. {source}",
-                color,
-                icon,
-            )
+        blocks = list(plan_state.get("blocks") or [])
+        tasks = list(plan_state.get("tasks") or [])
+        deadlines: dict[str, datetime] = {}
+        for task in tasks:
+            deadline = storage.deadline_at(task)
+            title = str(task.get("title", ""))
+            if deadline is not None and (
+                title not in deadlines or deadline < deadlines[title]
+            ):
+                deadlines[title] = deadline
+
+        task_ends: dict[str, datetime] = {}
+        for block in blocks:
+            if not block.is_break and block.task_title and block.end_at is not None:
+                task_ends[block.task_title] = block.end_at
+
+        rows: list[ft.Control] = [
+            ui_helpers.banner(f"Berhasil disusun {source}", color, icon),
+            ft.Text(
+                "Langkahnya juga tersimpan di card tugas supaya bisa langsung dicentang.",
+                size=10.5,
+                color=theme.MUTED,
+            ),
         ]
+        previous_title = ""
+        for block in blocks:
+            if not block.is_break and block.task_title != previous_title:
+                previous_title = block.task_title
+                deadline = deadlines.get(block.task_title)
+                deadline_text = "Tanpa deadline"
+                deadline_color = theme.MUTED
+                if deadline is not None:
+                    deadline_text = f"Deadline {_deadline_label(deadline)}"
+                    if deadline < clock.now():
+                        deadline_text = f"Deadline sudah lewat · {_deadline_label(deadline)}"
+                        deadline_color = theme.DANGER
+                    elif task_ends.get(block.task_title, deadline) > deadline:
+                        deadline_text += " · rencana penuh melewati deadline"
+                        deadline_color = theme.DANGER
+                    else:
+                        deadline_color = theme.SUCCESS
+                rows.append(
+                    ft.Row(
+                        [
+                            ft.Text(
+                                block.task_title,
+                                size=12.5,
+                                weight=ft.FontWeight.BOLD,
+                                color=theme.ON_BACKGROUND,
+                                expand=True,
+                            ),
+                            ft.Text(deadline_text, size=10.5, color=deadline_color),
+                        ],
+                        spacing=8,
+                    )
+                )
+
+            rows.append(
+                ft.Row(
+                    [
+                        ft.Container(
+                            content=ft.Text(
+                                block.start,
+                                size=11.5,
+                                color=theme.SUCCESS if block.is_break else theme.PRIMARY,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            width=46,
+                        ),
+                        ft.Container(
+                            width=3,
+                            height=30,
+                            bgcolor=theme.SUCCESS if block.is_break else theme.PRIMARY,
+                            border_radius=2,
+                        ),
+                        ft.Text(
+                            block.step,
+                            size=12.5,
+                            color=theme.SUCCESS if block.is_break else theme.ON_BACKGROUND,
+                            italic=block.is_break,
+                            expand=True,
+                        ),
+                    ],
+                    spacing=8,
+                )
+            )
+
+        rows.append(
+            ui_helpers.disclaimer(
+                f"Total sekitar {int(plan_state.get('total_minutes', 0))} menit. "
+                "Ini rencana, bukan target wajib."
+            )
+        )
+        plan_column.controls = [ui_helpers.card(ft.Column(rows, spacing=9), padding=14)]
         plan_column.visible = True
 
 

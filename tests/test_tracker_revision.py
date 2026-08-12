@@ -1,8 +1,10 @@
 """Acceptance contract untuk revisi besar Tracker FocusBuddy."""
 from __future__ import annotations
 
+import asyncio
+import re
 import tempfile
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -40,6 +42,11 @@ class FakePage:
 
     def run_task(self, fn, *args) -> None:
         pass
+
+
+class ImmediatePage(FakePage):
+    def run_task(self, fn, *args) -> None:
+        asyncio.run(fn(*args))
 
 
 def walk(control):
@@ -99,6 +106,7 @@ def add_task(
     important: bool = True,
     difficulty: int = 2,
     steps: list[dict] | None = None,
+    description: str = "",
 ) -> dict:
     return storage.add_task(
         title,
@@ -109,6 +117,7 @@ def add_task(
         menit_est=20,
         scheduled_date=scheduled.isoformat(),
         steps=steps or [{"text": f"Mulai {title}", "done": False}],
+        description=description,
     )
 
 
@@ -210,8 +219,8 @@ def scenario_deadline_and_no_deadline() -> None:
     dialog_text = texts(dialog)
     check(
         "Seberat apa buat dimulai?" in dialog_text
-        and "+ Kasih tau jenis & jumlahnya (opsional)" in dialog_text,
-        "difficulty dan jenis/jumlah tetap tersedia karena dipakai decision/duration model",
+        and "+ Kasih tau jenis & jumlahnya (opsional)" not in dialog_text,
+        "difficulty tetap tersedia dan menu jenis/jumlah opsional sudah dihapus",
     )
     title_field = next(
         (control for control in walk(dialog) if isinstance(control, ft.TextField)
@@ -223,10 +232,50 @@ def scenario_deadline_and_no_deadline() -> None:
          and control.label == "Tanpa deadline"),
         None,
     )
+    date_holder = next(
+        (
+            control
+            for control in walk(dialog)
+            if isinstance(control, ft.Column)
+            and any(
+                getattr(child, "value", None) == "Tanggal deadline"
+                for child in control.controls
+            )
+        ),
+        None,
+    )
+    time_holder = next(
+        (
+            control
+            for control in walk(dialog)
+            if isinstance(control, ft.Column)
+            and any(
+                getattr(child, "value", None) == "Jam deadline"
+                for child in control.controls
+            )
+        ),
+        None,
+    )
+    form_controls = getattr(getattr(dialog, "content", None), "controls", [])
+    check(
+        no_deadline in form_controls
+        and date_holder in form_controls
+        and time_holder in form_controls
+        and form_controls.index(no_deadline) < form_controls.index(date_holder)
+        < form_controls.index(time_holder),
+        "urutan deadline adalah Tanpa deadline → tanggal → jam",
+    )
     if title_field is not None and no_deadline is not None:
         title_field.value = "Task tanpa deadline dari UI"
         no_deadline.value = True
         no_deadline.on_change(SimpleNamespace(control=no_deadline))
+        check(
+            date_holder is not None
+            and time_holder is not None
+            and not date_holder.visible
+            and not time_holder.visible,
+            "tanggal dan jam disembunyikan ketika Tanpa deadline dicentang",
+        )
         submit = clickable(dialog, "Tambah")
         submit.on_click(SimpleNamespace(control=submit))
     added = next(
@@ -292,6 +341,10 @@ def scenario_task_input_supports_voice_description_and_time_picker() -> None:
     picker = page.dialogs[-1] if page.dialogs else None
     check(isinstance(picker, ft.TimePicker), "tombol jam membuka TimePicker native")
     if isinstance(picker, ft.TimePicker):
+        check(
+            picker.hour_format == ft.TimePickerHourFormat.H24,
+            "TimePicker deadline selalu memakai format 24 jam",
+        )
         picker.value = time(17, 45)
         picker.on_change(SimpleNamespace(control=picker))
         page.pop_dialog()
@@ -378,6 +431,63 @@ def scenario_decomposition_identity_and_persistence() -> None:
             for control in walk(page.dialogs[-1] if page.dialogs else None)
         ),
         "sebelum decomposition tidak ada pertanyaan manual-step tambahan",
+    )
+
+
+def scenario_decomposition_renders_multi_task_timeline() -> None:
+    print("\n=== Pecah Tugas menampilkan timeline multi-task 24 jam ===")
+    today = clock.today()
+    add_task(
+        "Tugas deadline malam",
+        today,
+        deadline=today,
+        deadline_time="23:00",
+        steps=[{"text": "Placeholder malam", "done": False}],
+        description="Buka dokumen malam\nTulis bagian malam",
+    )
+
+    add_task(
+        "Tugas deadline awal",
+        today,
+        deadline=today,
+        deadline_time="18:00",
+        steps=[{"text": "Placeholder awal", "done": False}],
+        description="Buka dokumen awal\nTulis bagian awal",
+    )
+
+    page = ImmediatePage()
+    root = tracker.build(page, lambda route: None)
+    split = clickable(root, "Pecah Tugas")
+    if split is not None:
+        split.on_click(SimpleNamespace(control=split))
+    dialog = page.dialogs[-1] if page.dialogs else None
+    submit = clickable(dialog, "Pecah")
+    fake_now = datetime.combine(today, time(15, 12))
+    if submit is not None:
+        with patch.object(decomposer_logic.clock, "now", return_value=fake_now):
+            submit.on_click(SimpleNamespace(control=submit))
+
+    shown = texts(root)
+    check(
+        "Tugas deadline awal" in shown
+        and "Tugas deadline malam" in shown
+        and shown.index("Tugas deadline awal") < shown.index("Tugas deadline malam"),
+        "beberapa tugas tampil dalam satu timeline dan diurutkan dari deadline terdekat",
+    )
+    check("15:15" in shown, "timeline dimulai dari jam nyata yang dibulatkan ke 5 menit")
+    check(
+        any("Deadline 12 Agu · 18:00" in value for value in shown)
+        and any("Deadline 12 Agu · 23:00" in value for value in shown),
+        "setiap kelompok tugas menampilkan deadline 24 jam",
+    )
+    check(
+        "Istirahat sebentar" in shown
+        and any(value.startswith("Total sekitar ") for value in shown),
+        "timeline lengkap menampilkan jeda dan total rencana",
+    )
+    check(
+        not re.search(r"\b(?:AM|PM)\b", " ".join(shown), flags=re.IGNORECASE),
+        "timeline tidak pernah menampilkan format AM/PM",
     )
 
 
@@ -629,6 +739,7 @@ def main() -> int:
                 scenario_deadline_and_no_deadline,
                 scenario_task_input_supports_voice_description_and_time_picker,
                 scenario_decomposition_identity_and_persistence,
+                scenario_decomposition_renders_multi_task_timeline,
                 scenario_step_crud_and_done,
                 scenario_focus_outcomes_keep_task_identity,
                 scenario_weekly_schedule_is_not_recommended_and_ui_is_compact,

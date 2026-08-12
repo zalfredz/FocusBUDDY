@@ -47,6 +47,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         deadline_time_picker = ft.TimePicker(
             value=None,
             entry_mode=ft.TimePickerEntryMode.DIAL,
+            hour_format=ft.TimePickerHourFormat.H24,
             help_text="Pilih jam deadline",
             hour_label_text="Jam",
             minute_label_text="Menit",

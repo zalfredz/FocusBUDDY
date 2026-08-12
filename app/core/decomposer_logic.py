@@ -52,6 +52,8 @@ class TimeBlock:
     task_title: str
     step: str
     is_break: bool = False
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
 
 
 @dataclass
@@ -255,14 +257,31 @@ def lay_out(
     total = 0
     for i, (title, step, minutes) in enumerate(steps):
         end = cursor + timedelta(minutes=minutes)
-        blocks.append(TimeBlock(_fmt(cursor), _fmt(end), title, step))
+        blocks.append(
+            TimeBlock(
+                _fmt(cursor),
+                _fmt(end),
+                title,
+                step,
+                start_at=cursor,
+                end_at=end,
+            )
+        )
         total += minutes
         cursor = end
 
         if i < len(steps) - 1:
             break_end = cursor + timedelta(minutes=break_min)
             blocks.append(
-                TimeBlock(_fmt(cursor), _fmt(break_end), "", "Istirahat sebentar", is_break=True)
+                TimeBlock(
+                    _fmt(cursor),
+                    _fmt(break_end),
+                    "",
+                    "Istirahat sebentar",
+                    is_break=True,
+                    start_at=cursor,
+                    end_at=break_end,
+                )
             )
             total += break_min
             cursor = break_end
