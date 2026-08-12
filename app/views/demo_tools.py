@@ -209,12 +209,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             open_scenarios,
             active=overlay_active,
         ),
-        _tool_card(
-            ft.Icons.MODEL_TRAINING,
-            "DEMO MODEL",
-            "Buka halaman playground untuk menguji input dan output model KALEM.",
-            lambda e: navigate("demo_model"),
-        ),
     ]
 
     cleanup: list[ft.Control] = []

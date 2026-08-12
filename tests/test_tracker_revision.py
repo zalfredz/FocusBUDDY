@@ -53,6 +53,7 @@ def walk(control):
     yield from walk(getattr(control, "title", None))
     yield from walk(getattr(control, "subtitle", None))
     yield from walk(getattr(control, "content", None))
+    yield from walk(getattr(control, "suffix", None))
 
 
 def texts(root) -> list[str]:
@@ -155,14 +156,19 @@ def scenario_calendar_modes_and_done() -> None:
     if expand is not None:
         expand.on_click(SimpleNamespace(control=expand))
     visible = texts(root)
-    check(monthly["title"] in visible,
-          "mode Bulanan memakai task source yang sama untuk seluruh bulan")
-    collapse = clickable(root, "Kembali ke Mingguan")
-    check(collapse is not None, "Lihat bulan menyimpan context mode Mingguan")
+    check(monthly["title"] not in visible,
+          "membesarkan kalender tidak mengubah filter Mingguan")
+    monthly_chip = clickable(root, "Bulanan")
+    if monthly_chip is not None:
+        monthly_chip.on_click(SimpleNamespace(control=monthly_chip))
+    check(monthly["title"] in texts(root),
+          "filter Bulanan mengubah daftar tugas tanpa mengatur ukuran kalender")
+    collapse = clickable(root, "Ringkas kalender")
+    check(collapse is not None, "kalender bulanan punya kontrol ukuran sendiri")
     if collapse is not None:
         collapse.on_click(SimpleNamespace(control=collapse))
-    check(monthly["title"] not in texts(root) and clickable(root, "Lihat bulan") is not None,
-          "calendar bulanan dapat dikecilkan kembali ke mode sebelumnya")
+    check(monthly["title"] in texts(root) and clickable(root, "Lihat bulan") is not None,
+          "meringkas kalender tidak mengubah filter Bulanan")
 
 
 def scenario_deadline_and_no_deadline() -> None:
@@ -236,7 +242,7 @@ def scenario_deadline_and_no_deadline() -> None:
 
 
 def scenario_task_input_supports_voice_description_and_time_picker() -> None:
-    print("\n=== Input tugas: deskripsi suara dan pemilih waktu ===")
+    print("\n=== Input tugas: suara inline, tanggal, dan pemilih waktu ===")
     page = FakePage()
     root = tracker.build(page, lambda route: None)
     open_add = clickable(root, "Tambah Tugas")
@@ -244,17 +250,33 @@ def scenario_task_input_supports_voice_description_and_time_picker() -> None:
         open_add.on_click(SimpleNamespace(control=open_add))
     dialog = page.dialogs[-1] if page.dialogs else None
 
-    mic = next(
+    description_field = next(
         (
             control
             for control in walk(dialog)
+            if isinstance(control, ft.TextField)
+            and control.label == "Deskripsi (opsional)"
+        ),
+        None,
+    )
+    mic = next(
+        (
+            control
+            for control in walk(getattr(description_field, "suffix", None))
             if isinstance(control, ft.IconButton)
             and control.icon == ft.Icons.MIC_NONE
             and control.tooltip == "Isi pakai suara · maksimal 120 detik"
         ),
         None,
     )
-    check(mic is not None, "deskripsi tugas menyediakan mikrofon untuk transkrip yang bisa diedit")
+    check(mic is not None, "mikrofon deskripsi berada di dalam text box")
+    if description_field is not None:
+        description_field.value = "Mulai mengetik"
+        description_field.on_change(SimpleNamespace(control=description_field))
+        check(not description_field.suffix.visible,
+              "mikrofon menghilang saat user mulai mengetik")
+        description_field.value = ""
+        description_field.on_change(SimpleNamespace(control=description_field))
     check(
         not any(
             isinstance(control, ft.TextField) and control.label == "Jam deadline (opsional)"
@@ -275,6 +297,18 @@ def scenario_task_input_supports_voice_description_and_time_picker() -> None:
         page.pop_dialog()
     check("Pukul 17:45" in texts(dialog), "jam hasil picker ditampilkan dengan format HH:MM")
 
+    task_date = clock.today() + timedelta(days=1)
+    date_button = clickable(dialog, "Pilih tanggal")
+    check(date_button is not None, "form tugas menyediakan pemilih tanggal")
+    if date_button is not None:
+        date_button.on_click(SimpleNamespace(control=date_button))
+    date_picker = page.dialogs[-1] if page.dialogs else None
+    check(isinstance(date_picker, ft.DatePicker), "tombol tanggal membuka DatePicker native")
+    if isinstance(date_picker, ft.DatePicker):
+        date_picker.value = task_date
+        date_picker.on_change(SimpleNamespace(control=date_picker))
+        page.pop_dialog()
+
     title_field = next(
         (
             control
@@ -292,8 +326,11 @@ def scenario_task_input_supports_voice_description_and_time_picker() -> None:
         None,
     )
     check(
-        saved is not None and saved["deadline_time"] == "17:45",
-        "jam dari TimePicker tersimpan dalam format yang dipakai deadline engine",
+        saved is not None
+        and saved["scheduled_date"] == task_date.isoformat()
+        and saved["deadline"] == task_date.isoformat()
+        and saved["deadline_time"] == "17:45",
+        "tanggal dan jam picker tersimpan sebagai jadwal/deadline tugas",
     )
 
 
@@ -386,6 +423,21 @@ def scenario_step_crud_and_done() -> None:
     check(len(deletes) >= 2 and len(task["steps"]) == 1,
           "langkah dapat dihapus dari card tanpa menghapus task")
 
+    storage.add_task_step(saved["id"], "Langkah berikutnya")
+    root = tracker.build(page, lambda route: None)
+    expanded_tile = next(
+        (
+            control
+            for control in walk(root)
+            if isinstance(control, ft.ExpansionTile)
+            and "Task editable" in texts(control)
+        ),
+        None,
+    )
+    if expanded_tile is not None:
+        expanded_tile.expanded = True
+        expanded_tile.on_change(SimpleNamespace(control=expanded_tile))
+
     checkbox = next(
         (control for control in walk(root) if getattr(control, "label", None) == "Langkah awal"),
         None,
@@ -395,8 +447,32 @@ def scenario_step_crud_and_done() -> None:
     task = next(task for task in storage.get_tasks() if task["id"] == saved["id"])
     check(checkbox is not None and task["steps"][0]["done"] is True,
           "checklist langsung mengubah status step di storage")
+    refreshed_tile = next(
+        (
+            control
+            for control in walk(root)
+            if isinstance(control, ft.ExpansionTile)
+            and "Task editable" in texts(control)
+        ),
+        None,
+    )
+    check(
+        refreshed_tile is not None and refreshed_tile.expanded,
+        "card pecahan tetap terbuka setelah satu langkah dicentang",
+    )
+    next_checkbox = next(
+        (
+            control
+            for control in walk(root)
+            if getattr(control, "label", None) == "Langkah berikutnya"
+        ),
+        None,
+    )
+    if next_checkbox is not None:
+        next_checkbox.on_change(SimpleNamespace(control=SimpleNamespace(value=True)))
+    task = next(task for task in storage.get_tasks() if task["id"] == saved["id"])
     check(storage.task_is_done(task) and not kalem_engine.rank_actionable_tasks([task]),
-          "semua step selesai membuat task DONE dan tidak actionable")
+          "beberapa step bisa dicentang berurutan sampai task DONE")
 
 
 def scenario_focus_outcomes_keep_task_identity() -> None:

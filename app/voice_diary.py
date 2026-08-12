@@ -26,6 +26,7 @@ class VoiceDiary:
         self.recording = False
         self.processing = False
         self.stopping = False
+        self.inline = False
         self.seconds = 0
         self.token = 0
         self.chunks = bytearray()
@@ -48,6 +49,18 @@ class VoiceDiary:
     def control(self) -> ft.Control:
         return ft.Column([self.holder, self.status], spacing=5)
 
+    def embed_in_field(self) -> ft.Control:
+        """Tempatkan tombol rekam ringkas di dalam field dan kembalikan statusnya."""
+        self.inline = True
+        self.story_field.suffix = self.holder
+        self.render()
+        return self.status
+
+    def sync_with_text(self) -> None:
+        """Sembunyikan tombol inline saat user sudah mulai mengetik."""
+        self.render()
+        self.page.update()
+
     def _on_audio_chunk(self, event: far.AudioRecorderStreamEvent) -> None:
         if not self.active or not self.recording:
             return
@@ -57,12 +70,46 @@ class VoiceDiary:
 
     def render(self) -> None:
         self.on_busy(self.recording or self.processing)
-        if self.processing:
+        if self.inline:
+            self.holder.content = self._inline_control()
+        elif self.processing:
             self.holder.content = self._processing_card()
         elif self.recording:
             self.holder.content = self._recording_card()
         else:
             self.holder.content = self._idle_card()
+        self.holder.visible = (
+            not self.inline
+            or self.recording
+            or self.processing
+            or not (self.story_field.value or "").strip()
+        )
+
+    def _inline_control(self) -> ft.Control:
+        if self.processing:
+            return ft.ProgressRing(
+                width=22,
+                height=22,
+                stroke_width=3,
+                color=theme.PRIMARY,
+                tooltip="KALEM lagi mengubah suara jadi tulisan…",
+            )
+        if self.recording:
+            left = speech_to_text.MAX_RECORD_SECONDS - self.seconds
+            return ft.IconButton(
+                icon=ft.Icons.STOP_CIRCLE_OUTLINED,
+                icon_color=theme.DANGER,
+                icon_size=22,
+                tooltip=f"Selesai merekam · sisa {self._format_seconds(left)}",
+                on_click=self.finish,
+            )
+        return ft.IconButton(
+            icon=ft.Icons.MIC_NONE,
+            icon_color=theme.PRIMARY,
+            icon_size=21,
+            tooltip="Isi pakai suara · maksimal 120 detik",
+            on_click=self.start,
+        )
 
     def _processing_card(self) -> ft.Control:
         return ft.Container(

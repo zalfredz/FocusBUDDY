@@ -1,16 +1,15 @@
-"""Acceptance contract untuk improvement Tracker, Focus, Home, dan Demo Model."""
+"""Acceptance contract untuk improvement Tracker, Focus, dan Home."""
 from __future__ import annotations
 
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 import flet as ft
 
-from app import clock, config, focus_session, storage
-from app.views import demo_model, demo_tools, home, tracker
+from app import clock, focus_session, storage
+from app.views import demo_tools, home, tracker
 from models.model_overwhelm import Risiko
 
 
@@ -237,27 +236,6 @@ def scenario_passive_deadline_cue() -> None:
           "deadline cue benar-benar dirender pada card keputusan Home")
 
 
-def scenario_demo_model_placeholder() -> None:
-    print("\n=== Alat Demo punya placeholder DEMO MODEL ===")
-    routes: list[str] = []
-    tools_root = demo_tools.build(FakePage(), routes.append)
-    demo_button = clickable(tools_root, "DEMO MODEL")
-    check(demo_button is not None, "Alat Demo menampilkan tombol DEMO MODEL")
-    if demo_button is not None:
-        demo_button.on_click(SimpleNamespace(control=demo_button))
-    check(routes == ["demo_model"], "tombol membuka route placeholder Demo Model")
-
-    placeholder = demo_model.build(FakePage(), routes.append)
-    shown = texts(placeholder)
-    check("DEMO MODEL" in shown and "Playground model akan dibuat di sini." in shown,
-          "halaman placeholder tersedia tanpa mengarang input-output model")
-    if config.DEMO_MODE:
-        from app import main
-
-        check("demo_model" in main.ROUTES,
-              "route Demo Model hanya didaftarkan bersama mode demo")
-
-
 def main() -> int:
     original = storage.DATA_DIR, storage.DATA_FILE, storage.BACKUP_FILE
     with tempfile.TemporaryDirectory(prefix="focusbuddy_tracker_focus_") as directory:
@@ -269,7 +247,6 @@ def main() -> int:
                 scenario_rest_outcome_duration_and_logging,
                 scenario_tracker_focus_history_actual_only,
                 scenario_passive_deadline_cue,
-                scenario_demo_model_placeholder,
             ):
                 prepare()
                 scenario()

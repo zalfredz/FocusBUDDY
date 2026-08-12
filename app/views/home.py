@@ -603,9 +603,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     clock_text = ft.Text("", size=40, weight=ft.FontWeight.BOLD,
                          color=theme.ON_BACKGROUND, font_family=theme.FONT_DISPLAY)
     sub_text = ft.Text("", size=11, color=theme.MUTED, text_align=ft.TextAlign.CENTER)
-    bar = ft.ProgressBar(value=0.0, color=theme.PRIMARY, bgcolor=theme.BORDER, bar_height=8)
-    elapsed_text = ft.Text("", size=10.5, color=theme.MUTED)
-    total_text = ft.Text("", size=10.5, color=theme.MUTED)
     status_text = ft.Text("", size=12.5, color=theme.ON_BACKGROUND,
                           text_align=ft.TextAlign.CENTER)
     step_text = ft.Text("", size=15, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND,
@@ -770,7 +767,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             return
 
         ring.value = s["progress"]
-        bar.value = 1 - s["progress"]
         clock_text.value = s["clock"]
         step_text.value = s["label"] or "Sesi fokus"
         task_title_text.value = f"dari: {s['task_title']}" if s["task_title"] else ""
@@ -778,10 +774,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         estimate = int(s.get("task_estimate_minutes", 0) or 0)
         task_estimate_value.value = f"~{estimate} menit" if estimate else "Belum ada"
         session_duration_value.value = f"{total} menit"
-        done_min = (s["total_seconds"] - s["remaining"] + 59) // 60
-        elapsed_text.value = f"{done_min} dari {total} menit"
-        total_text.value = f"{round((1 - s['progress']) * 100)}%"
-
         if s["finished"]:
             rest = kalem_engine.break_minutes_for(day.energy_level or 3)
             ring.color = theme.SUCCESS
@@ -876,16 +868,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         height=190,
                     ),
                     alignment=ft.Alignment.CENTER,
-                ),
-                ft.Column(
-                    [
-                        bar,
-                        ft.Row(
-                            [elapsed_text, ft.Container(expand=True), total_text],
-                            spacing=4,
-                        ),
-                    ],
-                    spacing=4,
                 ),
                 status_text,
                 controls_row,

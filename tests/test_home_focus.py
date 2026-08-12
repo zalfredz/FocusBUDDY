@@ -245,6 +245,8 @@ def scenario_focus_ui_has_done_and_is_compact() -> None:
     )), "saat Focus aktif shell Home tetap tampil seperti biasa")
     check(button(root, "Jeda") is not None and button(root, "Akhiri sesi") is not None,
           "kontrol Jeda, DONE, dan Akhiri sesi terlihat di kartu Focus")
+    check(not any(isinstance(control, ft.ProgressBar) for control in walk(root)),
+          "Focus tidak menampilkan progress bar abu-abu yang redundan")
     if done is not None:
         state = focus_session._state()
         state.ends_at = None

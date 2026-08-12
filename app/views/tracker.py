@@ -39,6 +39,14 @@ FOCUS_OUTCOME_LABELS = {
 }
 
 
+def _date_label(day_iso: str) -> str:
+    selected = date.fromisoformat(day_iso)
+    return (
+        f"{DAY_NAMES[selected.weekday()]}, {selected.day} "
+        f"{MONTH_NAMES[selected.month - 1]} {selected.year}"
+    )
+
+
 def _history_stat(value: str, label: str) -> ft.Control:
     return ft.Container(
         content=ft.Column(
@@ -86,7 +94,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "energy": default_energy,
         "show_month": False,
         "time_filter": "weekly",
-        "previous_filter": "weekly",
     }
 
     plan_state: dict = {
@@ -109,6 +116,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     plan_column = ft.Column(spacing=8, visible=False)
     next_action_holder = ft.Container(visible=False)
     focus_history_holder = ft.Container()
+    expanded_tasks: set[str] = set()
 
 
     def day_has_task(day_iso: str) -> bool:
@@ -119,7 +127,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         state["selected"] = day_iso
         state["month"], state["year"] = selected.month, selected.year
         state["time_filter"] = "daily"
-        state["show_month"] = False
         render_calendar()
         render_time_filter()
         render_day_tasks()
@@ -201,11 +208,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.IconButton(icon=ft.Icons.CHEVRON_RIGHT, icon_color=theme.MUTED,
                               on_click=lambda e: shift_month(1)),
                 ft.TextButton(
-                    content=ft.Text(
-                        "Kembali ke "
-                        + ("Harian" if state["previous_filter"] == "daily" else "Mingguan"),
-                        size=11.5,
-                    ),
+                    content=ft.Text("Ringkas kalender", size=11.5),
                     icon=ft.Icons.UNFOLD_LESS,
                     on_click=lambda e: toggle_month(False),
                 ),
@@ -245,18 +248,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def toggle_month(show: bool):
         state["show_month"] = show
         if show:
-            if state["time_filter"] != "monthly":
-                state["previous_filter"] = state["time_filter"]
             selected = date.fromisoformat(state["selected"])
             state["month"], state["year"] = selected.month, selected.year
-            state["time_filter"] = "monthly"
-        else:
-            state["time_filter"] = state["previous_filter"]
         render_calendar()
-        render_time_filter()
-        render_day_tasks()
-        render_eisenhower()
-        render_timeline()
         page.update()
 
     def shift_month(delta: int):
@@ -268,9 +262,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             month, year = 1, year + 1
         state["month"], state["year"] = month, year
         render_calendar()
-        render_day_tasks()
-        render_eisenhower()
-        render_timeline()
         page.update()
 
 
@@ -410,17 +401,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     filter_holder = ft.Row(spacing=6)
 
     def set_time_filter(value: str):
-        if value == "monthly":
-            if state["time_filter"] != "monthly":
-                state["previous_filter"] = state["time_filter"]
-            selected = date.fromisoformat(state["selected"])
-            state["month"], state["year"] = selected.month, selected.year
-            state["show_month"] = True
-        else:
-            state["show_month"] = False
-            state["previous_filter"] = value
         state["time_filter"] = value
-        render_calendar()
         render_time_filter()
         render_day_tasks()
         render_eisenhower()
@@ -445,7 +426,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
             selected = date.fromisoformat(state["selected"])
             start = selected - timedelta(days=selected.weekday())
             return [task for i in range(7) for task in storage.tasks_for((start + timedelta(days=i)).isoformat())]
-        year, month = state["year"], state["month"]
+        selected = date.fromisoformat(state["selected"])
+        year, month = selected.year, selected.month
         days = calendar.monthrange(year, month)[1]
         return [
             task
@@ -454,6 +436,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ]
 
     def toggle_step(task_id: str, index: int, value: bool, occurrence_date: str | None = None):
+        expanded_tasks.add(
+            f"{task_id}::{occurrence_date}" if occurrence_date else task_id
+        )
         before_task = next((t for t in tasks_in_filter() if t["id"] == task_id and
                             t.get("_occurrence_date") == occurrence_date), None)
         sebelum = storage.task_is_done(before_task) if before_task else False
@@ -600,6 +585,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
     def open_card(task: dict) -> ft.Control:
+        card_key = task_plan_key(task)
         label, color = QUADRANT_META[storage.quadrant_of(task)]
         steps = task.get("steps", [])
         done_count = sum(1 for s in steps if s.get("done"))
@@ -748,6 +734,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 meta.append(f"{done_count}/{len(steps)} langkah")
             subtitle = " · ".join(value for value in meta if value)
 
+        def remember_expansion(event) -> None:
+            if bool(getattr(event.control, "expanded", False)):
+                expanded_tasks.add(card_key)
+            else:
+                expanded_tasks.discard(card_key)
+
         return ui_helpers.card(
             ft.ExpansionTile(
                 leading=ft.Icon(
@@ -769,7 +761,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 controls=[ft.Column(detail_controls, spacing=5)],
                 controls_padding=ft.Padding.only(left=12, right=12, bottom=10),
                 tile_padding=ft.Padding.symmetric(vertical=2, horizontal=12),
-                expanded=False,
+                expanded=card_key in expanded_tasks,
+                on_change=remember_expansion,
                 dense=True,
                 maintain_state=True,
                 text_color=theme.ON_BACKGROUND,
@@ -986,11 +979,58 @@ def build(page: ft.Page, navigate) -> ft.Control:
             label="Tanpa deadline",
             value=False,
         )
-        schedule_note = ft.Text(
-            f"Dijadwalkan pada {state['selected']}. Pilih tanggal lain dari kalender "
-            "sebelum menambah tugas jika perlu.",
-            size=10.5,
-            color=theme.MUTED,
+        task_date_state = {"value": state["selected"]}
+        task_date_label = ft.Text(
+            _date_label(task_date_state["value"]),
+            size=11.5,
+            color=theme.ON_BACKGROUND,
+            expand=True,
+        )
+
+        def choose_task_date(ev) -> None:
+            picked_date = task_date_picker.value
+            if picked_date is None:
+                return
+            task_date_state["value"] = picked_date.isoformat()[:10]
+            task_date_label.value = _date_label(task_date_state["value"])
+            repeat_end_picker.first_date = date.fromisoformat(task_date_state["value"])
+            if (
+                repeat_end_state["value"]
+                and date.fromisoformat(repeat_end_state["value"])
+                < date.fromisoformat(task_date_state["value"])
+            ):
+                repeat_end_state["value"] = ""
+                repeat_end_label.value = "Tidak ada tanggal akhir"
+                repeat_end_clear.visible = False
+            render_estimate()
+            page.update()
+
+        task_date_picker = ft.DatePicker(
+            value=date.fromisoformat(task_date_state["value"]),
+            first_date=date(today.year - 5, 1, 1),
+            current_date=date.fromisoformat(task_date_state["value"]),
+            last_date=date(today.year + 10, 12, 31),
+            help_text="Pilih tanggal tugas",
+            cancel_text="Batal",
+            confirm_text="Pilih",
+            on_change=choose_task_date,
+        )
+        task_date_holder = ft.Column(
+            [
+                ft.Text("Tanggal tugas", size=11, color=theme.MUTED),
+                ft.Row(
+                    [
+                        ft.OutlinedButton(
+                            content=ft.Text("Pilih tanggal", size=11.5),
+                            icon=ft.Icons.CALENDAR_TODAY,
+                            on_click=lambda ev: page.show_dialog(task_date_picker),
+                        ),
+                        task_date_label,
+                    ],
+                    spacing=6,
+                ),
+            ],
+            spacing=4,
         )
         important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
         difficulty = ft.RadioGroup(
@@ -1114,7 +1154,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             repeat_end_error.visible = False
             page.update()
 
-        repeat_start_date = date.fromisoformat(state["selected"])
+        repeat_start_date = date.fromisoformat(task_date_state["value"])
         repeat_end_picker = ft.DatePicker(
             first_date=repeat_start_date,
             current_date=repeat_start_date,
@@ -1253,7 +1293,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 tempo = 7
             else:
                 try:
-                    tempo = max(0, (date.fromisoformat(state["selected"]) - today).days)
+                    tempo = max(
+                        0,
+                        (date.fromisoformat(task_date_state["value"]) - today).days,
+                    )
                 except ValueError:
                     tempo = 0
             penting = 8 if important_check.value else 4
@@ -1321,12 +1364,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 return
             repeat = repeat_group.value or "none"
             repeat_end = repeat_end_state["value"] if repeat != "none" else ""
-            if repeat_end and date.fromisoformat(repeat_end) < date.fromisoformat(state["selected"]):
+            if repeat_end and date.fromisoformat(repeat_end) < date.fromisoformat(
+                task_date_state["value"]
+            ):
                 repeat_end_error.value = "Tanggal akhir tidak boleh sebelum tanggal mulai."
                 repeat_end_error.visible = True
                 page.update()
                 return
-            deadline = "" if no_deadline.value else state["selected"]
+            task_date = task_date_state["value"]
+            deadline = "" if no_deadline.value else task_date
             storage.add_task(
                 name,
                 deadline,
@@ -1339,7 +1385,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 menit_est=picked["menit"],
                 description=(description_field.value or "").strip(),
                 repeat=repeat,
-                scheduled_date=state["selected"],
+                scheduled_date=task_date,
                 item_type="schedule" if routine_check.value else "task",
                 repeat_end_date=repeat_end,
                 prediction_model_version=picked["prediction_model_version"],
@@ -1365,6 +1411,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
             submit_button.disabled = busy
 
         voice = VoiceDiary(page, description_field, set_voice_busy)
+        voice_status = voice.embed_in_field()
+        description_field.on_change = lambda ev: voice.sync_with_text()
 
         def cancel_add_task(ev) -> None:
             voice.cleanup()
@@ -1373,13 +1421,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text(f"Tugas untuk {state['selected']}", size=16),
+                title=ft.Text("Tambah tugas", size=16),
                 content=ft.Column(
                     [
                         title_field,
                         description_field,
-                        voice.control(),
-                        schedule_note,
+                        voice_status,
+                        task_date_holder,
                         no_deadline,
                         deadline_time_holder,
                         ft.Text("Ulangi tugas", size=11, color=theme.MUTED),

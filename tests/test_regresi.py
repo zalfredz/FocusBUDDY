@@ -301,7 +301,7 @@ def tes_fungsi_murni():
 def tes_halaman_kebangun():
     bagian("Semua halaman kebangun")
     import models as ml
-    from app.views import (demo_model, demo_tools, diary, favorites, home, inbox, med_setup, mood,
+    from app.views import (demo_tools, diary, favorites, home, inbox, med_setup, mood,
                            morning_brief, onboarding, reset, settings,
                            subscription, tracker)
 
@@ -313,7 +313,7 @@ def tes_halaman_kebangun():
 
     p = HalamanPalsu()
     for nama, modul in [
-        ("home", home), ("demo_tools", demo_tools), ("demo_model", demo_model),
+        ("home", home), ("demo_tools", demo_tools),
         ("tracker", tracker),
         ("mood", mood), ("diary", diary),
         ("reset", reset), ("med_setup", med_setup), ("favorites", favorites),
@@ -427,13 +427,6 @@ def tes_alat_demo_terpusat():
     root = demo_tools.build(HalamanPalsu(), tujuan.append)
 
     ok("demo_tools" in main_mod.ROUTES, "Alat Demo terdaftar saat DEMO_MODE aktif")
-    ok("demo_model" in main_mod.ROUTES, "placeholder Demo Model terdaftar")
-    model_button = cari_kontrol(
-        root,
-        lambda control: getattr(control, "on_click", None) is not None
-        and punya_teks(control, "DEMO MODEL"),
-    )
-    ok(model_button is not None, "tombol DEMO MODEL tersedia di Alat Demo")
     maju = cari_kontrol(
         root,
         lambda control: getattr(control, "on_click", None) is not None
@@ -510,6 +503,9 @@ def tes_fokus_ngunci():
     bagian("Mode fokus ngunci seluruh navigation utama")
     import app.main as main_mod
     from app import focus_session
+
+    ok([route for route, _, _ in main_mod.NAV_ROUTES] == ["tracker", "home", "mood"],
+       "navigasi bawah berurutan Tracker — Beranda — Mood")
 
     ok("reset" not in main_mod.FOKUS_BOLEH,
        "OVERWHELM tidak dibuka di tengah sesi; user mengakhiri sesi dulu")
