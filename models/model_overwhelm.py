@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 from models import fitur as F
 from models import riwayat
+from app.runtime_policy import runtime_training_allowed
 
 MIN_HARI = 10
 MIN_PER_KELAS = 2
@@ -106,6 +107,8 @@ def reset_model() -> None:
 
 def _latih(day: Any = None) -> bool:
     global _model, _scaler, _n_latih, _terlatih_dari
+    if not runtime_training_allowed():
+        return False
 
     X, meta = riwayat.baris_harian(day=day)
     if len(X) < MIN_HARI:

@@ -1,0 +1,90 @@
+{
+  "artifact_path": "ml/registry/artifacts/duration-baseline-v1.joblib",
+  "artifact_sha256": "d50ea05052f75b58bb74f86c94d0034ddaa9103c1c117f76bdb63c002a69f4d2",
+  "dataset_version": "task-duration-id-v1",
+  "feature_schema": {
+    "numeric": [
+      {
+        "name": "due_days",
+        "source": "jatuh_tempo_hari"
+      },
+      {
+        "name": "importance",
+        "source": "tingkat_kepentingan_1_10"
+      }
+    ],
+    "target": {
+      "converted_to": "duration_minutes",
+      "evaluation_cap": null,
+      "prediction_inverse": "expm1",
+      "source": "durasi_jam",
+      "training_transform": "log1p"
+    },
+    "text": {
+      "analyzer": "char_wb",
+      "max_features": 300,
+      "min_df": 2,
+      "ngram_range": [
+        3,
+        5
+      ],
+      "source": "tugas",
+      "sublinear_tf": true,
+      "transformer": "TfidfVectorizer"
+    }
+  },
+  "framework": "scikit-learn",
+  "framework_version": "1.9.0",
+  "hyperparameters": {
+    "candidate": "gradient_boosting",
+    "cv_folds": 5,
+    "learning_rate": 0.05,
+    "max_depth": 3,
+    "n_estimators": 200,
+    "random_state": 42,
+    "selection_metric": "cv_rmse_mean"
+  },
+  "metrics": {
+    "cross_validation": {
+      "cv_mae_mean": 52.25705348327891,
+      "cv_mae_std": 6.242809361774702,
+      "cv_median_absolute_error_mean": 24.379306856103803,
+      "cv_median_absolute_error_std": 4.574576844929256,
+      "cv_r2_mean": 0.4838547749316523,
+      "cv_r2_std": 0.09696313855690529,
+      "cv_rmse_mean": 93.57834114433254,
+      "cv_rmse_std": 16.536887553145487,
+      "cv_within_10_percent_mean": 0.08200104493207941,
+      "cv_within_10_percent_std": 0.04026417000445578,
+      "cv_within_20_percent_mean": 0.16862591431556948,
+      "cv_within_20_percent_std": 0.05513186572039307,
+      "cv_within_30_percent_mean": 0.24156217345872516,
+      "cv_within_30_percent_std": 0.036310318500544635
+    },
+    "locked_test": {
+      "mae": 86.62133723119045,
+      "median_absolute_error": 26.572508974179435,
+      "r2": 0.06525859975117465,
+      "rmse": 207.60289780105612,
+      "within_10_percent": 0.045454545454545456,
+      "within_20_percent": 0.14545454545454545,
+      "within_30_percent": 0.2545454545454545
+    },
+    "performance": {
+      "cold_load_ms": 12.20772700071393,
+      "first_inference_ms": 2.5932239987014327,
+      "latency_repeats": 200,
+      "model_size_bytes": 71932,
+      "p50_inference_ms": 1.9567929994082078,
+      "p95_inference_ms": 3.2886791486816946,
+      "warm_inference_mean_ms": 2.147209369995835
+    }
+  },
+  "model_name": "duration",
+  "model_version": "duration-baseline-v1",
+  "random_seed": 42,
+  "status": "experimental",
+  "test_row_count": 110,
+  "training_row_count": 439,
+  "training_timestamp": "2026-08-12T08:58:50.188357+00:00"
+}

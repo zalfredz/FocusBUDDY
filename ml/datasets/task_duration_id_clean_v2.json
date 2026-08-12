@@ -1,0 +1,37 @@
+{
+  "dataset_name": "task_duration_id_clean",
+  "dataset_version": "task-duration-id-clean-v2",
+  "source_path": "datasets/task_duration_id_clean.csv",
+  "sha256": "3a730c016f68236b640e05a16f4a2b7bc1ad304b594ffb6fdf65af64b96939fb",
+  "row_count": 549,
+  "required_columns": [
+    "row_id",
+    "tugas",
+    "jatuh_tempo_hari",
+    "ada_tenggat",
+    "tenggat_hari",
+    "durasi_menit",
+    "tingkat_kepentingan_1_10",
+    "label_review_needed",
+    "source_group_id"
+  ],
+  "target": {
+    "source_column": "durasi_menit",
+    "internal_name": "estimated_duration_minutes",
+    "meaning": "human_estimated_duration",
+    "unit": "minute"
+  },
+  "deadline": {
+    "presence_column": "ada_tenggat",
+    "days_column": "tenggat_hari",
+    "no_deadline_rule": "ada_tenggat=0; tenggat_hari must be empty",
+    "offline_encoding": "has_deadline plus deadline_days_or_zero"
+  },
+  "group_column": "source_group_id",
+  "status": "experimental",
+  "notes": [
+    "Manifest is immutable. If the CSV changes, create a new dataset version.",
+    "The source target is a human estimate, never an observed or actual duration.",
+    "Original datasets remain untouched."
+  ]
+}

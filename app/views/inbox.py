@@ -1,12 +1,13 @@
 """Halaman inbox untuk menangkap tugas dengan cepat."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, time
 
 import flet as ft
 
 from app import clock, storage, theme, ui_helpers
 from app.core.decomposer_logic import plan_today
+from app.voice_diary import VoiceDiary
 
 
 def _relative_time(iso: str) -> str:
@@ -41,10 +42,64 @@ def build(page: ft.Page, navigate) -> ft.Control:
             max_lines=5,
             helper="Diisi -> Pecah Tugas mecah dari SINI, bukan cuma judul",
         )
-        time_field = ft.TextField(
-            label="Jam deadline (opsional)",
-            hint_text="mis. 17:00",
-            helper="Dikosongin = sampai akhir hari",
+        deadline_time_state = {"value": ""}
+        deadline_time_label = ft.Text("Belum dipilih", size=11.5, color=theme.MUTED)
+        deadline_time_picker = ft.TimePicker(
+            value=None,
+            entry_mode=ft.TimePickerEntryMode.DIAL,
+            help_text="Pilih jam deadline",
+            hour_label_text="Jam",
+            minute_label_text="Menit",
+            cancel_text="Batal",
+            confirm_text="Pilih",
+        )
+
+        def set_deadline_time(selected: time | None) -> None:
+            if selected is None:
+                deadline_time_state["value"] = ""
+                deadline_time_picker.value = None
+                deadline_time_label.value = "Belum dipilih"
+                deadline_time_clear.visible = False
+                return
+            deadline_time_state["value"] = selected.strftime("%H:%M")
+            deadline_time_picker.value = selected
+            deadline_time_label.value = f"Pukul {deadline_time_state['value']}"
+            deadline_time_clear.visible = True
+
+        def choose_deadline_time(ev) -> None:
+            selected = deadline_time_picker.value
+            if isinstance(selected, time):
+                set_deadline_time(selected)
+                page.update()
+
+        def clear_deadline_time(ev=None) -> None:
+            set_deadline_time(None)
+            page.update()
+
+        deadline_time_picker.on_change = choose_deadline_time
+        deadline_time_button = ft.OutlinedButton(
+            content=ft.Text("Pilih jam", size=11.5),
+            icon=ft.Icons.SCHEDULE,
+            on_click=lambda ev: page.show_dialog(deadline_time_picker),
+        )
+        deadline_time_clear = ft.IconButton(
+            icon=ft.Icons.CLOSE,
+            icon_size=16,
+            icon_color=theme.MUTED,
+            tooltip="Hapus jam deadline",
+            visible=False,
+            on_click=clear_deadline_time,
+        )
+        deadline_time_holder = ft.Column(
+            [
+                ft.Text("Jam deadline (opsional)", size=11, color=theme.MUTED),
+                ft.Row(
+                    [deadline_time_button, deadline_time_label, deadline_time_clear],
+                    spacing=6,
+                ),
+                ft.Text("Dikosongkan = sampai akhir hari.", size=10.5, color=theme.MUTED),
+            ],
+            spacing=4,
         )
         important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
         can_use_ai = storage.can_use("decompose")
@@ -72,14 +127,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 important_check.value,
                 steps=[{"text": name, "done": False}],
                 difficulty_est=2,
-                deadline_time=(time_field.value or "").strip(),
+                deadline_time=deadline_time_state["value"],
                 description=(description_field.value or "").strip(),
             )
 
             if split_check.value:
                 energy = storage.today_energy() or 3
                 result = plan_today([task], energy, allow_ai=can_use_ai)
-                if result.n_ai:
+                if result.ai_called:
                     storage.record_usage("decompose")
                 steps = [
                     {"text": step, "done": False}
@@ -90,22 +145,42 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     storage.set_task_steps(task["id"], steps)
 
             storage.delete_inbox_note(note["id"])
+            voice.cleanup()
             page.pop_dialog()
             render_notes()
             page.update()
+
+        submit_button = ui_helpers.primary_button("Jadiin tugas", submit)
+
+        def set_voice_busy(busy: bool) -> None:
+            submit_button.disabled = busy
+
+        voice = VoiceDiary(page, description_field, set_voice_busy)
+
+        def cancel_to_task(ev) -> None:
+            voice.cleanup()
+            page.pop_dialog()
 
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
                 title=ft.Text("Rapikan jadi tugas", size=16),
                 content=ft.Column(
-                    [title_field, description_field, time_field, important_check, split_check, note_text],
+                    [
+                        title_field,
+                        description_field,
+                        voice.control(),
+                        deadline_time_holder,
+                        important_check,
+                        split_check,
+                        note_text,
+                    ],
                     spacing=8,
                     tight=True,
                 ),
                 actions=[
-                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()),
-                    ui_helpers.primary_button("Jadiin tugas", submit),
+                    ft.TextButton(content=ft.Text("Batal"), on_click=cancel_to_task),
+                    submit_button,
                 ],
             )
         )

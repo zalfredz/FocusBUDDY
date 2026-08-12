@@ -594,9 +594,9 @@ def tes_pecah_hemat_api():
 
     rec = [
         {"title": "Quiz Kalkulus 1", "description": "latihan soal integral bab 3",
-         "steps": ["Baca catatan", "Kerjain 5 soal"], "source": "ai"},
+         "steps": ["Baca catatan", "Kerjain 5 soal"], "source": "ai", "language": "id"},
         {"title": "Laporan bulanan", "description": "rekap penjualan",
-         "steps": ["Kumpulin data", "Bikin grafik"], "source": "ai"},
+         "steps": ["Kumpulin data", "Bikin grafik"], "source": "ai", "language": "id"},
     ]
 
     ok(model_pecah.cari("Quiz Kalkulus 1", "latihan soal integral bab 3", rec).ketemu,

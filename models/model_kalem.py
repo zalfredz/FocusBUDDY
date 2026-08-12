@@ -12,6 +12,8 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
+from app.runtime_policy import runtime_training_allowed
+
 MIN_RECORDS = 20
 MIN_PER_CLASS = 5
 LOW_ENGAGEMENT = 0.35
@@ -86,6 +88,8 @@ def _baris(fitur: Any) -> list[float]:
 
 def _latih(records: list[dict]) -> bool:
     global _model, _scaler, _fingerprint, _n_latih
+    if not runtime_training_allowed():
+        return False
 
     layak = _records_layak(records)
     label = [1 if record.get("acted") else 0 for record in layak]

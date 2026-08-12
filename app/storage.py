@@ -12,19 +12,23 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from app import clock, session_scope
+from app import clock, data_provenance, session_scope
 
 DATA_DIR = Path.home() / ".focusbuddy"
 DATA_FILE = DATA_DIR / "data.json"
 BACKUP_FILE = DATA_DIR / "data.json.bak"
 SCHEMA_VERSION = 3
+FOCUS_OUTCOME_SCHEMA_VERSION = "focus-outcome-v1"
+MAX_FOCUS_OUTCOME_RECORDS = 2_000
 
 _CLOUD_SAVE_HOOK: Optional[Callable[[dict[str, Any]], None]] = None
 _SESSION_STORAGE_KEY = "focusbuddy.storage.v1"
+_CURRENT_USER_ID = ""
 
 
 @dataclass
 class _StorageBinding:
+    user_id: str
     data_dir: Path
     data_file: Path
     backup_file: Path
@@ -51,7 +55,7 @@ def current_data_file() -> Path:
 
 
 def configure_user_storage(user_id: str, cache_root: Optional[Path] = None) -> None:
-    global DATA_DIR, DATA_FILE, BACKUP_FILE
+    global DATA_DIR, DATA_FILE, BACKUP_FILE, _CURRENT_USER_ID
     safe_id = "".join(c for c in str(user_id) if c.isalnum() or c in "-_")
     if not safe_id:
         raise ValueError("user_id tidak valid")
@@ -69,6 +73,7 @@ def configure_user_storage(user_id: str, cache_root: Optional[Path] = None) -> N
         session_scope.set_value(
             _SESSION_STORAGE_KEY,
             _StorageBinding(
+                user_id=safe_id,
                 data_dir=data_dir,
                 data_file=data_dir / "data.json",
                 backup_file=data_dir / "data.json.bak",
@@ -76,6 +81,7 @@ def configure_user_storage(user_id: str, cache_root: Optional[Path] = None) -> N
         )
         return
 
+    _CURRENT_USER_ID = safe_id
     DATA_DIR = Path.home() / ".focusbuddy" / "users" / safe_id
     DATA_FILE = DATA_DIR / "data.json"
     BACKUP_FILE = DATA_DIR / "data.json.bak"
@@ -91,7 +97,19 @@ def set_cloud_save_hook(hook: Optional[Callable[[dict[str, Any]], None]]) -> Non
 
 
 def clear_user_storage() -> None:
+    global _CURRENT_USER_ID
     session_scope.remove_value(_SESSION_STORAGE_KEY)
+    _CURRENT_USER_ID = ""
+
+
+def current_user_id() -> str:
+    binding = _session_binding()
+    return binding.user_id if binding is not None else _CURRENT_USER_ID
+
+
+def get_duration_personalization() -> dict[str, Any]:
+    payload = load_state().get("ml_personalization", {}).get("duration", {})
+    return dict(payload) if isinstance(payload, dict) else {}
 
 
 def _cloud_save_hook() -> Optional[Callable[[dict[str, Any]], None]]:
@@ -226,6 +244,8 @@ def _default_state() -> dict[str, Any]:
         "subscription": {"is_premium": False},
         "usage": {"date": ""},
         "focus_records": [],
+        "ml_outcome_records": [],
+        "ml_personalization": {"duration": {}},
         "decompose_records": [],
         "decision_records": [],
         "last_open_date": "",
@@ -408,13 +428,20 @@ def load_state() -> dict[str, Any]:
             migrated[key] = deepcopy(value)
             changed = True
 
-    for key in ("profile", "favorites", "today_energy", "subscription", "usage", "dev"):
+    for key in (
+        "profile", "favorites", "today_energy", "subscription", "usage", "dev",
+        "ml_personalization",
+    ):
         if not isinstance(migrated.get(key), dict):
             migrated[key] = deepcopy(_default_state()[key])
             changed = True
+    personalization = migrated["ml_personalization"]
+    if not isinstance(personalization.get("duration"), dict):
+        personalization["duration"] = {}
+        changed = True
     for key in (
         "tasks", "mood_logs", "diary_records", "reset_events", "inbox", "focus_records",
-        "decompose_records", "decision_records",
+        "ml_outcome_records", "decompose_records", "decision_records",
     ):
         if not isinstance(migrated.get(key), list):
             migrated[key] = []
@@ -433,6 +460,9 @@ def load_state() -> dict[str, Any]:
             changed = True
         if "repeat_end_date" not in task:
             task["repeat_end_date"] = ""
+            changed = True
+        if task.get("data_provenance") not in data_provenance.ALLOWED:
+            task["data_provenance"] = data_provenance.task_provenance(task)
             changed = True
 
     decision_defaults = {
@@ -834,6 +864,17 @@ def add_task(
     scheduled_date: Optional[str] = None,
     item_type: Optional[str] = None,
     repeat_end_date: str = "",
+    prediction_model_version: str = "",
+    prediction_source: str = "",
+    prediction_importance: Optional[float] = None,
+    prediction_deadline_days: Optional[float] = None,
+    prediction_global_minutes: Optional[int] = None,
+    prediction_global_model_version: str = "",
+    prediction_global_dataset_version: str = "",
+    prediction_global_artifact_sha256: str = "",
+    prediction_personalization_version: str = "",
+    prediction_personalization_dataset_version: str = "",
+    data_provenance_value: str = data_provenance.REAL_USER,
 ) -> dict:
     state = load_state()
     repeat = repeat if repeat in {"none", "daily", "weekly", "monthly"} else "none"
@@ -849,6 +890,8 @@ def add_task(
             repeat_end_date = end_date.isoformat() if end_date >= start_date else ""
         except (TypeError, ValueError):
             repeat_end_date = ""
+    if data_provenance_value not in data_provenance.ALLOWED:
+        raise ValueError("data_provenance task tidak valid")
     task = {
         "id": str(uuid.uuid4()),
         "title": title,
@@ -864,6 +907,29 @@ def add_task(
         "kategori": kategori,
         "jumlah_unit": float(jumlah_unit),
         "menit_est": int(menit_est),
+        "duration_prediction": {
+            "estimated_duration_minutes": int(menit_est),
+            "model_version": str(prediction_model_version or ""),
+            "source": str(prediction_source or ""),
+            "global_prediction_minutes": int(
+                prediction_global_minutes
+                if prediction_global_minutes is not None
+                else menit_est
+            ),
+            "global_model_version": str(
+                prediction_global_model_version or prediction_model_version or ""
+            ),
+            "global_dataset_version": str(prediction_global_dataset_version or ""),
+            "global_artifact_sha256": str(prediction_global_artifact_sha256 or ""),
+            "personalization_version": str(prediction_personalization_version or ""),
+            "personalization_dataset_version": str(
+                prediction_personalization_dataset_version or ""
+            ),
+            "importance": prediction_importance,
+            "deadline_days": prediction_deadline_days,
+            "predicted_at": clock.now().isoformat(),
+        } if int(menit_est) > 0 else {},
+        "data_provenance": data_provenance_value,
         "description": description,
         "custom_steps": [str(step).strip() for step in (custom_steps or []) if str(step).strip()],
         "repeat": repeat,
@@ -1274,9 +1340,12 @@ def add_focus_record(
     step_index: Optional[int] = None,
     decision_id: str = "",
     reflection: str = "",
+    session_id: str = "",
     session_started_at: str = "",
     session_ended_at: str = "",
     task_completed: bool = False,
+    interruption_count: int = 0,
+    pause_duration_minutes: float = 0.0,
 ) -> Optional[dict]:
     if float(menit) < MIN_RECORD_MINUTES and not outcome:
         return None
@@ -1298,9 +1367,13 @@ def add_focus_record(
         "decision_id": decision_id,
         "outcome": outcome,
         "reflection": reflection.strip(),
+        "session_id": session_id,
         "session_started_at": session_started_at,
         "session_ended_at": session_ended_at or clock.now().isoformat(),
         "actual_focus_minutes": round(float(menit), 1),
+        "actual_active_duration_minutes": round(float(menit), 4),
+        "interruption_count": max(0, int(interruption_count)),
+        "pause_duration_minutes": round(max(0.0, float(pause_duration_minutes)), 4),
         "task_completed": bool(task_completed),
         "date": clock.today().isoformat(),
         "timestamp": clock.now().isoformat(),
@@ -1313,6 +1386,134 @@ def add_focus_record(
 
 def get_focus_records() -> list[dict]:
     return load_state().get("focus_records", [])
+
+
+def _deadline_features(task: dict) -> tuple[bool, float]:
+    raw = str(task.get("deadline") or "").strip()
+    if not raw:
+        return False, 0.0
+    prediction = task.get("duration_prediction") or {}
+    stored_days = prediction.get("deadline_days")
+    if stored_days is not None:
+        try:
+            return True, float(stored_days)
+        except (TypeError, ValueError):
+            pass
+    try:
+        created = datetime.fromisoformat(str(task.get("created_at") or ""))
+        deadline = date.fromisoformat(raw)
+    except (TypeError, ValueError):
+        return True, 0.0
+    return True, float(max(0, (deadline - created.date()).days))
+
+
+def start_focus_outcome_record(
+    *,
+    session_id: str,
+    task_id: str,
+    step_id: str,
+    occurrence_date: str,
+    planned_session_minutes: int,
+    task_title: str,
+) -> str:
+    """Persist one versioned, unfinished Focus session for offline ML export."""
+    state = load_state()
+    task = next(
+        (item for item in state.get("tasks", []) if item.get("id") == task_id),
+        None,
+    )
+    prediction = (task or {}).get("duration_prediction") or {}
+    has_deadline, deadline_days = _deadline_features(task or {})
+    provenance = data_provenance.task_provenance(task)
+    synthetic = data_provenance.is_synthetic(provenance)
+    from app import config
+
+    collection_context = "setting_demo" if config.DEMO_MODE else "production"
+    record_id = str(uuid.uuid4())
+    record = {
+        "schema_version": FOCUS_OUTCOME_SCHEMA_VERSION,
+        "record_id": record_id,
+        "session_id": session_id,
+        "task_id": task_id,
+        "step_id": step_id,
+        "occurrence_date": occurrence_date,
+        "task_text": str((task or {}).get("title") or task_title or ""),
+        "category": str((task or {}).get("kategori") or ""),
+        "importance": prediction.get("importance"),
+        "has_deadline": has_deadline,
+        "deadline_days_or_zero": deadline_days,
+        "predicted_duration_minutes": prediction.get("estimated_duration_minutes"),
+        "prediction_model_version": str(prediction.get("model_version") or ""),
+        "prediction_source": str(prediction.get("source") or ""),
+        "global_prediction_minutes": prediction.get("global_prediction_minutes"),
+        "global_model_version": str(
+            prediction.get("global_model_version")
+            or prediction.get("model_version")
+            or ""
+        ),
+        "global_dataset_version": str(prediction.get("global_dataset_version") or ""),
+        "global_artifact_sha256": str(prediction.get("global_artifact_sha256") or ""),
+        "personalization_version": str(
+            prediction.get("personalization_version") or ""
+        ),
+        "personalization_dataset_version": str(
+            prediction.get("personalization_dataset_version") or ""
+        ),
+        "planned_session_minutes": int(planned_session_minutes),
+        "task_created_at": str((task or {}).get("created_at") or ""),
+        "started_at": datetime.now().isoformat(),
+        "ended_at": "",
+        "actual_active_duration_minutes": None,
+        "pause_duration_minutes": 0.0,
+        "completion_status": "started",
+        "outcome": "",
+        "interruption_count": 0,
+        "task_completed": False,
+        "task_snapshot_captured": task is not None,
+        "timing_quality": "pause_aware_no_visibility_signal",
+        "data_provenance": provenance,
+        "collection_context": collection_context,
+        "is_demo": provenance == data_provenance.SYNTHETIC_SCENARIO,
+        "synthetic": synthetic,
+        "created_at": clock.now().isoformat(),
+        "data_quality_status": "unknown",
+        "data_quality_reason": "session_in_progress",
+    }
+    state.setdefault("ml_outcome_records", []).append(record)
+    state["ml_outcome_records"] = state["ml_outcome_records"][-MAX_FOCUS_OUTCOME_RECORDS:]
+    save_state(state)
+    return record_id
+
+
+def update_focus_outcome_record(session_id: str, **changes: Any) -> bool:
+    if not session_id:
+        return False
+    allowed = {
+        "planned_session_minutes",
+        "interruption_count",
+        "pause_duration_minutes",
+        "completion_status",
+        "outcome",
+        "ended_at",
+        "actual_active_duration_minutes",
+        "task_completed",
+        "data_quality_status",
+        "data_quality_reason",
+    }
+    state = load_state()
+    for record in reversed(state.get("ml_outcome_records", [])):
+        if record.get("session_id") != session_id:
+            continue
+        for key, value in changes.items():
+            if key in allowed:
+                record[key] = value
+        save_state(state)
+        return True
+    return False
+
+
+def get_focus_outcome_records() -> list[dict]:
+    return load_state().get("ml_outcome_records", [])
 
 
 MAX_DECOMPOSE_RECORDS = 300

@@ -1,0 +1,550 @@
+row_id,tugas,source_group_id,has_deadline,deadline_days_or_zero,importance,estimated_duration_minutes,quantity_available,quantity_value,unit_type,action_type,task_category,complexity_indicator,complexity_analysis,complexity_research,complexity_revision,complexity_long_form,complexity_completion,complexity_learning,scope_all,scope_multiple,scope_each,scope_complete,n_token,extractor_version
+dur_0000,rapikan folder project,grp_a2c49f90fe,1,20.0,5.0,24.0,0,0.0,file,membersihkan,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0001,tulis abstrak paper,grp_c0b94a98d1,1,7.0,9.0,60.0,0,0.0,dokumen,menulis,lainnya,long_form,0,0,0,1,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0002,bersihkan wastafel kamar mandi,grp_7417c02c3b,1,2.0,7.0,24.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0003,bersihkan debu kipas langit-langit,grp_0b9b4c3e92,1,13.0,4.0,12.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0004,beli deterjen,grp_e4f94600d5,1,16.0,8.0,30.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0005,buang sampah di kamar mandi,grp_46f12677e0,1,3.0,7.0,6.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0006,potong kuku kaki,grp_30438bcca5,1,7.0,4.0,15.0,0,0.0,<missing>,<missing>,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0007,siapkan tas gym,grp_8c9d9db8c5,1,1.0,2.0,6.0,0,0.0,<missing>,mengorganisir,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0008,tidur siang,grp_607ad48a73,0,0.0,3.0,30.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0009,masak pasta,grp_e53a9be247,1,4.0,5.0,30.0,0,0.0,<missing>,membuat,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0010,siapkan salad,grp_2c158d4d69,1,1.0,6.0,12.0,0,0.0,<missing>,mengorganisir,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0011,rapikan rak bumbu,grp_47f19a7fd1,0,0.0,1.0,15.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0012,panggang sayuran,grp_2a6fa3c136,1,2.0,5.0,24.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0013,dengarkan playlist kiriman teman,grp_fc6ab62606,0,0.0,3.0,45.0,0,0.0,<missing>,menonton,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0014,buat board pinterest,grp_0b4148553b,0,0.0,1.0,60.0,0,0.0,<missing>,membuat,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0015,kirim permintaan pembayaran venmo untuk makan malam,grp_fcd2021b77,1,4.0,9.0,6.0,0,0.0,<missing>,mengirim,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0016,atur jadwal brunch dengan teman,grp_e98214efe5,1,3.0,6.0,12.0,0,0.0,<missing>,mengorganisir,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0017,baca bacaan kuliah,grp_4261098f68,1,7.0,7.0,30.0,0,0.0,<missing>,membaca,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0018,atur jadwal bertemu dosen pembimbing,grp_c0225e8fb3,1,18.0,8.0,6.0,0,0.0,<missing>,mengorganisir,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0019,cuci gelas kopi,grp_038a897e7f,1,1.0,8.0,6.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0020,buang surat sampah/junk mail,grp_2d5734756d,0,0.0,1.0,9.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0021,rapikan tempat tidur,grp_d0b1579690,1,0.0,3.0,6.0,0,0.0,<missing>,membersihkan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0022,cuci tas makeup,grp_09de9c7a01,1,2.0,4.0,12.0,0,0.0,<missing>,membersihkan,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0023,jalan-jalan di taman,grp_bffa63f015,0,0.0,1.0,45.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0024,lap laci kulkas,grp_5d8d04f0a8,1,3.0,4.0,15.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0025,merebus telur,grp_deeda7eac3,1,1.0,5.0,6.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0026,latihan fotografi,grp_fedb064cc9,0,0.0,2.0,60.0,0,0.0,<missing>,belajar,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0027,coba resep chiffon cake,grp_70e340a8a9,0,0.0,1.0,60.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0028,buat post instagram spring break,grp_1cefb14635,0,0.0,1.0,30.0,0,0.0,<missing>,membuat,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0029,potong poni,grp_b932670132,0,0.0,2.0,15.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0030,kerjakan kuis space robotics,grp_f8022c62cd,1,4.0,10.0,15.0,0,0.0,<missing>,mengerjakan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0031,kerjakan ujian take home modern control theory,grp_5b1bfb1856,1,2.0,10.0,90.0,0,0.0,<missing>,mengerjakan,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0032,kirim link when2meet untuk booth,grp_635a4d62e4,1,1.0,8.0,12.0,0,0.0,<missing>,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0033,update data di excel,grp_6dd9187b44,1,1.0,9.0,24.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0034,revisi paragraf pembuka paper riset,grp_4b057722e6,1,4.0,8.0,30.0,0,0.0,dokumen,mengedit,lainnya,research|revision|long_form,0,1,1,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0035,ganti kantong sampah dapur,grp_f495180061,1,0.0,7.0,6.0,0,0.0,<missing>,mengedit,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0036,lipat seprai,grp_a6ad90b9c8,1,1.0,7.0,6.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0037,tulis di jurnal/diary,grp_42819b7db5,0,0.0,1.0,15.0,0,0.0,<missing>,menulis,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0038,tulis target mingguan,grp_36bfb84c13,1,2.0,1.0,12.0,0,0.0,<missing>,menulis,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0039,beli dumpling beku,grp_d760ca9bfa,0,0.0,3.0,30.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0040,marinasi ayam,grp_c3aa1a8832,1,1.0,5.0,24.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0041,buat teh hangat,grp_1a7b77d798,0,0.0,4.0,9.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0042,buat matcha,grp_4ed8516116,0,0.0,4.0,9.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0043,beli matcha,grp_735ebbc70c,0,0.0,4.0,30.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0044,rencanakan trip ke museum,grp_e5f2d70e67,0,0.0,2.0,24.0,0,0.0,<missing>,mengorganisir,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0045,balas chat tante,grp_89075cca23,1,2.0,6.0,6.0,0,0.0,<missing>,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0046,beli puzzle baru,grp_15db7e9e9f,0,0.0,1.0,30.0,0,0.0,<missing>,transaksi,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0047,hapus catatan lama,grp_7591b3ee47,0,0.0,2.0,45.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0048,buang makeup kedaluwarsa,grp_13ac6df760,1,5.0,6.0,18.0,0,0.0,<missing>,membersihkan,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0049,baca satu bab buku di kindle,grp_7e8cb6ebff,0,0.0,1.0,18.0,1,1.0,bab,membaca,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0050,vacuum ruangan,grp_9aaec1e914,0,0.0,2.0,30.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0051,selesaikan PR feedback control systems nomor 2 secepatnya,grp_2dfbe4f465,1,1.0,7.0,240.0,0,0.0,<missing>,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,8,duration-text-rules-v3
+dur_0052,update deskripsi linkedin,grp_5b57174d1d,0,0.0,4.0,180.0,0,0.0,<missing>,mengedit,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0053,bayar sewa dan tagihan utilitas,grp_4cb017d7b6,1,7.0,9.0,15.0,0,0.0,<missing>,transaksi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0054,bayar tagihan kartu kredit,grp_ea0ddc92a9,1,7.0,10.0,15.0,0,0.0,<missing>,transaksi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0055,oleskan minyak ke rambut,grp_63e621e304,0,0.0,1.0,10.8,0,0.0,<missing>,<missing>,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0056,minum air,grp_9c860973aa,0,0.0,4.0,4.8,0,0.0,<missing>,perawatan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0057,selesaikan PR ai/ml nomor 2,grp_ce91165a91,1,1.0,9.0,240.0,0,0.0,<missing>,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,6,duration-text-rules-v3
+dur_0058,cas HP beberapa jam,grp_7286a76fd2,0,0.0,5.0,4.8,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,1,0,0,4,duration-text-rules-v3
+dur_0059,update CV,grp_f7fae82aab,1,2.0,6.0,150.0,0,0.0,<missing>,mengedit,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0060,selesaikan PR feedback control systems nomor 3 secepatnya,grp_0dc5532337,1,1.0,10.0,240.0,0,0.0,<missing>,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,8,duration-text-rules-v3
+dur_0061,buat koreografi bersama fran,grp_f0eadcf4eb,1,0.0,6.0,90.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0062,selesaikan PR feedback control systems nomor 4 secepatnya,grp_a4c461360e,1,1.0,6.0,240.0,0,0.0,<missing>,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,8,duration-text-rules-v3
+dur_0063,tulis bagian hasil eksperimen 2 di laporan praktikum,grp_2731998d4f,1,3.0,8.0,360.0,0,0.0,dokumen,menulis,akademik,long_form,0,0,0,1,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0064,menghadiri pesta ulang tahun,grp_17c7143a1d,1,3.0,3.0,180.0,0,0.0,<missing>,sosial,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0065,selesaikan bagian laporan praktikum sistem mekanik,grp_3db7ce161c,1,5.0,8.0,240.0,0,0.0,dokumen,mengerjakan,akademik,long_form|completion,0,0,0,1,1,0,0,0,0,0,6,duration-text-rules-v3
+dur_0066,menghadiri pesta bertema,grp_cd4d0bf175,1,4.0,1.0,180.0,0,0.0,<missing>,sosial,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0067,rapikan tempat tidur,grp_d0b1579690,1,0.0,4.0,4.8,0,0.0,<missing>,membersihkan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0068,cuci baju,grp_623d92fa3a,0,0.0,7.0,180.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0069,buang sampah,grp_6cf73a178a,1,1.5,3.0,15.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0070,lipat baju,grp_c62c2a0170,1,0.5,2.0,60.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0071,threading alis,grp_a47f0ca6cd,1,12.0,5.0,45.0,0,0.0,<missing>,perawatan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0072,selesaikan PR ai/ml nomor 3,grp_901b1b2586,1,6.0,8.0,360.0,0,0.0,<missing>,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,6,duration-text-rules-v3
+dur_0073,beli baju untuk konferensi society of women engineers,grp_4ee0fc72b7,1,21.0,6.0,120.0,0,0.0,<missing>,transaksi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0074,beli tiket pesawat pulang untuk fall break,grp_68459f4cae,1,2.0,7.0,30.0,0,0.0,<missing>,transaksi,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0075,kirim email ke recruiter soal ketersediaan lowongan,grp_080e4b9dbb,0,0.0,9.0,30.0,0,0.0,email,mengirim,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0076,isi formulir booth,grp_fa19053f62,1,1.0,4.0,60.0,0,0.0,dokumen,mengisi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0077,melamar lowongan kerja di handshake,grp_6f73c5df50,1,40.0,8.0,60.0,0,0.0,item,mengisi,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0078,buat janji dokter gigi bulan depan,grp_2e009c4b7b,1,21.0,4.0,120.0,0,0.0,<missing>,membuat,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0079,meal prep kari di hari minggu,grp_f928755a59,1,5.0,5.0,6.0,0,0.0,<missing>,<missing>,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0080,urus visa perjalanan india,grp_3c0831630e,1,35.0,9.0,90.0,0,0.0,<missing>,<missing>,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0081,latihan tarian bersama fran dan kate,grp_344c48100b,1,2.0,3.0,360.0,0,0.0,<missing>,belajar,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0082,selesaikan baca buku fiksi ilmiah yang sudah dibeli,grp_fa2564d341,1,75.0,1.0,1200.0,0,0.0,<missing>,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,8,duration-text-rules-v3
+dur_0083,batalkan langganan yang tidak dipakai,grp_99bcf30952,1,6.0,5.0,60.0,0,0.0,<missing>,transaksi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0084,kirim email ke pemilik kos soal filter air keran yang hilang,grp_4c27d0a268,0,0.0,8.0,6.0,0,0.0,email,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,11,duration-text-rules-v3
+dur_0085,bayar kembali tagihan listrik ke teman sekamar,grp_12127097f4,1,6.0,7.0,12.0,0,0.0,<missing>,transaksi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0086,baca sekilas dan review silabus untuk persiapan,grp_ec7ab264ff,0,0.0,6.0,18.0,0,0.0,dokumen,membaca,akademik,revision,0,0,1,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0087,kerjakan ujian take home bersama teman,grp_a1d48ab2b2,1,4.0,9.0,480.0,0,0.0,<missing>,mengerjakan,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0088,cairkan daging ayam giling beku untuk makan malam,grp_f001d017a6,1,0.0,3.0,3.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0089,update github dengan kode dari tugas dan praktikum,grp_7ef8a7cf1c,0,0.0,7.0,60.0,0,0.0,<missing>,mengedit,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0090,telepon asuransi kesehatan untuk konfirmasi biaya kunjungan rumah sakit,grp_898ecfe209,1,0.0,10.0,30.0,0,0.0,<missing>,mengirim,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,9,duration-text-rules-v3
+dur_0091,rencanakan trip spring break,grp_adb7a8ea36,1,55.0,3.0,90.0,0,0.0,<missing>,mengorganisir,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0092,minum multivitamin,grp_cfc8956dc9,1,0.0,4.0,6.0,0,0.0,<missing>,perawatan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0093,pakai sunscreen,grp_aeeddbaa92,1,0.0,7.0,6.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0094,buat anggaran pengeluaran bulan oktober,grp_a424b8f125,1,7.0,8.0,60.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0095,"kembalikan jeans, salah ukuran",grp_b985e72d07,1,3.0,9.0,180.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0096,minta teman membayar kembali untuk trip ke atlanta,grp_7e3063054f,0,0.0,10.0,6.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0097,rencanakan kencan dengan pacar,grp_f893942716,1,3.0,10.0,12.0,0,0.0,<missing>,mengorganisir,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0098,bersihkan dan rapikan file di komputer,grp_f5133180d1,0,0.0,3.0,18.0,0,0.0,file,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0099,manicure di salon terdekat,grp_228123944a,1,14.0,2.0,120.0,0,0.0,<missing>,perawatan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0100,segera pindahkan mobil dari zona derek/pelanggaran,grp_67e295fffe,1,0.0,9.0,30.0,0,0.0,<missing>,perjalanan,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0101,ambil obat sebelum apotek tutup,grp_e3a5c11b5d,1,0.0,9.0,45.0,0,0.0,<missing>,perjalanan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0102,minum antibiotik resep sesuai jadwal,grp_9ece964c36,1,0.0,10.0,3.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0103,balas recruiter untuk konfirmasi jadwal wawancara hari ini,grp_98f5b2794f,1,0.0,10.0,15.0,0,0.0,<missing>,mengirim,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0104,tanda tangan surat penawaran kerja sebelum deadline hari ini,grp_9e6d281756,1,0.0,10.0,15.0,0,0.0,<missing>,mengisi,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,9,duration-text-rules-v3
+dur_0105,unggah aplikasi grant sebelum portal tutup jam 5 sore,grp_8cf7d79a8b,1,0.0,10.0,180.0,0,0.0,<missing>,mengirim,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,9,duration-text-rules-v3
+dur_0106,bekukan kredit setelah dugaan penipuan,grp_7ba3078207,1,0.0,10.0,30.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0107,ajukan sanggahan transaksi tidak sah dalam 24 jam,grp_9ae5eea98d,1,0.0,10.0,30.0,1,24.0,jam,mengisi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0108,temui kurir di lobi sekarang,grp_54a0215d3e,1,2.0,8.0,3.0,0,0.0,<missing>,sosial,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0109,bawa KTP untuk janji temu DMV pagi ini,grp_2a43bc6c70,1,0.0,9.0,120.0,0,0.0,<missing>,perjalanan,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0110,latihan soal array untuk interview coding selama 30 menit,grp_9a70eabec2,1,1.0,8.0,45.0,1,30.0,menit,belajar,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,9,duration-text-rules-v3
+dur_0111,konfirmasi jadwal kelompok belajar minggu depan,grp_af87287f5b,1,3.0,6.0,120.0,0,0.0,<missing>,mengirim,lainnya,learning,0,0,0,0,0,1,0,0,0,0,6,duration-text-rules-v3
+dur_0112,update readme project dengan langkah instalasi,grp_ceafd6a82b,1,2.0,7.0,60.0,0,0.0,item,mengedit,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0113,buat kerangka esai sejarah (pendahuluan + 3 poin),grp_50e476648f,1,5.0,8.0,120.0,1,3.0,item,membuat,lainnya,long_form,0,0,0,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0114,cari tiga lowongan kerja dan simpan favorit,grp_c50c58075e,1,3.0,6.0,60.0,1,3.0,item,mencari,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0115,ekspor daftar sitasi ke bibtex,grp_65b7f71415,1,4.0,7.0,30.0,0,0.0,<missing>,mengorganisir,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0116,lap bagian bawah dinding (baseboard) ruang tamu,grp_98cda71c96,1,6.0,2.0,60.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0117,tulis draf email sopan ke dosen pembimbing berisi pertanyaan,grp_c531e06995,1,1.0,7.0,15.0,0,0.0,dokumen,menulis,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,9,duration-text-rules-v3
+dur_0118,ganti nama file dengan awalan tanggal,grp_c52bded076,0,0.0,3.0,30.0,0,0.0,file,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0119,cek tekanan ban dan isi angin jika perlu,grp_beadfb2699,1,7.0,6.0,30.0,0,0.0,<missing>,membaca,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0120,masak dua porsi makan malam sekaligus untuk hari sibuk,grp_f3051a8e18,1,3.0,3.0,120.0,1,2.0,item,membuat,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,9,duration-text-rules-v3
+dur_0121,tentukan pertanyaan riset dan hipotesis,grp_04aee793b9,1,2.0,8.0,120.0,0,0.0,soal,mencari,lainnya,analysis|research,1,1,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0122,baca sekilas abstrak untuk saring relevansi,grp_a45da1b020,1,4.0,7.0,120.0,0,0.0,<missing>,membaca,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0123,identifikasi celah/peluang dari studi literatur,grp_9ed3b713fc,1,3.0,6.0,120.0,0,0.0,<missing>,mencari,lainnya,research,0,1,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0124,buat file environment conda/poetry,grp_b67d4d02c2,1,1.0,7.0,60.0,0,0.0,file,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0125,implementasi pengecekan validasi data,grp_39ac011cdb,1,5.0,8.0,120.0,0,0.0,<missing>,mengerjakan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0126,latihan presentasi dan sesuaikan waktunya dengan slot,grp_61a8bc940b,1,6.0,5.0,120.0,0,0.0,<missing>,belajar,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0127,obati koloni lebah dengan asam format bila perlu,grp_7c42330aa8,1,3.0,7.0,60.0,0,0.0,<missing>,perawatan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0128,panen bingkai madu yang tertutup dan ekstrak madu,grp_dd9d09727f,1,4.0,4.0,180.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0129,isolasi sarang lebah untuk musim dingin dan perkecil pintu masuk,grp_e855815d14,1,5.0,5.0,120.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,10,duration-text-rules-v3
+dur_0130,bakar glasir keramik hingga cone 6 dengan waktu tahan,grp_de31407243,1,7.0,6.0,60.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,9,duration-text-rules-v3
+dur_0131,perbarui starter sourdough dan jadwalkan pemberian makan,grp_02a2d976cf,1,1.0,5.0,15.0,0,0.0,<missing>,mengedit,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0132,rekam ros bag selama 10 menit operasi,grp_944b8b4a2b,1,9.0,7.0,12.0,1,10.0,menit,membuat,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0133,atur parameter pid untuk feedback wheel encoder,grp_48616f2698,1,3.0,8.0,120.0,0,0.0,<missing>,mengorganisir,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0134,stem gitar,grp_8c1b736d9a,1,5.0,2.0,30.0,0,0.0,<missing>,<missing>,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0135,kalibrasi bias imu dan update sensor fusion,grp_827a3043b2,1,2.0,7.0,120.0,0,0.0,<missing>,mengedit,lainnya,analysis,1,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0136,atur white balance khusus untuk lampu studio,grp_4771972062,1,6.0,5.0,30.0,0,0.0,<missing>,mengorganisir,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0137,foto acara fashion show,grp_c6e306fe5e,1,9.0,6.0,180.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0138,foto karya seni dengan cahaya alami,grp_7ac0c41cfa,1,3.0,4.0,120.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0139,belajar teknik magic ring untuk merajut (crochet),grp_6868a35b82,1,5.0,2.0,60.0,0,0.0,<missing>,belajar,pribadi,learning,0,0,0,0,0,1,0,0,0,0,7,duration-text-rules-v3
+dur_0140,backup draft ke cloud,grp_c680ccb3e1,1,6.0,6.0,60.0,0,0.0,dokumen,mengorganisir,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0141,review grammar bentuk lampau bahasa spanyol,grp_6ceb48891e,1,8.0,6.0,120.0,0,0.0,<missing>,membaca,lainnya,revision,0,0,1,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0142,lakukan dikte listening 10 menit,grp_9db5f8c3d7,1,3.0,7.0,15.0,1,10.0,menit,mengerjakan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0143,tulis catatan harian sebanyak 120 kata,grp_336d50f7d5,1,0.0,5.0,30.0,1,120.0,item,menulis,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0144,inventarisasi komponen yang hilang,grp_26911d5ae4,1,3.0,7.0,60.0,0,0.0,<missing>,mengorganisir,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0145,kasih rating restoran di aplikasi beli,grp_029950aaad,0,0.0,3.0,180.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0146,ekspor kalender ke notion,grp_4f1ef7032c,1,2.0,5.0,30.0,0,0.0,<missing>,mengorganisir,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0147,unggah tugas di situs penjadwalan,grp_41e20d7bb9,1,8.0,6.0,30.0,0,0.0,<missing>,mengirim,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0148,daftar mata kuliah untuk semester genap,grp_01ae65bc24,1,30.0,8.0,120.0,0,0.0,<missing>,mengisi,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0149,cek persyaratan audit gelar,grp_a1043b8305,1,12.0,9.0,60.0,0,0.0,<missing>,membaca,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0150,temui dosen pembimbing akademik untuk rencanakan jadwal,grp_9ab1dd482a,1,7.0,8.0,60.0,0,0.0,<missing>,sosial,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0151,tambah/hapus mata kuliah sebelum deadline,grp_98a7b0acf5,1,5.0,8.0,30.0,0,0.0,<missing>,mengedit,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0152,ajukan pembebasan prasyarat mata kuliah,grp_cc9d32833e,1,3.0,9.0,30.0,0,0.0,<missing>,mengisi,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0153,beli buku kuliah wajib bekas,grp_6551a20308,1,8.0,6.0,60.0,0,0.0,<missing>,transaksi,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0154,pinjam buku referensi mata kuliah dari perpustakaan,grp_b682b0e47b,1,5.0,7.0,30.0,0,0.0,<missing>,<missing>,akademik,research,0,1,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0155,cetak silabus tiap mata kuliah,grp_2c29554a94,1,9.0,3.0,30.0,0,0.0,dokumen,mengorganisir,akademik,<missing>,0,0,0,0,0,0,0,0,1,0,5,duration-text-rules-v3
+dur_0156,buat folder mata kuliah di google drive,grp_14b92c23ed,1,2.0,5.0,30.0,0,0.0,file,membuat,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0157,gabung discord/slack kelas,grp_464eed7dd4,1,0.0,6.0,15.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0158,posting perkenalan diri di forum mata kuliah,grp_726bf4bdf3,1,3.0,7.0,30.0,0,0.0,<missing>,mengirim,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0159,bentuk kelompok belajar kalkulus,grp_6b18db0d0f,0,0.0,7.0,60.0,0,0.0,<missing>,belajar,lainnya,learning,0,0,0,0,0,1,0,0,0,0,4,duration-text-rules-v3
+dur_0160,pesan ruang belajar untuk review UTS,grp_7a1edd475d,1,3.0,8.0,30.0,0,0.0,<missing>,transaksi,akademik,revision|learning,0,0,1,0,0,1,0,0,0,0,6,duration-text-rules-v3
+dur_0161,menghadiri jam konsultasi dosen dengan pertanyaan yang sudah disiapkan,grp_4bf686ae8d,1,1.0,6.0,60.0,0,0.0,soal,sosial,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,9,duration-text-rules-v3
+dur_0162,kirim email ke dosen soal kuliah yang terlewat,grp_697afce530,1,0.0,8.0,15.0,0,0.0,email,mengirim,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0163,buat catatan untuk bab 2,grp_021cb74b08,1,5.0,7.0,120.0,0,0.0,bab,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0164,tonton rekaman kuliah untuk mengejar ketertinggalan,grp_bd7fd69e23,0,0.0,6.0,60.0,0,0.0,video,menonton,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0165,buat contekan rumus,grp_6ff469d108,1,6.0,9.0,120.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0166,unduh slide kuliah dan beri catatan,grp_0750c3ec44,1,3.0,8.0,60.0,0,0.0,slide,mengorganisir,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0167,kumpulkan data lab dan upload csv,grp_9a8e47e7c9,1,4.0,7.0,60.0,0,0.0,<missing>,mengisi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0168,rekam video latihan presentasi,grp_a744cfe6d0,1,2.0,5.0,60.0,0,0.0,video,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0169,tulis bagian metode di laporan praktikum,grp_c3cd8094a0,1,6.0,6.0,180.0,0,0.0,dokumen,menulis,akademik,long_form,0,0,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0170,kirim draf ke writing center,grp_22513d2b60,1,4.0,8.0,60.0,0,0.0,dokumen,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0171,buat grafik untuk laporan praktikum di python,grp_e1662991c6,1,6.0,6.0,180.0,0,0.0,dokumen,membuat,akademik,long_form,0,0,0,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0172,minta surat rekomendasi dari dosen,grp_fb57baea38,1,7.0,9.0,30.0,0,0.0,<missing>,mengirim,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0173,pesan kartu mahasiswa pengganti,grp_2346360543,1,3.0,8.0,15.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0174,unggah transkrip tidak resmi ke portal,grp_0818af59f0,1,2.0,7.0,15.0,0,0.0,<missing>,mengirim,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0175,"selesaikan modul pelatihan wajib (ferpa, pelecehan seksual)",grp_654645546e,1,7.0,10.0,120.0,0,0.0,item,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,7,duration-text-rules-v3
+dur_0176,bayar sisa uang kuliah atau atur cicilan,grp_9fb3620a1b,1,5.0,10.0,30.0,0,0.0,<missing>,transaksi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0177,jemput mentee untuk program mentoring,grp_f1e4268f41,1,3.0,5.0,60.0,0,0.0,<missing>,perjalanan,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0178,temui rekan tim untuk bagi tugas project,grp_da307fb4ab,1,4.0,6.0,60.0,0,0.0,<missing>,sosial,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0179,ganti bohlam lampu,grp_ab0a735240,1,1.0,3.0,15.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0180,atur pengingat kalender untuk tagihan mendatang,grp_b6e02b148e,1,5.0,7.0,15.0,0,0.0,<missing>,mengorganisir,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0181,sapu lantai dapur,grp_13374dd808,0,0.0,3.0,15.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0182,pemanasan selama 10 menit,grp_22b690c09b,1,0.0,4.0,12.0,1,10.0,menit,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0183,ikut kelas dansa,grp_645986f07c,0,0.0,5.0,90.0,0,0.0,<missing>,sosial,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0184,ikut kelas pilates,grp_bf9399415c,0,0.0,2.0,90.0,0,0.0,<missing>,sosial,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0185,booking studio untuk latihan,grp_2a73ff6c5b,1,7.0,7.0,30.0,0,0.0,<missing>,mengorganisir,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0186,daftar sesi ngobrol santai (coffee chat),grp_758b5e41eb,1,2.0,5.0,15.0,0,0.0,<missing>,mengisi,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0187,minta referral dari saudara di perusahaan teknologi,grp_ed322317cf,1,4.0,9.0,15.0,0,0.0,<missing>,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0188,follow up lamaran kerja minggu lalu,grp_b355d309c0,1,3.0,8.0,30.0,0,0.0,<missing>,mengirim,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0189,persiapan wawancara teknis dan buat contekan,grp_f44ff27c10,1,2.0,8.0,240.0,0,0.0,<missing>,belajar,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0190,sesuaikan CV dengan lowongan kerja,grp_7ebe5b7375,1,6.0,7.0,120.0,0,0.0,item,mengedit,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0191,atur notifikasi lowongan untuk posisi dan kota pilihan,grp_16e606bc12,1,7.0,9.0,15.0,0,0.0,item,mengorganisir,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0192,sisihkan 2 jam khusus untuk cari kerja fokus,grp_069af5f7d6,1,4.0,6.0,120.0,1,2.0,jam,mencari,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0193,susun kerangka portofolio/studi kasus,grp_239cf0b254,1,3.0,7.0,120.0,0,0.0,<missing>,mengorganisir,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0194,buat daftar 3 posisi kerja target dan skill yang dibutuhkan,grp_38d6160df7,1,7.0,5.0,60.0,1,3.0,item,membuat,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,10,duration-text-rules-v3
+dur_0195,catat lamaran kerja di spreadsheet sederhana,grp_ef3914f421,1,4.0,6.0,30.0,0,0.0,<missing>,menulis,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0196,beli rak sepatu untuk apartemen,grp_03df5f3ffa,1,2.0,3.0,30.0,0,0.0,<missing>,transaksi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0197,cari set kunci cadangan baru,grp_1a8f912b0f,1,8.0,5.0,15.0,0,0.0,<missing>,mencari,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0198,buat daftar tugas,grp_1370187210,1,6.0,7.0,30.0,0,0.0,<missing>,membuat,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0199,selesaikan PR modern control theory,grp_7a8f829f56,1,3.0,10.0,480.0,0,0.0,<missing>,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,5,duration-text-rules-v3
+dur_0200,mandi + skincare,grp_80fa4de4f5,1,0.0,6.0,36.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0201,nonton satu episode better call saul,grp_82d5e1e404,0,0.0,2.0,60.0,1,1.0,video,menonton,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0202,simpan baju ke lemari,grp_692e1223ec,0,0.0,5.0,15.0,0,0.0,<missing>,mengorganisir,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0203,makan sesuatu,grp_17d56ef305,1,0.0,10.0,60.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0204,isi ulang filter air brita,grp_d563974cdf,1,0.0,6.0,4.8,0,0.0,<missing>,mengisi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0205,selesaikan project 1,grp_353f677137,1,10.0,10.0,720.0,0,0.0,<missing>,mengerjakan,pekerjaan,completion,0,0,0,0,1,0,0,0,0,0,3,duration-text-rules-v3
+dur_0206,packing untuk trip fall break,grp_d2d742a389,1,18.0,10.0,180.0,0,0.0,<missing>,mengorganisir,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0207,buat slide pencapaian space robotics,grp_45784d7b0d,1,4.0,10.0,9.6,0,0.0,slide,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0208,tambah lagu ke playlist spotify,grp_9c96779e38,0,0.0,3.0,600.0,0,0.0,<missing>,mengedit,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0209,beli susu,grp_cd6df5284a,1,7.0,4.0,18.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0210,nonton satu episode long story short,grp_c5b5484cb3,0,0.0,2.0,25.2,1,1.0,video,menonton,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0211,melamar ke 50 lowongan kerja,grp_d2649dc5dd,0,0.0,8.0,540.0,1,50.0,item,mengisi,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0212,cuci baju,grp_623d92fa3a,1,4.0,7.0,18.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0213,kumpulkan baju milik mantan,grp_b796f28dc7,0,0.0,4.0,30.0,0,0.0,<missing>,mengisi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0214,beli hadiah ulang tahun ibu,grp_166692f1fb,1,20.0,10.0,120.0,0,0.0,<missing>,transaksi,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0215,putuskan rencana akhir pekan ulang tahun,grp_98921c5588,1,41.0,5.0,60.0,0,0.0,<missing>,<missing>,lainnya,completion,0,0,0,0,1,0,0,0,0,0,6,duration-text-rules-v3
+dur_0216,potong kuku tangan,grp_3f90fe9eb4,1,5.0,7.0,15.0,0,0.0,<missing>,<missing>,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0217,cat kuku,grp_362d4eda3f,0,0.0,1.0,60.0,0,0.0,<missing>,<missing>,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0218,kerjakan PR machine learning dan ai,grp_d59e60b5d5,1,4.0,10.0,420.0,0,0.0,<missing>,mengerjakan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0219,bayar kartu kredit,grp_bfff145b23,1,22.0,10.0,3.0,0,0.0,<missing>,transaksi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0220,lap lemari laci,grp_a4f8c09491,0,0.0,3.0,9.6,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0221,kumpulkan data untuk project 1,grp_3f729174a4,1,2.0,10.0,180.0,0,0.0,<missing>,mengisi,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0222,main tenis,grp_55d4ce2fad,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0223,cuci botol minum,grp_c59a30a071,1,3.0,7.0,15.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0224,beli camilan,grp_4c36db4df7,1,7.0,5.0,18.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0225,cuci baju yang itu,grp_f7d6feaa96,1,10.0,2.0,18.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0226,vacuum lantai kamar,grp_3a28b7fa1b,1,4.0,6.0,15.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0227,buat janji dengan terapis,grp_669f15c80d,1,3.0,6.0,4.8,0,0.0,<missing>,membuat,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0228,rapikan screenshot di desktop,grp_91f7bd8c9a,0,0.0,5.0,60.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0229,hapus foto di HP,grp_489ad16abc,0,0.0,4.0,120.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0230,potong rambut,grp_e210fdf28e,1,70.0,6.0,90.0,0,0.0,<missing>,<missing>,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0231,baca satu bab buku 1984,grp_20fe20e468,0,0.0,3.0,18.0,1,1.0,bab,membaca,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0232,susun puzzle bergambar basquiat,grp_e9fd931fb3,0,0.0,3.0,180.0,0,0.0,<missing>,mengorganisir,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0233,latihan piano,grp_aa4c3c1f54,0,0.0,3.0,120.0,0,0.0,<missing>,belajar,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0234,beli perhiasan,grp_263d765534,0,0.0,1.0,30.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0235,buang sampah,grp_6cf73a178a,1,5.0,7.0,12.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0236,hadiri gbm asa,grp_392adad47a,1,2.0,2.0,60.0,0,0.0,<missing>,sosial,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0237,hapus playlist spotify,grp_db647cc357,0,0.0,2.0,240.0,0,0.0,<missing>,mengedit,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0238,kerjakan PR mata kuliah special topics,grp_46e26da4d7,1,5.0,10.0,600.0,0,0.0,<missing>,mengerjakan,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0239,belanja bahan makanan,grp_308c7fd822,1,7.0,7.0,72.0,0,0.0,<missing>,transaksi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0240,bicara dengan jaden dan eloise soal booth,grp_7044993be6,1,20.0,6.0,36.0,0,0.0,soal,sosial,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0241,membuat sketsa,grp_007dfc8237,0,0.0,2.0,30.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0242,berikan uang booth ke jaden dan eloise,grp_6208d3b40a,1,30.0,7.0,12.0,0,0.0,<missing>,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0243,balas chat,grp_902a002adf,1,4.0,6.0,30.0,0,0.0,<missing>,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0244,cuci piring,grp_e498b1de41,1,1.0,7.0,18.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0245,berhenti berlangganan email,grp_684d58c015,0,0.0,2.0,30.0,0,0.0,email,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0246,balas email,grp_d1538add24,1,2.0,7.0,30.0,0,0.0,email,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0247,kirim email ke heather soal dimensi lander,grp_3dba63ace4,1,0.0,10.0,12.0,0,0.0,email,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0248,bersihkan debu furnitur,grp_66a9133a8b,1,6.0,6.0,15.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0249,simpan sepatu di rak,grp_92a7c3d304,1,8.0,2.0,6.0,0,0.0,<missing>,mengorganisir,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0250,cuci sarung bantal,grp_36326a362e,1,3.0,7.0,18.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0251,pre-check in untuk CT scan,grp_52fd97e631,1,2.0,7.0,6.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0252,konfirmasi kehadiran pesta (RSVP),grp_d009724034,1,3.0,1.0,6.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0253,chat mason untuk atur jadwal makan siang,grp_691312ef14,1,0.0,3.0,6.0,0,0.0,<missing>,mengirim,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0254,perbaiki dimensi gambar lander,grp_a802794c06,1,2.0,10.0,120.0,0,0.0,item,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0255,beli sampo,grp_510b793d92,1,10.0,7.0,6.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0256,beli skincare,grp_d7c979f52e,1,10.0,7.0,6.0,0,0.0,<missing>,transaksi,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0257,buat draf anggaran,grp_c9feade077,1,4.0,7.0,60.0,0,0.0,dokumen,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0258,selesaikan pengumpulan data,grp_1e6fd1fd4c,1,0.0,10.0,180.0,0,0.0,<missing>,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,3,duration-text-rules-v3
+dur_0259,melukis cat air,grp_ece9805700,0,0.0,2.0,60.0,0,0.0,<missing>,membuat,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0260,beli kantong sampah,grp_dc26479e78,1,3.0,7.0,30.0,0,0.0,<missing>,transaksi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0261,balas chat ayah,grp_888080780a,1,2.0,4.0,6.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0262,belajar untuk UTS,grp_91bd851c08,1,4.0,10.0,600.0,0,0.0,<missing>,belajar,akademik,learning,0,0,0,0,0,1,0,0,0,0,3,duration-text-rules-v3
+dur_0263,cuci keset kamar mandi,grp_4100095464,1,3.0,7.0,18.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0264,isi ulang tempat vitamin,grp_8adeaadd55,1,2.0,6.0,6.0,0,0.0,<missing>,mengisi,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0265,jalankan simulasi ansys untuk space robotics,grp_ce23433d90,1,2.0,10.0,180.0,0,0.0,<missing>,mengerjakan,lainnya,analysis,1,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0266,selesaikan penulisan laporan praktikum,grp_0323df8b8a,1,6.0,10.0,300.0,0,0.0,dokumen,mengerjakan,akademik,long_form|completion,0,0,0,1,1,0,0,0,0,0,4,duration-text-rules-v3
+dur_0267,rapikan gudang bahan makanan,grp_f620e1a9e7,0,0.0,1.0,30.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0268,buang makanan kedaluwarsa,grp_83719d1623,1,2.0,7.0,12.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0269,bersihkan microwave,grp_0628b9f64f,1,3.0,3.0,12.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0270,ganti filter vacuum cleaner,grp_57f83d9f2b,1,4.0,4.0,6.0,0,0.0,<missing>,mengedit,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0271,ganti filter brita,grp_d12a3dfebe,1,2.0,7.0,6.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0272,ganti seprai,grp_4a3193a858,1,3.0,7.0,16.2,0,0.0,<missing>,mengedit,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0273,periksa ulang CV,grp_06e27b91fe,1,4.0,5.0,18.0,0,0.0,<missing>,membaca,pekerjaan,revision,0,0,1,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0274,beli tisu toilet,grp_703b585a4f,1,1.0,10.0,30.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0275,beli poster baru,grp_c3ee952657,0,0.0,1.0,60.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0276,atur ulang layout poster di dinding,grp_841cd45fbd,0,0.0,1.0,72.0,0,0.0,<missing>,mengorganisir,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0277,meal prep untuk seminggu,grp_c040177fa0,1,2.0,6.0,90.0,0,0.0,<missing>,<missing>,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0278,bersihkan kompor,grp_36e8e6e6c4,1,4.0,3.0,15.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0279,isi bensin mobil,grp_77f57ebe80,1,1.0,10.0,30.0,0,0.0,<missing>,mengisi,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0280,pergi ke gym,grp_bbfb1c2d4e,1,7.0,3.0,90.0,0,0.0,<missing>,perjalanan,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0281,main basket,grp_e5c011fee2,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0282,lap meja dapur,grp_2afcfca9b1,1,3.0,3.0,12.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0283,bersihkan cermin kamar mandi,grp_540ee7ea75,1,7.0,2.0,12.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0284,bersihkan shower,grp_1a7b2bd81e,1,2.0,6.0,18.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0285,rapikan rak buku,grp_e842044f39,0,0.0,1.0,30.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0286,siram tanaman,grp_a23d3a944f,1,3.0,7.0,6.0,0,0.0,<missing>,<missing>,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0287,brainstorming ide riset,grp_5138bb4157,1,2.0,10.0,36.0,0,0.0,<missing>,mencari,lainnya,research,0,1,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0288,kosongkan mesin cuci piring,grp_44aa49cf6e,1,1.0,6.0,12.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0289,cuci buah,grp_972e9899e2,1,0.0,7.0,6.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0290,potong buah,grp_3ab6e89016,1,0.0,6.0,12.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0291,edit daftar pustaka,grp_7174a2d6af,1,3.0,10.0,18.0,0,0.0,<missing>,mengedit,akademik,revision,0,0,1,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0292,lipat origami,grp_34e2a599be,0,0.0,1.0,24.0,0,0.0,<missing>,membersihkan,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0293,nyalakan dupa,grp_94d4c1b2d3,0,0.0,1.0,3.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0294,nyalakan lilin,grp_259f3041e5,0,0.0,1.0,3.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0295,berenang,grp_631864909e,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,1,duration-text-rules-v3
+dur_0296,main polo air,grp_9b6b3e66b3,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0297,main pickleball,grp_4e4b9620ba,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0298,main sepak bola,grp_fdaa9a3c7f,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0299,main voli,grp_38caa0995c,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0300,main voli pantai,grp_880dd7423f,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0301,main ice skating,grp_4911337358,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0302,main ice hockey,grp_bf0c66df8b,0,0.0,3.0,90.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0303,lakukan 10 kali sit up,grp_694fdf2b2a,0,0.0,2.0,15.0,1,10.0,item,mengerjakan,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0304,cat kuku kaki,grp_6331d0dc83,0,0.0,1.0,75.0,0,0.0,<missing>,<missing>,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0305,hapus makeup,grp_39e5652a12,1,0.0,7.0,12.0,0,0.0,<missing>,mengedit,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0306,buat kopi,grp_54993a0590,1,0.0,4.0,6.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0307,main game league of legends,grp_4d6df8858d,0,0.0,1.0,60.0,0,0.0,<missing>,olahraga,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0308,main game valorant,grp_d33705b7ad,0,0.0,1.0,60.0,0,0.0,<missing>,olahraga,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0309,main game counter-strike global offensive,grp_076b2be6ca,0,0.0,1.0,60.0,0,0.0,<missing>,olahraga,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0310,rencanakan kostum halloween,grp_67ec9a235a,1,20.0,6.0,30.0,0,0.0,<missing>,mengorganisir,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0311,beli kostum halloween,grp_5172004225,1,25.0,6.0,12.0,0,0.0,<missing>,transaksi,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0312,rencanakan pesta ulang tahun colin,grp_9273d8bca5,1,17.0,7.0,60.0,0,0.0,<missing>,mengorganisir,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0313,buat janji periksa mata,grp_9891115de5,1,7.0,8.0,12.0,0,0.0,<missing>,membuat,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0314,periksa ke dokter gigi,grp_272071267b,1,20.0,6.0,90.0,0,0.0,<missing>,membaca,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0315,medical check up tahunan ke dokter,grp_8b6932de8c,1,20.0,6.0,90.0,0,0.0,<missing>,<missing>,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0316,operasi hidung,grp_4f9237fc34,0,0.0,1.0,180.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0317,suntik botox,grp_368139ef15,0,0.0,1.0,120.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0318,filler bibir,grp_ec13b553ee,0,0.0,1.0,120.0,0,0.0,<missing>,<missing>,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0319,permak celana jeans,grp_a90e279303,1,30.0,4.0,60.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0320,ajukan kartu kredit,grp_c1f906e784,1,25.0,6.0,15.0,0,0.0,<missing>,mengisi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0321,telepon ibu,grp_9f21204b6a,1,3.0,8.0,30.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0322,telepon ayah,grp_22010b6d5c,1,3.0,8.0,30.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0323,telepon nenek,grp_bc55c30d30,1,3.0,8.0,18.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0324,telepon sepupu,grp_72d63cab39,1,3.0,7.0,15.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0325,rencanakan trip ke guadalajara,grp_8dd8372a0d,0,0.0,2.0,30.0,0,0.0,<missing>,mengorganisir,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0326,putus dengan pacar,grp_b5c0fa7b4d,1,5.0,7.0,36.0,0,0.0,<missing>,<missing>,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0327,kembalikan baju ke mantan,grp_22c5aec2de,1,20.0,7.0,30.0,0,0.0,<missing>,transaksi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0328,foto ulang untuk KTP,grp_d4a214e87f,1,30.0,6.0,60.0,0,0.0,<missing>,membuat,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0329,beri makan anjing,grp_d06a6f15c2,1,0.0,10.0,12.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0330,beri makan kucing,grp_804b6c6d57,1,0.0,10.0,12.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0331,jalan-jalan dengan anjing,grp_2ce12005ee,1,0.0,10.0,30.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0332,main dengan anjing,grp_b6a0684bab,1,0.0,5.0,30.0,0,0.0,<missing>,olahraga,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0333,jalan-jalan dengan kucing,grp_8d34406fc5,1,0.0,5.0,18.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0334,beri makan ikan,grp_a78debfe9d,1,0.0,10.0,12.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0335,bayar sewa,grp_c1bfd23300,1,14.0,10.0,6.0,0,0.0,<missing>,transaksi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0336,hapus game minecraft,grp_5a6ebb3c32,0,0.0,1.0,6.0,0,0.0,<missing>,mengedit,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0337,ganti layar HP,grp_c53f696b4e,1,50.0,6.0,12.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0338,jual baju,grp_a20c849032,0,0.0,3.0,36.0,0,0.0,<missing>,transaksi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0339,rencanakan jadwal mata kuliah semester depan,grp_0b76ff37f9,1,70.0,9.0,120.0,0,0.0,<missing>,mengorganisir,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0340,beli botol minum baru,grp_bdc41a8e87,1,7.0,4.0,12.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0341,tutup rekening deposito,grp_e331e1f3df,1,4.0,10.0,15.0,0,0.0,<missing>,<missing>,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0342,beli powerbank,grp_7eb52a6b5d,1,16.0,4.0,12.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0343,merajut syal,grp_e6cae9ee99,0,0.0,1.0,60.0,0,0.0,<missing>,<missing>,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0344,beli gitar listrik,grp_94aa75f6eb,0,0.0,2.0,90.0,0,0.0,<missing>,transaksi,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0345,bayar tagihan listrik,grp_f50d6ab233,1,18.0,10.0,6.0,0,0.0,<missing>,transaksi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0346,bayar tagihan wifi,grp_2fe7b973b6,1,18.0,10.0,6.0,0,0.0,<missing>,transaksi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0347,beli tiket konser denzel curry,grp_52875f3a86,1,20.0,6.0,12.0,0,0.0,<missing>,transaksi,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0348,beli hadiah ulang tahun untuk ayah,grp_1a19afecd3,1,37.0,10.0,60.0,0,0.0,<missing>,transaksi,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0349,balas sally soal rencana fall break,grp_2a91325127,1,2.0,8.0,12.0,0,0.0,soal,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0350,buat rencana jalan-jalan sendiri saat fall break,grp_a126b28a44,1,15.0,5.0,120.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0351,latihan drum,grp_3c07422404,0,0.0,3.0,90.0,0,0.0,<missing>,belajar,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0352,tempel ulang poster di dinding,grp_5c8c26f9b4,1,18.0,3.0,18.0,0,0.0,<missing>,<missing>,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0353,beli parfum baru,grp_b96918a08a,1,20.0,3.0,12.0,0,0.0,<missing>,transaksi,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0354,beli casing HP baru,grp_501aab699e,1,80.0,4.0,12.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0355,cas sikat gigi elektrik,grp_367a3dc796,1,3.0,4.0,4.8,0,0.0,<missing>,<missing>,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0356,ganti baterai kamera,grp_4724f9ba42,1,15.0,4.0,6.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0357,ganti baterai lampu cermin,grp_b6f375772a,0,0.0,2.0,6.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0358,cas powerbank,grp_4ca548f6d5,1,8.0,6.0,6.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0359,merakit meja baru,grp_78b307932e,1,20.0,7.0,30.0,0,0.0,<missing>,membuat,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0360,beli tanaman hias,grp_9175142d93,0,0.0,1.0,45.0,0,0.0,<missing>,transaksi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0361,lap meja,grp_2d9b9f5a4d,1,4.0,4.0,12.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0362,balas chat sophia,grp_34baca9e74,1,2.0,6.0,6.0,0,0.0,<missing>,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0363,ambil kembali tas reusable dari jaden,grp_9a203fc454,1,80.0,4.0,30.0,0,0.0,<missing>,perjalanan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0364,beli bunga untuk ibu,grp_3f7a4d0b06,1,23.0,8.0,30.0,0,0.0,<missing>,transaksi,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0365,beli poster nirvana,grp_7cc89e20b0,0,0.0,1.0,24.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0366,daftar slot waktu presentasi,grp_4159a527c3,1,2.0,10.0,6.0,0,0.0,<missing>,mengisi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0367,kirim selimut milik sally,grp_0a88f0ea90,1,40.0,6.0,30.0,0,0.0,<missing>,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0368,hapus aplikasi yang tidak dipakai,grp_d4c00a3466,0,0.0,1.0,60.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0369,tulis lagu di garageband,grp_f3940e20ba,0,0.0,1.0,120.0,0,0.0,<missing>,menulis,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0370,balas chat eunice,grp_c756c39902,1,3.0,3.0,6.0,0,0.0,<missing>,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0371,rencanakan acara kumpul keluarga,grp_e9314c043a,1,15.0,2.0,30.0,0,0.0,<missing>,mengorganisir,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0372,lari pagi/sore,grp_675d095255,0,0.0,2.0,60.0,0,0.0,<missing>,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0373,beli eyeliner baru,grp_c919139f41,1,30.0,3.0,6.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0374,beli ikat rambut baru,grp_c30b2dcc96,1,24.0,3.0,6.0,0,0.0,<missing>,transaksi,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0375,bersihkan keyboard laptop,grp_b2d73147f8,1,14.0,3.0,9.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0376,bersihkan layar laptop,grp_031546fd02,1,14.0,3.0,9.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0377,lipat baju,grp_c62c2a0170,1,2.0,7.0,24.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0378,lipat handuk,grp_0c097a677b,1,2.0,7.0,18.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0379,bekukan makanan sisa,grp_feaec6455a,1,0.0,7.0,12.0,0,0.0,<missing>,<missing>,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0380,beli tisu dapur,grp_09a5c34449,1,0.0,8.0,30.0,0,0.0,<missing>,transaksi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0381,memanggang banana bread,grp_878691bd83,0,0.0,1.0,90.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0382,masak kari untuk acara potluck,grp_857900baec,1,4.0,7.0,120.0,0,0.0,<missing>,membuat,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0383,masak nasi,grp_91d2afad1c,1,4.0,7.0,39.0,0,0.0,<missing>,membuat,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0384,vacuum ruang makan,grp_16b2e3a72a,1,4.0,6.0,15.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0385,bersihkan perhiasan,grp_86fcc97f25,1,6.0,4.0,18.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0386,isi teka-teki silang new york times,grp_88d032603b,1,0.0,8.0,4.2,0,0.0,<missing>,mengisi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0387,isi sudoku new york times,grp_2e439a5f5d,1,0.0,8.0,1.8,0,0.0,<missing>,mengisi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0388,main game linkedin,grp_a26aec0fb3,1,0.0,8.0,9.6,0,0.0,<missing>,olahraga,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0389,jahitkan jas,grp_c97a6b9e03,1,17.0,6.0,30.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0390,beli hadiah natal untuk keluarga,grp_1ce91f13fd,1,65.0,9.0,120.0,0,0.0,<missing>,transaksi,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0391,menonton konser simfoni,grp_ce0e6069f1,0,0.0,2.0,180.0,0,0.0,<missing>,menonton,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0392,selesaikan PR dinamika,grp_32f70817bd,1,5.0,10.0,420.0,0,0.0,<missing>,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,3,duration-text-rules-v3
+dur_0393,kumpulkan draf project 2,grp_dd7bd05209,1,4.0,10.0,480.0,0,0.0,dokumen,mengisi,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0394,buat kerangka kesimpulan esai,grp_17178c336f,1,8.0,8.0,120.0,0,0.0,dokumen,membuat,lainnya,long_form,0,0,0,1,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0395,mulai catatan tinjauan literatur,grp_d67a1647d7,1,2.0,8.0,90.0,0,0.0,<missing>,<missing>,lainnya,research,0,1,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0396,unggah slide presentasi,grp_e77ecdc55d,1,8.0,10.0,12.0,0,0.0,slide,mengirim,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0397,rapikan sitasi riset,grp_98c7d7c845,1,7.0,7.0,15.0,0,0.0,<missing>,membersihkan,akademik,research,0,1,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0398,atur jadwal waktu praktikum,grp_5109b20e95,1,10.0,8.0,9.0,0,0.0,<missing>,mengorganisir,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0399,riset kampus untuk S2,grp_34444b9c06,0,0.0,7.0,60.0,0,0.0,<missing>,mencari,akademik,research,0,1,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0400,persiapan wawancara teknis teknik mesin,grp_4a8190f355,0,0.0,10.0,90.0,0,0.0,<missing>,belajar,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0401,persiapan wawancara teknis robotika,grp_0b5ccf900b,0,0.0,10.0,90.0,0,0.0,<missing>,belajar,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0402,latihan pertanyaan perilaku untuk wawancara,grp_555edd2d45,0,0.0,10.0,60.0,0,0.0,soal,belajar,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0403,bersihkan botol minum dari jamur,grp_3111351f89,0,0.0,4.0,3.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0404,beli charger cadangan,grp_113edc3fc1,0,0.0,3.0,15.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0405,beli sunscreen baru,grp_bd80b100d4,1,8.0,2.0,12.0,0,0.0,<missing>,transaksi,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0406,arsipkan dan hapus email yang tidak penting,grp_645d5c4fa4,0,0.0,1.0,60.0,0,0.0,email,mengorganisir,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0407,coba tutorial melukis ala bob ross,grp_76634e06e3,0,0.0,1.0,150.0,0,0.0,<missing>,membuat,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0408,belajar lagi cara harmoni bernyanyi,grp_a62c8ddf73,0,0.0,1.0,60.0,0,0.0,<missing>,belajar,lainnya,learning,0,0,0,0,0,1,0,0,0,0,5,duration-text-rules-v3
+dur_0409,buat website portofolio untuk melamar kerja,grp_e140f1ff8a,1,3.0,5.0,240.0,0,0.0,<missing>,membuat,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0410,buat jadwal lari,grp_15605a0662,1,21.0,6.0,30.0,0,0.0,<missing>,membuat,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0411,pergi ke gym selama satu jam,grp_d8ddce1075,1,1.0,7.0,90.0,1,1.0,jam,perjalanan,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0412,makan lebih banyak serat,grp_759f5c1eba,0,0.0,7.0,15.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0413,kumpulkan deliverable project 1 untuk kelas ai/ml,grp_37571a0fd4,1,12.0,9.0,240.0,0,0.0,<missing>,mengisi,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0414,selesaikan team charter untuk laporan praktikum,grp_87527970c5,1,2.0,8.0,60.0,0,0.0,dokumen,mengerjakan,akademik,long_form|completion,0,0,0,1,1,0,0,0,0,0,6,duration-text-rules-v3
+dur_0415,belajar jadi DJ,grp_df4a726fd3,0,0.0,1.0,1500.0,0,0.0,<missing>,belajar,lainnya,learning,0,0,0,0,0,1,0,0,0,0,3,duration-text-rules-v3
+dur_0416,perbaiki keanggotaan classpass,grp_50c967210d,1,16.0,6.0,30.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0417,menghadiri pertemuan 1:1 dengan RA,grp_8f5b063cac,1,1.0,9.0,75.0,0,0.0,<missing>,sosial,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0418,foto bersama tim,grp_2f129d8411,1,15.0,5.0,120.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0419,beli baguette dari gabi et jules,grp_fe38952610,1,3.0,3.0,45.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0420,bersihkan lemari dan buang baju lama,grp_388e5663ca,1,12.0,4.0,150.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0421,cuci piring,grp_e498b1de41,1,1.0,3.0,10.8,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0422,isi mesin cuci piring,grp_bb8f3afa8f,1,1.0,3.0,10.8,0,0.0,<missing>,mengisi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0423,telepon asuransi kesehatan soal follow up operasi,grp_eca683df2c,1,3.0,9.0,45.0,0,0.0,soal,mengirim,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0424,kembalikan kartu identitas ke lost and found,grp_20ef4dc801,1,0.0,7.0,30.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0425,minta perpanjangan waktu untuk project 1,grp_f44a93a401,1,0.0,8.0,10.8,0,0.0,<missing>,mengirim,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0426,beli bola tenis,grp_026442dc5c,1,7.0,2.0,30.0,0,0.0,<missing>,transaksi,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0427,beli tiket ke taman hiburan,grp_9022b5bd7b,1,3.0,1.0,30.0,0,0.0,<missing>,transaksi,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0428,siapkan tas gym untuk olahraga pagi,grp_5bcc1985eb,1,0.0,5.0,15.0,0,0.0,<missing>,mengorganisir,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0429,selesaikan paper bahasa inggris tentang frankenstein,grp_5b453a75be,1,7.0,9.0,420.0,0,0.0,dokumen,mengerjakan,lainnya,long_form|completion,0,0,0,1,1,0,0,0,0,0,6,duration-text-rules-v3
+dur_0430,selesaikan soal-soal matematika,grp_2132fd4c42,1,5.0,9.0,360.0,0,0.0,soal,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,3,duration-text-rules-v3
+dur_0431,isi beberapa soal PR sains,grp_d7db5184e7,1,4.0,9.0,300.0,0,0.0,soal,mengisi,lainnya,<missing>,0,0,0,0,0,0,0,1,0,0,5,duration-text-rules-v3
+dur_0432,cuci rambut/keramas,grp_ac4802a245,1,1.0,5.0,15.0,0,0.0,<missing>,membersihkan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0433,waxing tangan dan kaki,grp_1a313ef99a,1,2.0,3.0,45.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0434,buang makanan kedaluwarsa dari kulkas,grp_9a8af4abda,1,0.0,5.0,30.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0435,belajar untuk ujian sejarah,grp_ef807fc95d,1,3.0,8.0,300.0,0,0.0,<missing>,belajar,akademik,learning,0,0,0,0,0,1,0,0,0,0,4,duration-text-rules-v3
+dur_0436,belajar untuk tes SAT,grp_82a9538aac,1,28.0,10.0,600.0,0,0.0,<missing>,belajar,lainnya,learning,0,0,0,0,0,1,0,0,0,0,4,duration-text-rules-v3
+dur_0437,review catatan sebelum kelas,grp_10899984bb,1,2.0,7.0,60.0,0,0.0,<missing>,membaca,lainnya,revision,0,0,1,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0438,cari ide untuk startup,grp_8b0c19f56b,1,1.0,6.0,120.0,0,0.0,<missing>,mencari,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0439,latihan elevator pitch untuk bertemu recruiter,grp_4ab2993687,1,6.0,7.0,60.0,0,0.0,<missing>,belajar,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0440,cari beasiswa untuk dilamar,grp_d3490f4c93,0,0.0,8.0,240.0,0,0.0,<missing>,mencari,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0441,bantu teman pindahan dari apartemen,grp_43602d7de0,1,12.0,6.0,180.0,0,0.0,<missing>,<missing>,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0442,minta charger cadangan ke teman sekamar,grp_691ad02eed,1,0.0,3.0,6.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0443,beli bahan makanan asia untuk masak makan malam,grp_4c342e10bb,1,4.0,4.0,90.0,0,0.0,<missing>,transaksi,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0444,jalan kaki 10000 langkah,grp_a56176ea20,1,1.0,7.0,90.0,1,10000.0,item,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0445,update aplikasi di HP,grp_12c5167ea5,0,0.0,6.0,15.0,0,0.0,<missing>,mengedit,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0446,update bio linkedin,grp_3690efa1e9,1,3.0,6.0,60.0,0,0.0,<missing>,mengedit,pekerjaan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0447,ganti tisu toilet di kamar mandi,grp_0a5b335ff9,1,0.0,5.0,3.0,0,0.0,<missing>,mengedit,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0448,buat janji medical check up tahunan,grp_30cbe05d3c,1,90.0,8.0,30.0,0,0.0,<missing>,membuat,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0449,antar donasi barang ke goodwill,grp_016f7ac94d,1,10.0,4.0,60.0,0,0.0,<missing>,perjalanan,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0450,kerjakan soal di buku aljabar,grp_ebd6fd78e7,1,2.0,9.0,180.0,0,0.0,soal,mengerjakan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0451,masukkan solusi ke aplikasi matlab,grp_03596157fb,1,6.0,7.0,120.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0452,atur autopay untuk tagihan listrik,grp_9a349b6d66,1,29.0,9.0,30.0,0,0.0,<missing>,mengorganisir,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0453,jemput adik/kakak dari sekolah,grp_7394699b5e,1,0.0,7.0,30.0,0,0.0,<missing>,perjalanan,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0454,belajar untuk UTS,grp_91bd851c08,1,8.0,10.0,480.0,0,0.0,<missing>,belajar,akademik,learning,0,0,0,0,0,1,0,0,0,0,3,duration-text-rules-v3
+dur_0455,buat anggaran untuk tim klub,grp_a0732e353a,1,5.0,6.0,120.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0456,cari baju untuk kostum,grp_1ff8b4c5e6,1,4.0,4.0,90.0,0,0.0,<missing>,mencari,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0457,bersiap untuk konser,grp_b9fd61bf43,1,2.0,2.0,120.0,0,0.0,<missing>,<missing>,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0458,selesaikan soal-soal real analysis,grp_c4e562058c,1,9.0,9.0,360.0,0,0.0,soal,mengerjakan,lainnya,completion,0,0,0,0,1,0,0,0,0,0,4,duration-text-rules-v3
+dur_0459,buat post instagram untuk rilis jurnal,grp_ecf72b94c0,1,1.0,7.0,60.0,0,0.0,<missing>,membuat,pribadi,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0460,wawancarai orang tua soal budaya keluarga,grp_e9f4df633b,1,7.0,8.0,120.0,0,0.0,orang,sosial,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0461,presentasi tentang puisi tiongkok,grp_3c0ae5e37a,1,2.0,6.0,240.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0462,rapat dengan pengurus untuk bahas pemecatan anggota,grp_bd0d27800b,1,9.0,9.0,120.0,0,0.0,orang,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0463,latihan drill tenis,grp_6abdbdab78,1,4.0,2.0,120.0,0,0.0,<missing>,belajar,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0464,cari cara menjahit kancing baju,grp_8cc02027c6,1,1.0,1.0,30.0,0,0.0,<missing>,mencari,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0465,kembalikan buku perpustakaan,grp_523764f285,1,3.0,5.0,15.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0466,rangkum kuliah 12 dalam 200 kata,grp_bf51b8ae1d,1,5.0,6.0,60.0,1,200.0,item,menulis,akademik,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0467,tulis komentar kode untuk dokumentasi,grp_a83a5041b9,1,6.0,7.0,120.0,0,0.0,<missing>,menulis,lainnya,long_form,0,0,0,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0468,perpanjang STNK,grp_73d8c32c4a,1,9.0,8.0,30.0,0,0.0,<missing>,<missing>,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0469,susun daftar pustaka untuk paper riset ilmiah,grp_b6b0b4c65f,1,8.0,6.0,180.0,0,0.0,dokumen,mengorganisir,akademik,research|long_form,0,1,0,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0470,pair review branch refactor,grp_491fae97dd,1,7.0,7.0,120.0,0,0.0,<missing>,membaca,lainnya,revision,0,0,1,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0471,tulis draf laporan post mortem insiden,grp_2cf64fd7fb,1,9.0,8.0,180.0,0,0.0,dokumen,menulis,pekerjaan,long_form,0,0,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0472,minum vitamin harian,grp_2a1b14af18,1,3.0,4.0,3.0,0,0.0,<missing>,perawatan,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0473,telepon nenek,grp_bc55c30d30,1,9.0,6.0,30.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0474,cek tagihan kartu kredit,grp_a2c2165099,1,10.0,8.0,15.0,0,0.0,<missing>,membaca,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0475,buka rekening broker/investasi,grp_7f7fa3b8cb,1,6.0,8.0,60.0,0,0.0,<missing>,<missing>,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0476,mulai investasi saham,grp_a7bbef58bd,1,4.0,9.0,120.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0477,buka akun roth ira dan 401k,grp_a7b99ca9ee,1,8.0,9.0,120.0,0,0.0,<missing>,<missing>,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0478,periksa transaksi bank,grp_385ca168b3,1,9.0,8.0,30.0,0,0.0,<missing>,membaca,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0479,siapkan makanan beku untuk stok,grp_648db2cc7e,1,3.0,2.0,120.0,0,0.0,<missing>,mengorganisir,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0480,ukur ruang untuk rak,grp_f182042dc4,1,5.0,3.0,30.0,0,0.0,<missing>,mencari,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0481,tambal lubang kecil di dinding,grp_859a847d87,1,30.0,4.0,120.0,0,0.0,<missing>,<missing>,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0482,pasang lukisan,grp_e86bc2427e,1,2.0,3.0,30.0,0,0.0,<missing>,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0483,ajukan permintaan regrade untuk ujian 1,grp_e37d3e90a9,1,7.0,8.0,15.0,0,0.0,<missing>,mengisi,administrasi,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0484,periksa ulang esai kuliah adik/kakak,grp_3307f150fb,1,20.0,9.0,120.0,0,0.0,dokumen,membaca,akademik,revision|long_form,0,0,1,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0485,pilih buku baru untuk dibaca,grp_16a82e84e9,0,0.0,2.0,30.0,0,0.0,<missing>,mencari,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0486,kembalikan pesanan online,grp_600a49cc57,1,16.0,6.0,90.0,0,0.0,<missing>,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,3,duration-text-rules-v3
+dur_0487,ganti karet wiper mobil,grp_d669a2cde1,1,3.0,5.0,15.0,0,0.0,<missing>,mengedit,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0488,cuci mobil,grp_ab65dae700,1,5.0,4.0,60.0,0,0.0,<missing>,membersihkan,perjalanan,<missing>,0,0,0,0,0,0,0,0,0,0,2,duration-text-rules-v3
+dur_0489,cari tahu rutinitas skincare baru,grp_1a3b3f5ff4,0,0.0,2.0,120.0,0,0.0,<missing>,mencari,kesehatan,research,0,1,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0490,buat gambar/grafik untuk merepresentasikan data dan hasil,grp_30d9e6248b,1,3.0,7.0,180.0,0,0.0,item,membuat,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0491,stretching selama 10 menit,grp_3217e14c6d,1,0.0,3.0,12.0,1,10.0,menit,olahraga,olahraga,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0492,chat teman untuk ngobrol/catch up,grp_104951cae5,1,4.0,2.0,3.0,0,0.0,<missing>,mengirim,sosial,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0493,siapkan bekal makan siang besok,grp_193bccaf32,1,0.0,3.0,30.0,0,0.0,<missing>,mengorganisir,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0494,rapikan area pintu masuk,grp_0165a079fd,1,3.0,4.0,30.0,0,0.0,<missing>,membersihkan,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0495,siram tanaman dengan selang,grp_5a46407d56,1,0.0,2.0,15.0,0,0.0,<missing>,<missing>,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0496,rapikan meja dari barang tidak perlu,grp_2d15b439c8,1,4.0,3.0,60.0,0,0.0,<missing>,membersihkan,rumah,<missing>,0,0,0,0,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0497,buat janji tes mata,grp_53abbf5106,1,4.0,8.0,30.0,0,0.0,<missing>,membuat,kesehatan,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0498,berhenti berlangganan email spam,grp_6283a28e15,0,0.0,3.0,60.0,0,0.0,email,transaksi,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0499,tulis bab 1 skripsi (pendahuluan),grp_f65f008bef,1,21.0,9.0,600.0,0,0.0,bab,menulis,akademik,long_form,0,0,0,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0500,tulis bab 2 skripsi (tinjauan pustaka),grp_8b802dfb50,1,25.0,9.0,840.0,0,0.0,bab,menulis,akademik,long_form,0,0,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0501,tulis bab 3 skripsi (metodologi),grp_aff4075a12,1,18.0,9.0,480.0,0,0.0,bab,menulis,akademik,long_form,0,0,0,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0502,tulis bab 4 skripsi (hasil penelitian),grp_daf4f7ed20,1,14.0,10.0,720.0,0,0.0,bab,menulis,akademik,research|long_form,0,1,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0503,tulis bab 5 skripsi (pembahasan),grp_e827712260,1,10.0,9.0,540.0,0,0.0,bab,menulis,akademik,long_form,0,0,0,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0504,tulis kesimpulan dan saran skripsi,grp_091100aa36,1,7.0,8.0,240.0,0,0.0,<missing>,menulis,akademik,long_form,0,0,0,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0505,revisi bab 1 skripsi sesuai masukan dosen pembimbing,grp_1cd8d1746f,1,5.0,8.0,180.0,0,0.0,bab,mengedit,akademik,revision|long_form,0,0,1,1,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0506,revisi bab 2 skripsi sesuai masukan dosen pembimbing,grp_c10bea6564,1,5.0,8.0,240.0,0,0.0,bab,mengedit,akademik,revision|long_form,0,0,1,1,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0507,revisi bab 3 metodologi setelah review komite,grp_2fda279b7e,1,4.0,9.0,180.0,0,0.0,bab,mengedit,lainnya,revision,0,0,1,0,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0508,revisi bab 4 hasil setelah pengecekan ulang data,grp_e9ace56978,1,3.0,9.0,300.0,0,0.0,bab,mengedit,lainnya,revision,0,0,1,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0509,revisi keseluruhan draf skripsi untuk pengumpulan akhir,grp_bdc2d484dd,1,6.0,10.0,600.0,0,0.0,dokumen,mengedit,akademik,revision|long_form|completion,0,0,1,1,1,0,1,0,0,0,7,duration-text-rules-v3
+dur_0510,proofread keseluruhan draf skripsi,grp_8d5e0be9f0,1,3.0,8.0,240.0,0,0.0,dokumen,membaca,akademik,revision|long_form,0,0,1,1,0,0,1,0,0,0,4,duration-text-rules-v3
+dur_0511,format skripsi sesuai template kampus,grp_0131997db0,1,2.0,7.0,180.0,0,0.0,<missing>,mengedit,akademik,long_form,0,0,0,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0512,siapkan slide presentasi sidang skripsi,grp_bb67e07c5a,1,10.0,10.0,360.0,0,0.0,slide,mengorganisir,akademik,long_form,0,0,0,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0513,latihan presentasi sidang skripsi,grp_772e8c4ca5,1,3.0,10.0,120.0,0,0.0,<missing>,belajar,akademik,long_form,0,0,0,1,0,0,0,0,0,0,4,duration-text-rules-v3
+dur_0514,tanggapi komentar reviewer pada draf skripsi,grp_8bad8be4d7,1,6.0,9.0,300.0,0,0.0,dokumen,mengedit,akademik,revision|long_form,0,0,1,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0515,tulis tinjauan literatur untuk laporan equity research,grp_c9ae24da84,1,10.0,9.0,360.0,0,0.0,dokumen,menulis,pekerjaan,research|long_form,0,1,0,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0516,tulis bagian analisis industri laporan equity research,grp_a9168509a5,1,8.0,9.0,300.0,0,0.0,dokumen,menulis,pekerjaan,analysis|long_form,1,0,0,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0517,tulis bagian pemodelan keuangan laporan equity research,grp_b80de5a1c7,1,7.0,10.0,420.0,0,0.0,dokumen,menulis,pekerjaan,analysis|long_form,1,0,0,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0518,bangun model valuasi dcf di excel untuk AMMN,grp_d5357a2e47,1,6.0,10.0,360.0,0,0.0,<missing>,membuat,pekerjaan,analysis,1,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0519,revisi asumsi valuasi laporan ER setelah masukan mentor,grp_9bee15ecc3,1,4.0,9.0,180.0,0,0.0,dokumen,mengedit,pekerjaan,analysis|revision|long_form,1,0,1,1,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0520,susun draf lengkap laporan equity research,grp_b7200a4379,1,5.0,10.0,480.0,0,0.0,dokumen,mengorganisir,pekerjaan,long_form,0,0,0,1,0,0,0,0,0,1,6,duration-text-rules-v3
+dur_0521,proofread dan poles laporan equity research final,grp_d2b4b5d084,1,2.0,9.0,180.0,0,0.0,dokumen,membaca,pekerjaan,revision|long_form|completion,0,0,1,1,1,0,0,0,0,0,7,duration-text-rules-v3
+dur_0522,tulis concept paper untuk kompetisi RiceMate,grp_85adce6b17,1,14.0,9.0,360.0,0,0.0,dokumen,menulis,lainnya,long_form,0,0,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0523,tulis bagian penelitian terkait dibanding Zulkifli 2021 dan Agustian 2026,grp_92206183da,1,9.0,8.0,240.0,0,0.0,<missing>,menulis,lainnya,analysis|research,1,1,0,0,0,0,0,0,0,0,10,duration-text-rules-v3
+dur_0524,tulis bagian arsitektur teknis proposal RiceMate,grp_38fbee5817,1,7.0,8.0,300.0,0,0.0,dokumen,menulis,lainnya,long_form,0,0,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0525,tulis draf lengkap proposal penelitian,grp_79417ee44e,1,12.0,9.0,600.0,0,0.0,dokumen,menulis,akademik,research|long_form,0,1,0,1,0,0,0,0,0,1,5,duration-text-rules-v3
+dur_0526,revisi proposal penelitian setelah masukan dosen pembimbing,grp_2bd4f42d4d,1,4.0,8.0,240.0,0,0.0,dokumen,mengedit,akademik,research|revision|long_form,0,1,1,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0527,tulis tinjauan pustaka untuk proposal penelitian,grp_f791a46c36,1,10.0,8.0,420.0,0,0.0,dokumen,menulis,akademik,research|long_form,0,1,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0528,siapkan dan latihan presentasi sidang proposal,grp_00bcfb8ef6,1,6.0,9.0,300.0,0,0.0,dokumen,mengorganisir,lainnya,long_form,0,0,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0529,tulis laporan praktikum lengkap dari data mentah hingga kesimpulan,grp_74ea8d4f47,1,4.0,8.0,480.0,0,0.0,dokumen,menulis,akademik,long_form,0,0,0,1,0,0,0,0,0,1,9,duration-text-rules-v3
+dur_0530,revisi laporan praktikum setelah masukan asisten dosen,grp_c5c42710ab,1,2.0,7.0,180.0,0,0.0,dokumen,mengedit,akademik,revision|long_form,0,0,1,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0531,tulis jawaban esai ujian akhir open book,grp_05a9fa63e6,1,0.0,10.0,240.0,0,0.0,dokumen,menulis,akademik,long_form|completion,0,0,0,1,1,0,0,0,0,0,7,duration-text-rules-v3
+dur_0532,tulis dan revisi paper konferensi untuk submisi,grp_e2d683f13a,1,15.0,9.0,720.0,0,0.0,dokumen,menulis,akademik,revision|long_form,0,0,1,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0533,revisi paper setelah komentar peer review,grp_78298738fa,1,7.0,9.0,360.0,0,0.0,dokumen,mengedit,akademik,revision|long_form,0,0,1,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0534,tulis surat pengantar dan dokumen tanggapan ke reviewer,grp_07dc97574e,1,3.0,8.0,180.0,0,0.0,dokumen,menulis,lainnya,<missing>,0,0,0,0,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0535,siapkan slide lengkap untuk laporan evaluasi program BEM,grp_c7e66764f7,1,5.0,7.0,300.0,0,0.0,slide,mengorganisir,lainnya,analysis|long_form,1,0,0,1,0,0,0,0,0,1,8,duration-text-rules-v3
+dur_0536,tulis laporan tahunan untuk divisi RISTEK,grp_745e0b57e3,1,6.0,7.0,360.0,0,0.0,dokumen,menulis,lainnya,long_form,0,0,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0537,susun dan tulis laporan kegiatan IKM UI,grp_53d7bdd53b,1,5.0,6.0,240.0,0,0.0,dokumen,mengorganisir,lainnya,long_form,0,0,0,1,0,0,0,0,0,0,7,duration-text-rules-v3
+dur_0538,tulis proposal hibah pendanaan riset,grp_1c92a0345f,1,20.0,9.0,540.0,0,0.0,dokumen,menulis,lainnya,research|long_form,0,1,0,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0539,revisi bagian justifikasi anggaran proposal hibah,grp_4f0ce2a3f2,1,5.0,8.0,180.0,0,0.0,dokumen,mengedit,lainnya,revision|long_form,0,0,1,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0540,bangun dan dokumentasikan pipeline machine learning untuk eksperimen skripsi,grp_b08257e25d,1,10.0,9.0,600.0,0,0.0,<missing>,membuat,akademik,long_form,0,0,0,1,0,0,0,0,0,0,9,duration-text-rules-v3
+dur_0541,jalankan dan analisis seluruh batch eksperimen untuk bab hasil skripsi,grp_d5c8f5ae18,1,7.0,9.0,480.0,0,0.0,bab,mengerjakan,akademik,analysis|long_form,1,0,0,1,0,0,1,0,0,0,10,duration-text-rules-v3
+dur_0542,tulis bagian analisis statistik skripsi,grp_39c3ed2231,1,6.0,8.0,300.0,0,0.0,<missing>,menulis,akademik,analysis|long_form,1,0,0,1,0,0,0,0,0,0,5,duration-text-rules-v3
+dur_0543,buat semua gambar dan tabel untuk bab hasil skripsi,grp_c15a8423cb,1,4.0,8.0,240.0,0,0.0,item,membuat,akademik,long_form,0,0,0,1,0,0,1,0,0,0,9,duration-text-rules-v3
+dur_0544,terjemahkan abstrak skripsi ke bahasa inggris,grp_7c39c44b8d,1,3.0,7.0,90.0,0,0.0,<missing>,mengedit,akademik,long_form,0,0,0,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0545,susun daftar pustaka lengkap skripsi menggunakan reference manager,grp_3c5f41babb,1,4.0,7.0,180.0,0,0.0,<missing>,mengorganisir,akademik,long_form,0,0,0,1,0,0,0,0,0,1,8,duration-text-rules-v3
+dur_0546,tulis kata pengantar dan ucapan terima kasih skripsi,grp_96ca629fb9,1,5.0,4.0,60.0,0,0.0,item,menulis,akademik,long_form,0,0,0,1,0,0,0,0,0,0,8,duration-text-rules-v3
+dur_0547,siapkan ringkasan revisi skripsi untuk penguji,grp_2f8b912134,1,3.0,8.0,120.0,0,0.0,<missing>,mengorganisir,akademik,revision|long_form,0,0,1,1,0,0,0,0,0,0,6,duration-text-rules-v3
+dur_0548,selesaikan dan kumpulkan salinan skripsi untuk dijilid,grp_4d819d9343,1,2.0,9.0,120.0,0,0.0,<missing>,mengerjakan,akademik,long_form|completion,0,0,0,1,1,0,0,0,0,0,7,duration-text-rules-v3

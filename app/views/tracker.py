@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import calendar
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 
 import flet as ft
 
 from app import clock, focus_session, storage, theme, ui_helpers
 from app.core import kalem_engine
+from app.voice_diary import VoiceDiary
 from models import fitur as kfitur
-from models import model_durasi
+from models.prediction_interface import duration_predictions
 from app.core.decomposer_logic import plan_today, task_plan_key
 from app.core.energy_predictor import energy_to_mood_default
 
@@ -94,6 +95,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "reason": "",
         "quota_msg": "",
         "n_lokal": 0,
+        "n_retrieval": 0,
+        "n_manual": 0,
         "n_ai": 0,
     }
 
@@ -979,12 +982,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             max_lines=5,
             helper="Diisi -> Pecah Tugas mecah dari SINI, bukan cuma judul",
         )
-        time_field = ft.TextField(
-            label="Jam deadline (opsional)",
-            hint_text="mis. 17:00",
-            helper="Untuk tugas berulang, jam ini ikut berlaku di setiap occurrence",
-            on_change=lambda ev: render_estimate(),
-        )
         no_deadline = ft.Checkbox(
             label="Tanpa deadline",
             value=False,
@@ -1033,6 +1030,72 @@ def build(page: ft.Page, navigate) -> ft.Control:
             expand=True,
         )
         repeat_end_error = ft.Text("", size=10.5, color=theme.DANGER, visible=False)
+
+        deadline_time_state = {"value": ""}
+        deadline_time_label = ft.Text("Belum dipilih", size=11.5, color=theme.MUTED)
+        deadline_time_picker = ft.TimePicker(
+            value=None,
+            entry_mode=ft.TimePickerEntryMode.DIAL,
+            help_text="Pilih jam deadline",
+            hour_label_text="Jam",
+            minute_label_text="Menit",
+            cancel_text="Batal",
+            confirm_text="Pilih",
+        )
+
+        def set_deadline_time(selected: time | None) -> None:
+            if selected is None:
+                deadline_time_state["value"] = ""
+                deadline_time_picker.value = None
+                deadline_time_label.value = "Belum dipilih"
+                deadline_time_clear.visible = False
+                return
+            deadline_time_state["value"] = selected.strftime("%H:%M")
+            deadline_time_picker.value = selected
+            deadline_time_label.value = f"Pukul {deadline_time_state['value']}"
+            deadline_time_clear.visible = True
+
+        def choose_deadline_time(ev) -> None:
+            selected = deadline_time_picker.value
+            if isinstance(selected, time):
+                set_deadline_time(selected)
+                render_estimate()
+                page.update()
+
+        def clear_deadline_time(ev=None) -> None:
+            set_deadline_time(None)
+            render_estimate()
+            page.update()
+
+        deadline_time_picker.on_change = choose_deadline_time
+        deadline_time_button = ft.OutlinedButton(
+            content=ft.Text("Pilih jam", size=11.5),
+            icon=ft.Icons.SCHEDULE,
+            on_click=lambda ev: page.show_dialog(deadline_time_picker),
+        )
+        deadline_time_clear = ft.IconButton(
+            icon=ft.Icons.CLOSE,
+            icon_size=16,
+            icon_color=theme.MUTED,
+            tooltip="Hapus jam deadline",
+            visible=False,
+            on_click=clear_deadline_time,
+        )
+        deadline_time_holder = ft.Column(
+            [
+                ft.Text("Jam deadline (opsional)", size=11, color=theme.MUTED),
+                ft.Row(
+                    [deadline_time_button, deadline_time_label, deadline_time_clear],
+                    spacing=6,
+                ),
+                ft.Text(
+                    "Untuk tugas berulang, jam ini ikut berlaku di setiap occurrence.",
+                    size=10.5,
+                    color=theme.MUTED,
+                ),
+            ],
+            spacing=4,
+        )
 
         def clear_repeat_end(ev=None):
             repeat_end_state["value"] = ""
@@ -1101,7 +1164,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         repeat_group.on_change = change_repeat
 
-        picked = {"kategori": "", "jumlah": 0.0, "menit": 0}
+        picked = {
+            "kategori": "",
+            "jumlah": 0.0,
+            "menit": 0,
+            "prediction_source": "",
+            "prediction_model_version": "",
+            "prediction_global_minutes": None,
+            "prediction_global_dataset_version": "",
+            "prediction_global_artifact_sha256": "",
+            "prediction_personalization_version": "",
+            "prediction_personalization_dataset_version": "",
+            "prediction_importance": None,
+            "prediction_deadline_days": None,
+        }
         kategori_holder = ft.Container()
         buka_lanjutan = {"on": False}
         jumlah_field = ft.TextField(
@@ -1113,14 +1189,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
         estimate_holder = ft.Container()
 
         def render_deadline():
-            time_field.disabled = bool(no_deadline.value)
+            deadline_time_button.disabled = bool(no_deadline.value)
+            deadline_time_clear.disabled = bool(no_deadline.value)
             if no_deadline.value:
-                time_field.value = ""
-                time_field.helper = "Tugas tetap dijadwalkan, tetapi tidak dianggap urgent."
-            else:
-                time_field.helper = (
-                    "Untuk tugas berulang, jam ini ikut berlaku di setiap occurrence"
-                )
+                set_deadline_time(None)
+                deadline_time_label.value = "Tidak ada deadline"
+            elif not deadline_time_state["value"]:
+                deadline_time_label.value = "Belum dipilih"
             render_estimate()
 
         no_deadline.on_change = lambda ev: render_deadline()
@@ -1144,7 +1219,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     meta["label"], picked["kategori"] == key,
                     lambda ev, k=key: pick_kategori(k),
                 )
-                for key, meta in model_durasi.KATEGORI.items()
+                for key, meta in duration_predictions.categories.items()
             ]
             kategori_holder.content = ft.Column(
                 [
@@ -1161,7 +1236,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
             jumlah_field.visible = bool(kategori) and buka_lanjutan["on"]
             if kategori:
-                satuan = model_durasi.satuan_kategori(kategori)
+                satuan = duration_predictions.unit_for_category(kategori)
                 jumlah_field.label = f"Berapa {satuan}?"
             try:
                 picked["jumlah"] = float((jumlah_field.value or "").strip())
@@ -1185,16 +1260,27 @@ def build(page: ft.Page, navigate) -> ft.Control:
             if tempo <= 1:
                 penting = min(10, penting + 2)
 
-            est = model_durasi.perkirakan(
+            est = duration_predictions.predict(
                 judul,
-                tempo_hari=tempo,
-                penting=penting,
-                kategori=kategori,
-                jumlah=picked["jumlah"],
-                records=storage.get_focus_records(),
-                energi=state["energy"],
+                deadline_days=tempo,
+                importance=penting,
+                category=kategori,
+                quantity=picked["jumlah"],
+                focus_records=storage.get_focus_records(),
+                energy=state["energy"],
             )
             picked["menit"] = est.menit
+            picked["prediction_source"] = est.sumber
+            picked["prediction_importance"] = penting
+            picked["prediction_deadline_days"] = tempo
+            picked["prediction_model_version"] = est.model_version
+            picked["prediction_global_minutes"] = est.global_minutes
+            picked["prediction_global_dataset_version"] = est.global_dataset_version
+            picked["prediction_global_artifact_sha256"] = est.global_artifact_sha256
+            picked["prediction_personalization_version"] = est.personalization_version
+            picked["prediction_personalization_dataset_version"] = (
+                est.personalization_dataset_version
+            )
             estimate_holder.content = ft.Container(
                 content=ft.Column(
                     [
@@ -1245,7 +1331,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 name,
                 deadline,
                 important_check.value,
-                deadline_time=(time_field.value or "").strip(),
+                deadline_time=deadline_time_state["value"] if deadline else "",
                 steps=[{"text": name, "done": False}],
                 difficulty_est=int(difficulty.value or 2),
                 kategori=picked["kategori"],
@@ -1256,9 +1342,33 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 scheduled_date=state["selected"],
                 item_type="schedule" if routine_check.value else "task",
                 repeat_end_date=repeat_end,
+                prediction_model_version=picked["prediction_model_version"],
+                prediction_global_minutes=picked["prediction_global_minutes"],
+                prediction_global_model_version=picked["prediction_model_version"],
+                prediction_global_dataset_version=picked["prediction_global_dataset_version"],
+                prediction_global_artifact_sha256=picked["prediction_global_artifact_sha256"],
+                prediction_personalization_version=picked["prediction_personalization_version"],
+                prediction_personalization_dataset_version=(
+                    picked["prediction_personalization_dataset_version"]
+                ),
+                prediction_source=picked["prediction_source"],
+                prediction_importance=picked["prediction_importance"],
+                prediction_deadline_days=picked["prediction_deadline_days"],
             )
+            voice.cleanup()
             page.pop_dialog()
             refresh_all()
+
+        submit_button = ui_helpers.primary_button("Tambah", submit)
+
+        def set_voice_busy(busy: bool) -> None:
+            submit_button.disabled = busy
+
+        voice = VoiceDiary(page, description_field, set_voice_busy)
+
+        def cancel_add_task(ev) -> None:
+            voice.cleanup()
+            page.pop_dialog()
 
         page.show_dialog(
             ft.AlertDialog(
@@ -1268,9 +1378,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     [
                         title_field,
                         description_field,
+                        voice.control(),
                         schedule_note,
                         no_deadline,
-                        time_field,
+                        deadline_time_holder,
                         ft.Text("Ulangi tugas", size=11, color=theme.MUTED),
                         repeat_group,
                         routine_check,
@@ -1288,8 +1399,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     scroll=ft.ScrollMode.AUTO,
                 ),
                 actions=[
-                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()),
-                    ui_helpers.primary_button("Tambah", submit),
+                    ft.TextButton(content=ft.Text("Batal"), on_click=cancel_add_task),
+                    submit_button,
                 ],
             )
         )
@@ -1304,7 +1415,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ]
         if not tasks:
             plan_state.update(
-                saved_count=0, source="", reason="", quota_msg="", n_lokal=0, n_ai=0
+                saved_count=0, source="", reason="", quota_msg="", n_lokal=0,
+                n_retrieval=0, n_manual=0, n_ai=0,
             )
             plan_column.controls = [
                 ui_helpers.banner("Belum ada tugas aktif di periode ini buat dipecah.",
@@ -1410,7 +1522,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.run_task(kerjakan)
 
     def selesaikan(result, tasks: list[dict]):
-        if result.n_ai:
+        if result.ai_called:
             storage.record_usage("decompose")
 
         saved_count = 0
@@ -1427,6 +1539,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
             reason=result.reason,
             quota_msg=f" — sisa {left}x hari ini" if left is not None else "",
             n_lokal=result.n_lokal,
+            n_retrieval=result.n_retrieval,
+            n_manual=result.n_manual,
             n_ai=result.n_ai,
         )
         if not saved_count:
@@ -1447,16 +1561,30 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 plan_column.visible = False
             return
         n_lokal = plan_state.get("n_lokal", 0)
+        n_retrieval = plan_state.get("n_retrieval", 0)
+        n_manual = plan_state.get("n_manual", 0)
         n_ai = plan_state.get("n_ai", 0)
         if plan_state["source"] == "ai":
             source = "Disusun KALEM" + plan_state["quota_msg"]
             color, icon = theme.PRIMARY, ft.Icons.AUTO_AWESOME
         elif plan_state["source"] == "lokal":
-            source = "Disusun dari pola KALEM — hemat kuota"
+            if n_manual and n_retrieval:
+                source = "Disusun dari deskripsi kamu dan pola KALEM — hemat kuota"
+            elif n_manual:
+                source = "Menggunakan langkah dari deskripsi kamu — hemat kuota"
+            else:
+                source = "Disusun dari pola KALEM — hemat kuota"
             color, icon = theme.SUCCESS, ft.Icons.BOLT
         elif plan_state["source"] == "campuran":
             if n_ai:
-                source = "Disusun dari catatan kamu + KALEM" + plan_state["quota_msg"]
+                if n_manual and n_retrieval:
+                    source = "Sebagian dari deskripsi kamu/pola KALEM, sisanya disusun KALEM" + plan_state["quota_msg"]
+                elif n_manual:
+                    source = "Sebagian dari deskripsi kamu, sisanya disusun KALEM" + plan_state["quota_msg"]
+                elif n_retrieval:
+                    source = "Sebagian dari pola KALEM, sisanya disusun KALEM" + plan_state["quota_msg"]
+                else:
+                    source = "Sebagian disusun KALEM, sisanya template KALEM" + plan_state["quota_msg"]
                 color, icon = theme.PRIMARY, ft.Icons.AUTO_AWESOME
             else:
                 source = "Sebagian dari catatan kamu, sisanya template KALEM"

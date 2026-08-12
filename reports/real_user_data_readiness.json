@@ -1,0 +1,67 @@
+{
+  "audited_input": {
+    "contains_only_synthetic_sessions": true,
+    "note": "Counts describe only this audited input; they do not query or infer the current contents of Supabase.",
+    "row_count": 1,
+    "scope": "synthetic_fixture_pipeline_validation",
+    "source_sha256": "666595dbf8b4bf09abe255846f252689607919a8f615b06ee062251bbd013db7"
+  },
+  "automatic_activation": false,
+  "automatic_promotion": false,
+  "dataset_snapshot": {
+    "candidate_count": 0,
+    "content_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "dataset_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "dataset_version": "focusbuddy-user-outcomes-v1-sha256-4f53cda18c2b"
+  },
+  "global_retraining_gate": {
+    "automatic_promotion": false,
+    "checks": {
+      "dataset_gate": false,
+      "eligible_occurrences": false,
+      "eligible_users": false,
+      "expected_locked_test_rows": false,
+      "long_task_occurrences": false,
+      "users_with_ten_occurrences": false
+    },
+    "ready_for_candidate_experiment": false
+  },
+  "global_retraining_status": "NOT READY",
+  "personalization_status": "NOT READY — NEED MORE REAL USER DATA",
+  "phase_version": "phase7-real-user-personalization-v1",
+  "privacy": {
+    "contains_names_or_emails": false,
+    "contains_raw_task_text": false,
+    "contains_user_ids": false
+  },
+  "production_inference_changed": false,
+  "quality": {
+    "duplicate_record_ids": 0,
+    "duplicate_session_ids": 0,
+    "identity_boundary": "Supabase Auth UUID envelope",
+    "multi_session_task_aggregation": true,
+    "session_rejections": {},
+    "synthetic_training_rows": 0,
+    "task_completion_required_for_label": true,
+    "task_occurrence_rejections": {
+      "synthetic": 1
+    },
+    "unfinished_sessions_are_zero_duration": false,
+    "user_id_used_as_model_feature": false
+  },
+  "real_user_data_status": "NOT READY",
+  "summary": {
+    "completed_sessions": 0,
+    "invalid_sessions": 0,
+    "personalized_users_eligible": 0,
+    "real_sessions_detected": 0,
+    "real_users_detected": 0,
+    "suspicious_sessions": 0,
+    "synthetic_sessions_excluded": 2,
+    "training_eligible_task_occurrences": 0,
+    "unknown_sessions": 0,
+    "users_below_personalization_threshold": 0,
+    "valid_sessions": 0
+  },
+  "training_started": false
+}

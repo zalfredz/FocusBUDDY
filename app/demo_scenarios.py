@@ -1060,6 +1060,7 @@ def apply_scenario(key: str) -> str:
             kategori=task.get("kategori", ""),
             jumlah_unit=task.get("jumlah_unit", 0),
             repeat=task.get("repeat", "none"),
+            data_provenance_value="synthetic_scenario",
         )
 
     for note in scenario.get("inbox") or []:
@@ -1257,6 +1258,7 @@ def apply_scenario_overlay(key: str) -> str:
                     for step in raw_steps
                 ],
                 "created_at": clock.now().isoformat(),
+                "data_provenance": "synthetic_scenario",
                 _DEMO_MARKER: True,
                 "_demo_scenario": key,
             }

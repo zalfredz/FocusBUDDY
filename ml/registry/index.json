@@ -1,0 +1,13 @@
+{
+  "models": {
+    "duration": {
+      "artifact_path": "ml/registry/artifacts/duration-features-v3.joblib",
+      "artifact_sha256": "104d161c6fd241e0f0ac372633e73623c3a9c6562ede1a2c1a1f82642c6a4ef7",
+      "dataset_version": "task-duration-features-v3",
+      "experimental_latest": "duration-features-v3",
+      "metadata_path": "ml/registry/metadata/duration-features-v3.json",
+      "production": null,
+      "status": "experimental"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-"""Komponen perekam suara sementara untuk mengisi teks Diary."""
+"""Komponen perekam suara sementara untuk mengisi field teks yang bisa diedit."""
 from __future__ import annotations
 
 import asyncio
@@ -78,7 +78,7 @@ class VoiceDiary:
                                 color=theme.ON_BACKGROUND,
                             ),
                             ft.Text(
-                                "Rekamannya tidak disimpan ke Diary atau Supabase.",
+                                "Rekamannya diproses sementara dan tidak disimpan sebagai audio.",
                                 size=10.5,
                                 color=theme.MUTED,
                             ),
@@ -152,7 +152,7 @@ class VoiceDiary:
                     icon=ft.Icons.MIC_NONE,
                     icon_color=theme.PRIMARY,
                     icon_size=21,
-                    tooltip="Cerita pakai suara · maksimal 120 detik",
+                    tooltip="Isi pakai suara · maksimal 120 detik",
                     on_click=self.start,
                 )
             ],
@@ -193,7 +193,7 @@ class VoiceDiary:
         if not allowed:
             self._set_status(
                 "Izin mikrofon belum diberikan. Izinkan mikrofon di browser, "
-                "atau tetap tulis cerita secara manual.",
+                "atau tetap isi secara manual.",
                 theme.WARN,
             )
             self.page.update()
@@ -211,7 +211,7 @@ class VoiceDiary:
         if not started:
             self.recording = False
             self._set_status(
-                "Mikrofon belum bisa dimulai. Coba lagi atau ketik manual.",
+                "Mikrofon belum bisa dimulai. Coba lagi atau isi manual.",
                 theme.WARN,
             )
             self.render()

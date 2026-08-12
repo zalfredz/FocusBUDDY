@@ -62,8 +62,12 @@ class PlanResult:
     reason: str = ""
     steps: list[tuple[str, str, int]] = field(default_factory=list)
     task_steps: dict[str, list[dict]] = field(default_factory=dict)
+    task_sources: dict[str, str] = field(default_factory=dict)
     n_lokal: int = 0
+    n_retrieval: int = 0
+    n_manual: int = 0
     n_ai: int = 0
+    ai_called: bool = False
 
 
 def task_plan_key(task: dict, fallback: str = "") -> str:
@@ -101,7 +105,7 @@ def _rule_based_steps(tasks: list[dict], energy_level: int) -> list[tuple[str, s
 
 def perkiraan_menit(tasks: list[dict], energy_level: int) -> dict[str, int]:
     from app import storage
-    from models import model_durasi
+    from models.prediction_interface import duration_predictions
 
     records = storage.get_focus_records()
     hasil: dict[str, int] = {}
@@ -115,14 +119,14 @@ def perkiraan_menit(tasks: list[dict], energy_level: int) -> dict[str, int]:
             if batas is not None
             else 7
         )
-        est = model_durasi.perkirakan(
+        est = duration_predictions.predict(
             t["title"],
-            tempo_hari=tempo_hari,
-            penting=8 if t.get("important") else 4,
-            kategori=t.get("kategori", ""),
-            jumlah=t.get("jumlah_unit", 0),
-            records=records,
-            energi=energy_level,
+            deadline_days=tempo_hari,
+            importance=8 if t.get("important") else 4,
+            category=t.get("kategori", ""),
+            quantity=t.get("jumlah_unit", 0),
+            focus_records=records,
+            energy=energy_level,
         )
         hasil[t["title"]] = est.menit
     return hasil
@@ -309,6 +313,19 @@ def _sisipkan_langkah_user(
         ]
 
 
+def _sumber_rencana(n_lokal: int, n_ai: int, ada_fallback: bool) -> str:
+    """Expose aggregate provenance without calling an AI-generated plan local."""
+    if n_ai and (n_lokal or ada_fallback):
+        return "campuran"
+    if n_ai:
+        return "ai"
+    if n_lokal and not ada_fallback:
+        return "lokal"
+    if n_lokal:
+        return "campuran"
+    return "fallback"
+
+
 def plan_today(
     tasks: list[dict],
     energy_level: int = 3,
@@ -330,22 +347,25 @@ def plan_today(
             for index, (task, part) in enumerate(zip(tasks, parts))
         }
         n_lokal = sum(part.n_lokal for part in parts)
+        n_retrieval = sum(part.n_retrieval for part in parts)
+        n_manual = sum(part.n_manual for part in parts)
         n_ai = sum(part.n_ai for part in parts)
-        if n_ai and n_lokal:
-            source = "campuran"
-        elif n_ai:
-            source = "ai"
-        elif n_lokal and all(part.source == "lokal" for part in parts):
-            source = "lokal"
-        elif n_lokal:
-            source = "campuran"
-        else:
-            source = "fallback"
+        source = _sumber_rencana(
+            n_lokal,
+            n_ai,
+            any(part.source == "fallback" for part in parts),
+        )
         blocks, total = lay_out(steps, energy_level, start_at)
         return PlanResult(
             blocks=blocks, source=source, total_minutes=total,
             reason="; ".join(part.reason for part in parts if part.reason),
-            steps=steps, task_steps=task_steps, n_lokal=n_lokal, n_ai=n_ai,
+            steps=steps, task_steps=task_steps, n_lokal=n_lokal,
+            n_retrieval=n_retrieval, n_manual=n_manual, n_ai=n_ai,
+            task_sources={
+                task_plan_key(task, f"plan-{index}"): part.source
+                for index, (task, part) in enumerate(zip(tasks, parts))
+            },
+            ai_called=any(part.ai_called for part in parts),
         )
 
     from app import storage
@@ -354,6 +374,9 @@ def plan_today(
     per_judul: dict[str, list[tuple[str, str, int]]] = {}
     perlu_ai: list[dict] = []
     n_lokal = 0
+    n_retrieval = 0
+    n_manual = 0
+    task_sources: dict[str, str] = {}
 
     for t in tasks:
         judul = t["title"]
@@ -366,43 +389,57 @@ def plan_today(
             (judul, teks, max(3, min(m, 120))) for teks, m in zip(langkah, bagian)
         ]
         n_lokal += 1
+        if sumber == "retrieval":
+            n_retrieval += 1
+        elif sumber == "manual":
+            n_manual += 1
+        task_sources[task_plan_key(t)] = sumber
         if sumber == "manual":
             storage.add_decompose_record(judul, t.get("description", ""), langkah, "manual")
 
     reason = ""
     n_ai = 0
+    ai_called = False
+    ada_fallback = False
     if perlu_ai:
         if allow_ai:
+            ai_called = ai_client.can_generate()
             ai_steps, reason = _ai_steps(perlu_ai, energy_level)
         else:
             ai_steps, reason = None, "kuota AI hari ini habis"
         if ai_steps:
+            langkah_ai_per_judul: dict[str, list[tuple[str, int]]] = {}
             for judul, teks, menit in ai_steps:
-                per_judul.setdefault(judul, []).append((judul, teks, menit))
-            n_ai = len({j for j, _, _ in ai_steps})
+                langkah_ai_per_judul.setdefault(judul, []).append((teks, menit))
             for t in perlu_ai:
-                langkah = [teks for j, teks, _ in ai_steps if j == t["title"]]
+                judul = t["title"]
+                langkah = langkah_ai_per_judul.get(judul, [])
                 if langkah:
+                    per_judul[judul] = [
+                        (judul, teks, menit) for teks, menit in langkah
+                    ]
+                    task_sources[task_plan_key(t)] = "ai"
+                    n_ai += 1
                     storage.add_decompose_record(
-                        t["title"], t.get("description", ""), langkah, "ai"
+                        judul, t.get("description", ""),
+                        [teks for teks, _ in langkah], "ai"
                     )
+                else:
+                    ada_fallback = True
+                    task_sources[task_plan_key(t)] = "fallback"
+                    for title, teks, menit in _rule_based_steps([t], energy_level):
+                        per_judul.setdefault(title, []).append((title, teks, menit))
         else:
+            ada_fallback = True
             for judul, teks, menit in _rule_based_steps(perlu_ai, energy_level):
                 per_judul.setdefault(judul, []).append((judul, teks, menit))
+            for task in perlu_ai:
+                task_sources[task_plan_key(task)] = "fallback"
 
     _sisipkan_langkah_user(per_judul, tasks, menit_per_tugas)
     steps = [langkah for t in tasks for langkah in per_judul.get(t["title"], [])]
 
-    if n_ai and n_lokal:
-        source = "campuran"
-    elif n_ai:
-        source = "ai"
-    elif n_lokal and not perlu_ai:
-        source = "lokal"
-    elif n_lokal:
-        source = "campuran"
-    else:
-        source = "fallback"
+    source = _sumber_rencana(n_lokal, n_ai, ada_fallback)
 
     blocks, total = lay_out(steps, energy_level, start_at)
     return PlanResult(
@@ -415,5 +452,7 @@ def plan_today(
             ]
             for index, task in enumerate(tasks)
         },
-        n_lokal=n_lokal, n_ai=n_ai,
+        task_sources=task_sources,
+        n_lokal=n_lokal, n_retrieval=n_retrieval, n_manual=n_manual,
+        n_ai=n_ai, ai_called=ai_called,
     )

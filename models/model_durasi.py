@@ -12,9 +12,14 @@ from scipy.sparse import csr_matrix, hstack
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+from models.model_registry import resolve_approved_artifact
+from app.runtime_policy import runtime_mode, runtime_training_allowed
+
 ROOT = Path(__file__).resolve().parent.parent
 DATASET = ROOT / "datasets" / "task_duration_id.csv"
 MODEL_PATH = ROOT / "models" / "artifacts" / "task_duration_model.joblib"
+PRODUCTION_MODEL_VERSION = "duration-production-legacy-v1"
+STATIC_FALLBACK_VERSION = "duration-static-fallback-v1"
 
 MAX_FITUR_TEKS = 300
 N_POHON = 300
@@ -49,6 +54,14 @@ class Perkiraan:
     n_personal: int = 0
     catatan: str = ""
     faktor_personal: float = 1.0
+    model_version: str = STATIC_FALLBACK_VERSION
+    global_model_version: str = STATIC_FALLBACK_VERSION
+    global_dataset_version: str = ""
+    global_artifact_sha256: str = ""
+    personalization_version: str = ""
+    personalization_dataset_version: str = ""
+    personalization_active: bool = False
+    global_minutes: int = 0
 
     @property
     def rentang(self) -> str:
@@ -63,6 +76,9 @@ _vec: Optional[TfidfVectorizer] = None
 _hutan: Optional[RandomForestRegressor] = None
 _n_latih: int = 0
 _asal: str = ""
+_model_version: str = STATIC_FALLBACK_VERSION
+_dataset_version: str = ""
+_artifact_sha256: str = ""
 
 
 def _baca_dataset() -> tuple[list[str], np.ndarray, np.ndarray]:
@@ -107,31 +123,64 @@ def latih_dari_dataset() -> tuple[Optional[TfidfVectorizer], Optional[RandomFore
 
 
 def _latih() -> bool:
-    global _vec, _hutan, _n_latih, _asal
+    global _vec, _hutan, _n_latih, _asal, _model_version
+    global _dataset_version, _artifact_sha256
     if _hutan is not None:
         return True
 
-    if MODEL_PATH.exists():
+    approved = resolve_approved_artifact("duration")
+    candidate_path = approved.path if approved is not None else None
+    if candidate_path is None and runtime_training_allowed() and MODEL_PATH.exists():
+        candidate_path = MODEL_PATH
+
+    if candidate_path is not None:
         try:
             import joblib
 
-            paket = joblib.load(MODEL_PATH)
+            paket = joblib.load(candidate_path)
             _vec, _hutan, _n_latih = paket["vec"], paket["hutan"], paket["n"]
-            _asal = "model pra-latih"
+            if approved is not None:
+                _asal = "approved artifact"
+                _model_version = approved.model_version
+                _dataset_version = approved.dataset_version
+                _artifact_sha256 = approved.sha256
+            else:
+                _asal = "local artifact"
+                _model_version = "duration-local-artifact-unverified-v1"
+                _dataset_version = "task-duration-id-legacy"
+                _artifact_sha256 = ""
             return True
         except Exception:
             _vec = _hutan = None
 
+    if not runtime_training_allowed():
+        _asal = "static fallback"
+        _model_version = STATIC_FALLBACK_VERSION
+        _dataset_version = ""
+        _artifact_sha256 = ""
+        return False
+
     _vec, _hutan, _n_latih = latih_dari_dataset()
-    _asal = "dilatih saat jalan" if _hutan is not None else ""
+    _asal = "development runtime fit" if _hutan is not None else "static fallback"
+    _model_version = (
+        "duration-development-runtime-fit-v1"
+        if _hutan is not None
+        else STATIC_FALLBACK_VERSION
+    )
+    _dataset_version = "task-duration-id-legacy" if _hutan is not None else ""
+    _artifact_sha256 = ""
     return _hutan is not None
 
 
 def reset_model() -> None:
-    global _vec, _hutan, _n_latih, _asal
+    global _vec, _hutan, _n_latih, _asal, _model_version
+    global _dataset_version, _artifact_sha256
     _vec = _hutan = None
     _n_latih = 0
     _asal = ""
+    _model_version = STATIC_FALLBACK_VERSION
+    _dataset_version = ""
+    _artifact_sha256 = ""
 
 
 def status() -> dict:
@@ -140,6 +189,11 @@ def status() -> dict:
         "siap": siap,
         "n_latih": _n_latih,
         "asal": _asal,
+        "model_version": _model_version,
+        "dataset_version": _dataset_version,
+        "artifact_sha256": _artifact_sha256,
+        "runtime_mode": runtime_mode(),
+        "runtime_training_allowed": runtime_training_allowed(),
         "sumber": DATASET.name if siap else "(dataset nggak ketemu)",
     }
 
@@ -219,7 +273,14 @@ def perkirakan(
         else:
             catatan = f"Cocok sama {n} sesi kamu sebelumnya."
         return Perkiraan(menit=int(mid), bawah=lo, atas=hi, sumber="gabungan",
-                         n_personal=n, catatan=catatan, faktor_personal=geser)
+                         n_personal=n, catatan=catatan, faktor_personal=geser,
+                         model_version=_model_version,
+                         global_model_version=_model_version,
+                         global_dataset_version=_dataset_version,
+                         global_artifact_sha256=_artifact_sha256,
+                         personalization_version="duration-legacy-personalization-v0",
+                         personalization_active=True,
+                         global_minutes=int(mid))
 
     catatan = (
         "Perkiraan umum — KALEM belum punya catatan kecepatan kamu di sini. "
@@ -232,7 +293,17 @@ def perkirakan(
             "yang diperkirakan."
         )
     return Perkiraan(menit=mid, bawah=lo, atas=hi, sumber="model",
-                     n_personal=0, catatan=catatan, faktor_personal=geser)
+                     n_personal=0, catatan=catatan, faktor_personal=geser,
+                     model_version=_model_version,
+                     global_model_version=_model_version,
+                     global_dataset_version=_dataset_version,
+                     global_artifact_sha256=_artifact_sha256,
+                     personalization_version=(
+                         "duration-legacy-personalization-v0"
+                         if abs(geser - 1.0) >= 0.08 else ""
+                     ),
+                     personalization_active=abs(geser - 1.0) >= 0.08,
+                     global_minutes=int(mid))
 
 
 def satuan_kategori(key: str) -> str:

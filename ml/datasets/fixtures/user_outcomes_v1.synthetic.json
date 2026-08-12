@@ -1,0 +1,94 @@
+[
+  {
+    "user_id": "synthetic-user-001",
+    "state": {
+      "tasks": [
+        {
+          "id": "synthetic-task-001",
+          "title": "Kerjakan latihan kalkulus",
+          "data_provenance": "synthetic_fixture",
+          "created_at": "2026-08-12T08:00:00+07:00",
+          "duration_prediction": {
+            "estimated_duration_minutes": 35,
+            "model_version": "duration-production-legacy-v1",
+            "source": "model",
+            "importance": 8,
+            "deadline_days": 1
+          }
+        }
+      ],
+      "ml_outcome_records": [
+        {
+          "schema_version": "focus-outcome-v1",
+          "record_id": "synthetic-record-001",
+          "session_id": "synthetic-session-001",
+          "task_id": "synthetic-task-001",
+          "step_id": "synthetic-step-001",
+          "occurrence_date": "",
+          "task_text": "Kerjakan latihan kalkulus",
+          "category": "soal",
+          "importance": 8,
+          "has_deadline": true,
+          "deadline_days_or_zero": 1,
+          "predicted_duration_minutes": 35,
+          "prediction_model_version": "duration-production-legacy-v1",
+          "prediction_source": "model",
+          "planned_session_minutes": 15,
+          "started_at": "2026-08-12T09:00:00+07:00",
+          "ended_at": "2026-08-12T09:12:00+07:00",
+          "actual_active_duration_minutes": 10,
+          "pause_duration_minutes": 2,
+          "completion_status": "incomplete",
+          "outcome": "incomplete",
+          "interruption_count": 1,
+          "task_completed": false,
+          "task_snapshot_captured": true,
+          "timing_quality": "pause_aware_no_visibility_signal",
+          "data_provenance": "synthetic_fixture",
+          "collection_context": "test_fixture",
+          "synthetic": true,
+          "is_demo": false,
+          "data_quality_status": "unknown",
+          "data_quality_reason": "synthetic_fixture_pending_offline_validation",
+          "task_created_at": "2026-08-12T08:00:00+07:00",
+          "created_at": "2026-08-12T09:00:00+07:00"
+        },
+        {
+          "schema_version": "focus-outcome-v1",
+          "record_id": "synthetic-record-002",
+          "session_id": "synthetic-session-002",
+          "task_id": "synthetic-task-001",
+          "step_id": "synthetic-step-002",
+          "occurrence_date": "",
+          "task_text": "Kerjakan latihan kalkulus",
+          "category": "soal",
+          "importance": 8,
+          "has_deadline": true,
+          "deadline_days_or_zero": 1,
+          "predicted_duration_minutes": 35,
+          "prediction_model_version": "duration-production-legacy-v1",
+          "prediction_source": "model",
+          "planned_session_minutes": 25,
+          "started_at": "2026-08-12T09:20:00+07:00",
+          "ended_at": "2026-08-12T09:40:00+07:00",
+          "actual_active_duration_minutes": 20,
+          "pause_duration_minutes": 0,
+          "completion_status": "task_completed",
+          "outcome": "completed",
+          "interruption_count": 0,
+          "task_completed": true,
+          "task_snapshot_captured": true,
+          "timing_quality": "pause_aware_no_visibility_signal",
+          "data_provenance": "synthetic_fixture",
+          "collection_context": "test_fixture",
+          "synthetic": true,
+          "is_demo": false,
+          "data_quality_status": "unknown",
+          "data_quality_reason": "synthetic_fixture_pending_offline_validation",
+          "task_created_at": "2026-08-12T08:00:00+07:00",
+          "created_at": "2026-08-12T09:20:00+07:00"
+        }
+      ]
+    }
+  }
+]

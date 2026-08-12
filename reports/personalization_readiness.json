@@ -1,0 +1,32 @@
+{
+  "automatic_activation": false,
+  "automatic_promotion": false,
+  "dataset_version": "focusbuddy-user-outcomes-v1-sha256-4f53cda18c2b",
+  "evaluation_created": false,
+  "global_model_trained": false,
+  "insufficient_data_fallback": "Global Model only",
+  "phase_version": "phase7-real-user-personalization-v1",
+  "privacy": {
+    "contains_names_or_emails": false,
+    "contains_raw_task_text": false,
+    "contains_user_ids": false
+  },
+  "status": "NOT READY — NEED MORE REAL USER DATA",
+  "stop_condition": "no_real_user_training_eligible_data",
+  "summary": {
+    "eligible_but_without_sufficient_future_holdout": 0,
+    "real_users_with_eligible_outcomes": 0,
+    "users_below_personalization_threshold": 0,
+    "users_currently_personalization_eligible": 0,
+    "users_ready_for_temporal_evaluation": 0
+  },
+  "threshold": {
+    "minimum_active_days": 14,
+    "minimum_categories": 3,
+    "minimum_eligible_completed_outcomes": 30,
+    "minimum_future_temporal_holdout_outcomes": 5,
+    "note": "The first three values are the current runtime gate. The holdout minimum is an evaluation-only safeguard."
+  },
+  "user_id_used_as_model_feature": false,
+  "user_isolation_verified": true
+}

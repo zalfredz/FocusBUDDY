@@ -1,0 +1,157 @@
+{
+  "artifact_path": "ml/registry/artifacts/duration-clean-v2.joblib",
+  "artifact_sha256": "9629796fac340ad00b4114ced9e82a8b80d9612867e3f76fb2d20db72390ae8a",
+  "dataset_sha256": "3a730c016f68236b640e05a16f4a2b7bc1ad304b594ffb6fdf65af64b96939fb",
+  "dataset_version": "task-duration-id-clean-v2",
+  "experiment_config": {
+    "feature_config": "clean_deadline",
+    "selection_metric": "cv_rmse_mean",
+    "selection_uses_locked_test": false,
+    "target_internal_name": "estimated_duration_minutes",
+    "target_meaning": "human_estimated_duration",
+    "target_source": "durasi_menit",
+    "target_transform": "raw",
+    "tie_breaker": "prefer cleaned deadline representation on exact CV RMSE tie"
+  },
+  "feature_schema": {
+    "deadline": {
+      "deadline_encoding": {
+        "deadline_days_or_zero": "tenggat_hari",
+        "has_deadline": 1.0
+      },
+      "features": [
+        "has_deadline",
+        "deadline_days_or_zero"
+      ],
+      "mode": "clean_presence_plus_days",
+      "no_deadline_encoding": {
+        "deadline_days_or_zero": 0.0,
+        "has_deadline": 0.0
+      },
+      "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+    },
+    "importance": "tingkat_kepentingan_1_10",
+    "name": "clean_deadline",
+    "structured_columns": [],
+    "text": {
+      "analyzer": "char_wb",
+      "max_features": 300,
+      "min_df": 2,
+      "ngram_range": [
+        3,
+        5
+      ],
+      "source": "tugas",
+      "sublinear_tf": true,
+      "transformer": "TfidfVectorizer"
+    }
+  },
+  "framework": "scikit-learn",
+  "framework_version": "1.9.0",
+  "hyperparameters": {
+    "candidate": "hist_gradient_boosting",
+    "cv_folds": 5,
+    "cv_type": "GroupKFold(shuffle=True)",
+    "l2_regularization": 1.0,
+    "learning_rate": 0.05,
+    "max_iter": 200,
+    "max_leaf_nodes": 31,
+    "random_state": 42,
+    "selection_metric": "cv_rmse_mean",
+    "target_transform": "raw"
+  },
+  "metrics": {
+    "cross_validation": {
+      "cv_mae_mean": 69.04071145198984,
+      "cv_mae_std": 8.380442584110837,
+      "cv_median_absolute_error_mean": 41.59683979372086,
+      "cv_median_absolute_error_std": 7.320702979865898,
+      "cv_r2_mean": 0.3867351284777613,
+      "cv_r2_std": 0.15623880932341233,
+      "cv_rmse_mean": 117.09755583204523,
+      "cv_rmse_std": 29.666255438267935,
+      "cv_within_10_percent_mean": 0.06868415419342137,
+      "cv_within_10_percent_std": 0.03501469903332318,
+      "cv_within_20_percent_mean": 0.1531746876876311,
+      "cv_within_20_percent_std": 0.031220425832990468,
+      "cv_within_30_percent_mean": 0.2240003451252021,
+      "cv_within_30_percent_std": 0.04758476616484867
+    },
+    "locked_test": {
+      "mae": 72.4945954445611,
+      "median_absolute_error": 41.233805152043544,
+      "r2": 0.2979633330518998,
+      "rmse": 131.56691443616646,
+      "within_10_percent": 0.06306306306306306,
+      "within_20_percent": 0.12612612612612611,
+      "within_30_percent": 0.1891891891891892
+    },
+    "performance": {
+      "cold_load_ms": 57.55137800042576,
+      "first_inference_ms": 11.433324998506578,
+      "latency_repeats": 200,
+      "model_size_bytes": 199240,
+      "p50_inference_ms": 10.097009000674007,
+      "p95_inference_ms": 37.35839289947758,
+      "warm_inference_mean_ms": 13.415151519948267
+    }
+  },
+  "model_name": "duration",
+  "model_version": "duration-clean-v2",
+  "preprocessing": {
+    "deadline": {
+      "deadline_encoding": {
+        "deadline_days_or_zero": "tenggat_hari",
+        "has_deadline": 1.0
+      },
+      "features": [
+        "has_deadline",
+        "deadline_days_or_zero"
+      ],
+      "mode": "clean_presence_plus_days",
+      "no_deadline_encoding": {
+        "deadline_days_or_zero": 0.0,
+        "has_deadline": 0.0
+      },
+      "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+    },
+    "fit_scope": "training folds/final training split only",
+    "structured_columns": [],
+    "text": {
+      "analyzer": "char_wb",
+      "max_features": 300,
+      "min_df": 2,
+      "ngram_range": [
+        3,
+        5
+      ],
+      "source": "tugas",
+      "sublinear_tf": true,
+      "transformer": "TfidfVectorizer"
+    }
+  },
+  "random_seed": 42,
+  "runtime_versions": {
+    "joblib": "1.5.3",
+    "numpy": "2.5.1",
+    "python": "3.13.7",
+    "scikit-learn": "1.9.0",
+    "scipy": "1.18.0"
+  },
+  "split_config": {
+    "cv": "GroupKFold(shuffle=True)",
+    "cv_folds": 5,
+    "group_column": "source_group_id",
+    "holdout": "GroupShuffleSplit",
+    "overlapping_groups": 0,
+    "test_fraction": 0.2,
+    "test_groups": 109,
+    "test_rows": 111,
+    "training_groups": 433,
+    "training_rows": 438
+  },
+  "status": "experimental",
+  "test_row_count": 111,
+  "training_row_count": 438,
+  "training_timestamp": "2026-08-12T09:54:04.345760+00:00"
+}

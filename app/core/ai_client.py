@@ -70,6 +70,18 @@ def active_model() -> str:
     return GEMINI_MODEL
 
 
+def can_generate() -> bool:
+    """Whether a configured provider has credentials for a real API request."""
+    provider = active_provider()
+    if provider == "gemini":
+        return bool(gemini_api_key())
+    if provider == "openai":
+        return bool(openai_api_key())
+    if provider == "deepseek":
+        return bool(deepseek_api_key())
+    return False
+
+
 _lama: dict[str, list[float]] = {p: [] for p in _PROVIDERS}
 LAMA_DEFAULT = 2.5
 LAMA_MAKS = 30.0

@@ -1,0 +1,170 @@
+{
+  "audit_version": "duration-real-user-audit-v1",
+  "completed_task_occurrences_per_user": {
+    "count": 0,
+    "max": null,
+    "mean": null,
+    "median": null,
+    "min": null,
+    "p25": null,
+    "p75": null,
+    "p90": null,
+    "p95": null
+  },
+  "dataset_snapshot": {
+    "candidate_count": 0,
+    "content_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "dataset_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "dataset_version": "focusbuddy-user-outcomes-v1-sha256-4f53cda18c2b"
+  },
+  "prediction_model_version_distribution": {
+    "duration-production-legacy-v1": 2
+  },
+  "privacy": {
+    "contains_names_or_emails": false,
+    "contains_raw_task_text": false,
+    "contains_user_ids": false
+  },
+  "proposed_gate_policy": {
+    "note": "These gates permit offline evaluation only, never automatic promotion.",
+    "policy": {
+      "dataset_max_unusable_session_fraction": 0.2,
+      "dataset_min_eligible_occurrences": 200,
+      "dataset_min_eligible_users": 20,
+      "dataset_min_users_with_five_occurrences": 10,
+      "global_min_eligible_occurrences": 1000,
+      "global_min_eligible_users": 50,
+      "global_min_expected_locked_test_rows": 200,
+      "global_min_long_task_occurrences": 50,
+      "global_min_users_with_ten_occurrences": 30,
+      "personalization_min_active_days": 14,
+      "personalization_min_categories": 3,
+      "personalization_min_occurrences": 30,
+      "policy_version": "duration-real-user-readiness-v1"
+    },
+    "rationale": {
+      "dataset_max_unusable_session_fraction": "If more than 20% of sessions are invalid/unknown/suspicious, telemetry quality must be fixed before model comparison; the value is an explicit review gate.",
+      "dataset_min_eligible_occurrences": "A 200-row floor is a conservative screening gate, not a claim of statistical sufficiency; below it, a 20% holdout and 5-fold CV are too small for stable Duration error slices.",
+      "dataset_min_eligible_users": "Twenty users leave multiple held-out user groups while preserving enough training groups for 5-fold group-aware CV.",
+      "dataset_min_users_with_five_occurrences": "Repeated observations are needed to audit within-user dependence without letting one prolific user dominate the dataset.",
+      "global_min_eligible_occurrences": "One thousand outcomes support a more useful locked test and duration slices than the exploratory 200-row dataset gate.",
+      "global_min_eligible_users": "Fifty users reduce dependence on a small set of behavioral profiles and normally leave about ten users for a 20% user-group holdout.",
+      "global_min_expected_locked_test_rows": "At least 200 expected locked-test rows are proposed for stable aggregate metrics; the actual user-group split must still be inspected.",
+      "global_min_long_task_occurrences": "Tasks above 300 minutes were the worst Phase 2 slice. At least 50 are required before claiming that a replacement does not regress that slice.",
+      "global_min_users_with_ten_occurrences": "Thirty users with repeated observations limit domination by a few heavy users.",
+      "personalization_min_active_days": "Fourteen distinct days reduces the risk of calibrating to one short-lived week.",
+      "personalization_min_categories": "Three categories provide a minimal check that a calibration is not a single-task memorization. Missing category values do not count.",
+      "personalization_min_occurrences": "Thirty outcomes is the Phase 3 provisional floor for estimating a lightweight personal residual/calibration; it does not authorize a per-user model."
+    },
+    "status": "proposed_for_review"
+  },
+  "readiness": {
+    "dataset_level_training_gate": {
+      "checks": {
+        "eligible_occurrences": false,
+        "eligible_users": false,
+        "no_synthetic_training_rows": true,
+        "session_quality": true,
+        "users_with_five_occurrences": false
+      },
+      "ready": false
+    },
+    "global_retraining_gate": {
+      "automatic_promotion": false,
+      "checks": {
+        "dataset_gate": false,
+        "eligible_occurrences": false,
+        "eligible_users": false,
+        "expected_locked_test_rows": false,
+        "long_task_occurrences": false,
+        "users_with_ten_occurrences": false
+      },
+      "ready_for_candidate_experiment": false
+    },
+    "observed_unusable_session_fraction": 0.0,
+    "personalization_gate": {
+      "architecture_implemented": true,
+      "automatic_activation": false,
+      "candidate_users": 0,
+      "minimum_active_days": 14,
+      "minimum_categories": 3,
+      "minimum_occurrences": 30,
+      "production_ready": false
+    },
+    "policy_version": "duration-real-user-readiness-v1",
+    "status": "NOT READY FOR RETRAINING"
+  },
+  "real_user_retraining_status": "NOT READY FOR RETRAINING",
+  "rows_rejected_by_session_reason": {},
+  "source_export_sha256": "cf853af691603f10a51efdad286ac1d345dbe9e5740908c4915cb105447054be",
+  "summary": {
+    "completed_task_occurrences": 1,
+    "demo_rows": 0,
+    "eligible_users": 0,
+    "invalid_sessions": 0,
+    "long_task_occurrences_over_300": 0,
+    "personalization_candidate_users": 0,
+    "real_completed_task_occurrences": 0,
+    "real_outcome_sessions": 0,
+    "real_users_with_outcomes": 0,
+    "suspicious_sessions": 0,
+    "synthetic_rows": 2,
+    "synthetic_training_rows": 0,
+    "total_sessions": 2,
+    "total_tasks": 1,
+    "total_users": 1,
+    "training_eligible_task_occurrences": 0,
+    "unknown_sessions": 0,
+    "users_with_at_least_10_occurrences": 0,
+    "users_with_at_least_5_occurrences": 0,
+    "users_with_enough_observations": 0,
+    "valid_sessions": 2
+  },
+  "task_duration_minutes": {
+    "buckets": {
+      "0_to_15": 0,
+      "121_to_300": 0,
+      "16_to_30": 0,
+      "31_to_60": 0,
+      "61_to_120": 0,
+      "over_300": 0
+    },
+    "distribution": {
+      "count": 0,
+      "max": null,
+      "mean": null,
+      "median": null,
+      "min": null,
+      "p25": null,
+      "p75": null,
+      "p90": null,
+      "p95": null
+    },
+    "source": "real training-eligible completed task occurrences only"
+  },
+  "task_occurrence_groups_rejected": {
+    "synthetic": 1
+  },
+  "tasks_per_user": {
+    "count": 1,
+    "max": 1.0,
+    "mean": 1.0,
+    "median": 1.0,
+    "min": 1.0,
+    "p25": 1.0,
+    "p75": 1.0,
+    "p90": 1.0,
+    "p95": 1.0
+  },
+  "training_eligible_task_occurrences_per_user": {
+    "count": 0,
+    "max": null,
+    "mean": null,
+    "median": null,
+    "min": null,
+    "p25": null,
+    "p75": null,
+    "p90": null,
+    "p95": null
+  }
+}

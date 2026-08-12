@@ -1,87 +1,52 @@
-"""Mengukur precision, coverage, wrong retrieval, dan fallback rate."""
+"""Evaluate production Indonesian task-decomposition retrieval without training."""
 from __future__ import annotations
 
-import csv
-import sys
+import argparse
+import json
 from pathlib import Path
 
+from ml.evaluation.decomposition_retrieval import (
+    DEFAULT_EVALUATION_DATASET,
+    evaluate_retrieval,
+    load_evaluation_rows,
+)
+
+
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
-
-from models import model_pecah  # noqa: E402
-
-DEFAULT_PATTERNS = ROOT / "datasets" / "task_decomposition_en.csv"
-DEFAULT_QUERIES = ROOT / "datasets" / "task_decomposition_queries.csv"
+DEFAULT_REPORT = ROOT / "reports" / "task_decomposition_retrieval_eval.json"
 
 
-def read_patterns(path: Path) -> list[dict]:
-    with path.open(encoding="utf-8-sig", newline="") as handle:
-        return [
-            {
-                "title": (row.get("judul") or "").strip(),
-                "description": (row.get("deskripsi") or "").strip(),
-                "steps": [s.strip() for s in (row.get("langkah") or "").split("|") if s.strip()],
-                "language": "en",
-                "source": "dataset",
-            }
-            for row in csv.DictReader(handle)
-            if (row.get("judul") or "").strip() and (row.get("langkah") or "").strip()
-        ]
-
-
-def evaluate(patterns: list[dict], queries: list[dict], threshold: float) -> dict[str, float | int]:
-    retrieved = correct = wrong = 0
-    for row in queries:
-        result = model_pecah.cari(
-            (row.get("query") or "").strip(),
-            records=patterns,
-            ambang=threshold,
-            bahasa="en",
-        )
-        if not result.ketemu:
-            continue
-        retrieved += 1
-        if result.dari_judul == (row.get("target_judul") or "").strip():
-            correct += 1
-        else:
-            wrong += 1
-
-    total = len(queries)
-    return {
-        "total_queries": total,
-        "retrieved": retrieved,
-        "correct": correct,
-        "wrong": wrong,
-        "precision": correct / retrieved if retrieved else 0.0,
-        "coverage": retrieved / total if total else 0.0,
-        "wrong_retrieval_rate": wrong / total if total else 0.0,
-        "fallback_rate": (total - retrieved) / total if total else 0.0,
-    }
-
-
-def main() -> None:
-    args = [Path(arg) for arg in sys.argv[1:]]
-    patterns_path = args[0] if args else DEFAULT_PATTERNS
-    queries_path = args[1] if len(args) > 1 else DEFAULT_QUERIES
-    if not patterns_path.is_absolute():
-        patterns_path = ROOT / patterns_path
-    if not queries_path.is_absolute():
-        queries_path = ROOT / queries_path
-
-    patterns = read_patterns(patterns_path)
-    with queries_path.open(encoding="utf-8-sig", newline="") as handle:
-        queries = list(csv.DictReader(handle))
-    report = evaluate(patterns, queries, model_pecah.AMBANG_MIRIP)
-
-    print(f"patterns              : {len(patterns)} ({patterns_path.name})")
-    print(f"queries               : {report['total_queries']} ({queries_path.name})")
-    print(f"threshold             : {model_pecah.AMBANG_MIRIP:.2f}")
-    print(f"precision             : {report['precision']:.1%}")
-    print(f"coverage              : {report['coverage']:.1%}")
-    print(f"wrong retrieval rate  : {report['wrong_retrieval_rate']:.1%}")
-    print(f"fallback rate         : {report['fallback_rate']:.1%}")
-    print(f"correct / wrong       : {report['correct']} / {report['wrong']}")
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", type=Path, default=DEFAULT_EVALUATION_DATASET)
+    parser.add_argument("--output", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument(
+        "--development-runtime",
+        action="store_true",
+        help="Evaluate local TF-IDF behavior instead of Render production matching.",
+    )
+    args = parser.parse_args()
+    input_path = args.input if args.input.is_absolute() else ROOT / args.input
+    output_path = args.output if args.output.is_absolute() else ROOT / args.output
+    report = evaluate_retrieval(
+        load_evaluation_rows(input_path),
+        production_runtime=not args.development_runtime,
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    overall = report["overall"]
+    print(f"corpus={report['corpus']['pattern_count']} Indonesian patterns")
+    print(f"accuracy={overall['retrieval_accuracy']:.1%}")
+    print(f"precision={overall['precision']:.1%}")
+    print(f"coverage={overall['coverage']:.1%}")
+    print(f"wrong_retrieval_rate={overall['wrong_retrieval_rate']:.1%}")
+    print(f"fallback_rate={overall['fallback_rate']:.1%}")
+    print(f"report={output_path}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

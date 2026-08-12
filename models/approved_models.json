@@ -1,0 +1,17 @@
+{
+  "schema_version": "focusbuddy-approved-model-registry-v1",
+  "models": {
+    "duration": {
+      "model_version": null,
+      "dataset_version": null,
+      "feature_schema_version": "duration-legacy-v1",
+      "artifact_format": "focusbuddy-duration-legacy-dict-v1",
+      "artifact_sha256": null,
+      "artifact_path_env": "FOCUSBUDDY_DURATION_MODEL_PATH",
+      "training_configuration": null,
+      "evaluation_metrics": null,
+      "created_at": null,
+      "promotion_status": "experimental"
+    }
+  }
+}

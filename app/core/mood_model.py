@@ -10,6 +10,7 @@ from typing import Optional
 from sklearn.tree import DecisionTreeRegressor
 
 from app import clock
+from app.runtime_policy import runtime_training_allowed
 
 MIN_LOGS_FOR_PATTERN = 5
 MIN_LOGS_FOR_MODEL = 10
@@ -158,6 +159,8 @@ def _is_weekend(log: dict) -> bool:
 
 
 def _predict_today(logs: list[dict]) -> Optional[float]:
+    if not runtime_training_allowed():
+        return None
     if len(logs) < MIN_LOGS_FOR_MODEL:
         return None
     today = clock.today()

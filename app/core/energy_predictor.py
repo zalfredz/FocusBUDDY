@@ -7,6 +7,8 @@ from typing import Optional
 
 from sklearn.tree import DecisionTreeClassifier
 
+from app.runtime_policy import runtime_training_allowed
+
 LABELS = ["rendah", "sedang", "tinggi"]
 
 ENERGY_MIN, ENERGY_MAX = 1, 6
@@ -61,11 +63,27 @@ def train_model() -> DecisionTreeClassifier:
 _model: Optional[DecisionTreeClassifier] = None
 
 
-def _get_model() -> DecisionTreeClassifier:
+def _get_model() -> Optional[DecisionTreeClassifier]:
     global _model
-    if _model is None:
+    if _model is None and runtime_training_allowed():
         _model = train_model()
     return _model
+
+
+def _rule_label(
+    sleep_hours: float, mood_score: int, energy_level: int, streak: int
+) -> str:
+    score = (
+        (sleep_hours - 3) / 6 * 1.8
+        + (mood_score - 1) / 4 * 1.8
+        + (energy_level - 1) / 5 * 2.2
+        + min(streak, 5) / 5 * 0.8
+    )
+    if score < 2.1:
+        return "rendah"
+    if score < 3.9:
+        return "sedang"
+    return "tinggi"
 
 
 @dataclass
@@ -110,7 +128,11 @@ def predict_workload(
 ) -> EnergyPrediction:
     model = _get_model()
     energy_level = max(ENERGY_MIN, min(energy_level, ENERGY_MAX))
-    label = str(model.predict([[sleep_hours, mood_score, energy_level, streak]])[0])
+    label = (
+        str(model.predict([[sleep_hours, mood_score, energy_level, streak]])[0])
+        if model is not None
+        else _rule_label(sleep_hours, mood_score, energy_level, streak)
+    )
 
     classic_burnout = mood_score <= 2 and sleep_hours < 5.5 and energy_level <= 2
     neglect_burnout = neglect_days >= NEGLECT_BURNOUT_THRESHOLD

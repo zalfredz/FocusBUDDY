@@ -1,4 +1,9 @@
-# Model Artifacts
+# Local Model Artifacts
 
-Folder ini berisi model hasil training yang bisa dibangun ulang. Jalankan
-`python tools/train_duration_model.py` untuk membuat `task_duration_model.joblib`.
+Folder ini hanya untuk artifact lokal yang dapat dibangun ulang dan diabaikan
+Git. `tools/train_duration_model.py` adalah tool legacy eksplisit, bukan jalur
+startup aplikasi.
+
+Production tidak mempercayai file di folder ini. Artifact production harus
+melewati evaluasi dan promosi registry, tersedia melalui environment, lalu lolos
+verifikasi checksum oleh `models/model_registry.py`.

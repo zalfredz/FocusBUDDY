@@ -1,0 +1,23 @@
+{
+  "dataset_name": "task_duration_features",
+  "dataset_version": "task-duration-features-v3",
+  "source_path": "datasets/task_duration_id_clean.csv",
+  "source_sha256": "3a730c016f68236b640e05a16f4a2b7bc1ad304b594ffb6fdf65af64b96939fb",
+  "derived_path": "datasets/generated/task_duration_features_v3.csv",
+  "derived_sha256": "f318d96e0096318f0a1db5f3817844dd91907802a1c2e651700c3260b0cfc238",
+  "row_count": 549,
+  "extractor_version": "duration-text-rules-v3",
+  "target": {
+    "source_column": "durasi_menit",
+    "derived_column": "estimated_duration_minutes",
+    "meaning": "human_estimated_duration",
+    "unit": "minute"
+  },
+  "group_column": "source_group_id",
+  "status": "experimental",
+  "notes": [
+    "The derived CSV is reproducibly generated from task text and source metadata.",
+    "Feature extraction does not read target duration, outcome, or future information.",
+    "The clean source dataset remains unchanged."
+  ]
+}

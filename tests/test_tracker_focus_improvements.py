@@ -83,7 +83,9 @@ def prepare() -> None:
     )
     state["last_brief_date"] = clock.today().isoformat()
     storage.save_state(state)
-    storage.add_mood_log("tenang", 4, 4)
+    storage.add_mood_log(
+        "tenang", 4, 4, ate_today=True, rested_enough=True
+    )
     storage.set_today_energy(4)
 
 

@@ -1,6 +1,7 @@
 """State sesi fokus yang terisolasi per browser."""
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Optional
@@ -29,6 +30,10 @@ class _FocusState:
     step_index: int = -1
     decision_id: str = ""
     started_at: str = ""
+    session_id: str = ""
+    interruption_count: int = 0
+    pause_duration_seconds: float = 0.0
+    paused_at: Optional[datetime] = None
 
 
 _FALLBACK_STATE = _FocusState()
@@ -57,7 +62,8 @@ def start(
     state.task_estimate_minutes = max(int(task_estimate_minutes or 0), 0)
     state.label = label
     state.task_title = task_title
-    state.ends_at = datetime.now() + timedelta(seconds=state.total_seconds)
+    started = datetime.now()
+    state.ends_at = started + timedelta(seconds=state.total_seconds)
     state.paused_left = None
     state.finished = False
     state.kategori = kategori
@@ -69,13 +75,27 @@ def start(
     state.occurrence_date = occurrence_date
     state.step_index = int(step_index)
     state.decision_id = decision_id
-    state.started_at = datetime.now().isoformat()
+    state.started_at = started.isoformat()
+    state.session_id = str(uuid.uuid4())
+    state.interruption_count = 0
+    state.pause_duration_seconds = 0.0
+    state.paused_at = None
     if decision_id:
         from app import storage
 
         storage.record_decision_started(
             decision_id, planned_focus_minutes=state.total_seconds // 60
         )
+    from app import storage
+
+    storage.start_focus_outcome_record(
+        session_id=state.session_id,
+        task_id=state.task_id,
+        step_id=state.step_id,
+        occurrence_date=state.occurrence_date,
+        planned_session_minutes=state.total_seconds // 60,
+        task_title=state.task_title,
+    )
 
 
 def elapsed_minutes() -> float:
@@ -93,10 +113,16 @@ def record_if_worthwhile(
     if state.recorded or state.total_seconds <= 0:
         return None
     state.recorded = True
-    return storage.add_focus_record(
+    ended_at = datetime.now().isoformat()
+    active_minutes = elapsed_minutes()
+    pause_minutes = _pause_seconds_including_current() / 60.0
+    task_completed = storage.task_completion_status(
+        state.task_id, state.occurrence_date or None
+    )
+    record = storage.add_focus_record(
         kategori=state.kategori,
         jumlah_unit=state.jumlah_unit,
-        menit=elapsed_minutes(),
+        menit=active_minutes,
         energi=state.energi,
         task_title=state.task_title,
         menit_est=state.total_seconds // 60,
@@ -109,12 +135,33 @@ def record_if_worthwhile(
         step_index=state.step_index if state.step_index >= 0 else None,
         decision_id=state.decision_id,
         reflection=reflection,
+        session_id=state.session_id,
         session_started_at=state.started_at,
-        session_ended_at=datetime.now().isoformat(),
-        task_completed=storage.task_completion_status(
-            state.task_id, state.occurrence_date or None
-        ),
+        session_ended_at=ended_at,
+        task_completed=task_completed,
+        interruption_count=state.interruption_count,
+        pause_duration_minutes=pause_minutes,
     )
+    completion_status = (
+        "task_completed"
+        if outcome == "completed" and task_completed
+        else "step_completed"
+        if outcome == "completed"
+        else outcome or "ended_without_outcome"
+    )
+    storage.update_focus_outcome_record(
+        state.session_id,
+        ended_at=ended_at,
+        actual_active_duration_minutes=round(active_minutes, 4),
+        pause_duration_minutes=round(pause_minutes, 4),
+        completion_status=completion_status,
+        outcome=outcome,
+        interruption_count=state.interruption_count,
+        task_completed=task_completed,
+        data_quality_status="unknown",
+        data_quality_reason="pending_offline_validation",
+    )
+    return record
 
 
 def pause() -> None:
@@ -123,14 +170,38 @@ def pause() -> None:
         return
     state.paused_left = remaining()
     state.ends_at = None
+    state.paused_at = datetime.now()
+    state.interruption_count += 1
+    from app import storage
+
+    storage.update_focus_outcome_record(
+        state.session_id,
+        completion_status="paused",
+        interruption_count=state.interruption_count,
+        pause_duration_minutes=round(state.pause_duration_seconds / 60.0, 4),
+    )
 
 
 def resume() -> None:
     state = _state()
     if state.paused_left is None or state.paused_left <= 0:
         return
-    state.ends_at = datetime.now() + timedelta(seconds=state.paused_left)
+    resumed_at = datetime.now()
+    if state.paused_at is not None:
+        state.pause_duration_seconds += max(
+            0.0, (resumed_at - state.paused_at).total_seconds()
+        )
+    state.ends_at = resumed_at + timedelta(seconds=state.paused_left)
     state.paused_left = None
+    state.paused_at = None
+    from app import storage
+
+    storage.update_focus_outcome_record(
+        state.session_id,
+        completion_status="started",
+        interruption_count=state.interruption_count,
+        pause_duration_minutes=round(state.pause_duration_seconds / 60.0, 4),
+    )
 
 
 def reset() -> None:
@@ -166,6 +237,12 @@ def update_duration(minutes: int) -> bool:
     else:
         state.ends_at = None
         state.paused_left = new_left
+    from app import storage
+
+    storage.update_focus_outcome_record(
+        state.session_id,
+        planned_session_minutes=new_total // 60,
+    )
     return True
 
 
@@ -263,6 +340,18 @@ def _clear() -> None:
     state.step_index = -1
     state.decision_id = ""
     state.started_at = ""
+    state.session_id = ""
+    state.interruption_count = 0
+    state.pause_duration_seconds = 0.0
+    state.paused_at = None
+
+
+def _pause_seconds_including_current() -> float:
+    state = _state()
+    total = state.pause_duration_seconds
+    if state.paused_at is not None:
+        total += max(0.0, (datetime.now() - state.paused_at).total_seconds())
+    return total
 
 
 def remaining() -> int:
@@ -327,6 +416,9 @@ def snapshot() -> dict[str, Any]:
         "step_index": state.step_index,
         "decision_id": state.decision_id,
         "session_started_at": state.started_at,
+        "session_id": state.session_id,
+        "interruption_count": state.interruption_count,
+        "pause_duration_minutes": round(_pause_seconds_including_current() / 60.0, 4),
         "running": is_running(),
         "paused": is_paused(),
         "active": is_active(),

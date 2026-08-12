@@ -1,0 +1,67 @@
+{
+  "artifacts_created": {
+    "dataset_snapshot": false,
+    "metrics_csv": false,
+    "metrics_json": false,
+    "model_artifact": false,
+    "model_metadata": false,
+    "readiness_report": true
+  },
+  "cv_results": null,
+  "data_readiness": {
+    "completed_task_occurrence_candidates": 0,
+    "dataset_checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "dataset_version": "focusbuddy-user-outcomes-v1-sha256-4f53cda18c2b",
+    "invalid_sessions": 0,
+    "raw_outcome_sessions": 2,
+    "real_outcome_sessions": 0,
+    "real_users": 0,
+    "source_export_checksum": "cf853af691603f10a51efdad286ac1d345dbe9e5740908c4915cb105447054be",
+    "suspicious_sessions": 0,
+    "synthetic_rows": 2,
+    "training_eligible_real_user_rows": 0,
+    "unknown_sessions": 0,
+    "valid_sessions": 2
+  },
+  "experiment_version": "duration-real-user-v1",
+  "failed_gates": [
+    "dataset_level_training_gate.eligible_occurrences",
+    "dataset_level_training_gate.eligible_users",
+    "dataset_level_training_gate.users_with_five_occurrences",
+    "global_retraining_gate.eligible_occurrences",
+    "global_retraining_gate.eligible_users",
+    "global_retraining_gate.users_with_ten_occurrences",
+    "global_retraining_gate.expected_locked_test_rows",
+    "global_retraining_gate.long_task_occurrences",
+    "global_retraining_gate.dataset_gate"
+  ],
+  "integrity": {
+    "duplicate_findings": {
+      "duplicate_record_ids": 0,
+      "duplicate_session_ids": 0
+    },
+    "leakage_detected": null,
+    "leakage_status": "NOT EVALUATED — ZERO ELIGIBLE REAL-USER ROWS",
+    "primary_user_group_split_run": false,
+    "secondary_temporal_split_run": false
+  },
+  "locked_test_results": null,
+  "long_task_results": null,
+  "model_status": "NO MODEL TRAINED",
+  "models_evaluated": [],
+  "note": "Synthetic fixture rows validate the pipeline only. They are excluded from real-user training and cannot support model metrics or an accuracy claim.",
+  "phase_1_2_comparison": null,
+  "privacy": {
+    "contains_names_or_emails": false,
+    "contains_raw_task_text": false,
+    "contains_user_ids": false
+  },
+  "production_inference_changed": false,
+  "promotion_decision": "NOT EVALUATED",
+  "rejected_rows_by_reason": {
+    "task_group:synthetic": 1
+  },
+  "status": "REAL USER RETRAINING STATUS: NOT READY",
+  "stop_condition": "no_real_user_training_eligible_data",
+  "training_started": false
+}

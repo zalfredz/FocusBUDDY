@@ -12,6 +12,7 @@ from sklearn.ensemble import RandomForestRegressor
 from app import clock, storage
 from models import fitur as F
 from models import riwayat
+from app.runtime_policy import runtime_training_allowed
 
 MIN_POLA = 5
 MIN_MODEL = 10
@@ -77,6 +78,8 @@ def reset_model() -> None:
 
 def _latih(day: Any = None) -> bool:
     global _model, _n_latih, _tanda
+    if not runtime_training_allowed():
+        return False
     X, meta = riwayat.baris_harian(day=day)
     if len(X) < MIN_MODEL:
         return False

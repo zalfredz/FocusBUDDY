@@ -1,0 +1,229 @@
+{
+  "artifact_path": "ml/registry/artifacts/duration-features-v3.joblib",
+  "artifact_sha256": "104d161c6fd241e0f0ac372633e73623c3a9c6562ede1a2c1a1f82642c6a4ef7",
+  "dataset_sha256": "f318d96e0096318f0a1db5f3817844dd91907802a1c2e651700c3260b0cfc238",
+  "dataset_version": "task-duration-features-v3",
+  "experiment_config": {
+    "experiment_id": "A_phase1",
+    "experiment_label": "Phase 1 reproduced",
+    "feature_groups": [],
+    "raw_target_pre_registered_as_primary": true,
+    "selection_uses_locked_test": false,
+    "target_meaning": "human_estimated_duration",
+    "target_transform": "raw"
+  },
+  "feature_schema": {
+    "deadline": {
+      "deadline_encoding": {
+        "deadline_days_or_zero": "tenggat_hari",
+        "has_deadline": 1.0
+      },
+      "features": [
+        "has_deadline",
+        "deadline_days_or_zero"
+      ],
+      "mode": "clean_presence_plus_days",
+      "no_deadline_encoding": {
+        "deadline_days_or_zero": 0.0,
+        "has_deadline": 0.0
+      },
+      "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+    },
+    "importance": "tingkat_kepentingan_1_10",
+    "name": "A_phase1",
+    "structured_columns": [],
+    "text": {
+      "analyzer": "char_wb",
+      "max_features": 300,
+      "min_df": 2,
+      "ngram_range": [
+        3,
+        5
+      ],
+      "source": "tugas",
+      "sublinear_tf": true,
+      "transformer": "TfidfVectorizer"
+    }
+  },
+  "framework": "scikit-learn",
+  "framework_version": "1.9.0",
+  "hyperparameters": {
+    "candidate": "hist_gradient_boosting",
+    "cv_folds": 5,
+    "l2_regularization": 1.0,
+    "learning_rate": 0.05,
+    "max_iter": 200,
+    "max_leaf_nodes": 31,
+    "minimum_better_folds": 4,
+    "minimum_meaningful_cv_improvement_percent": 2.0,
+    "random_state": 42,
+    "selection_metric": "cv_rmse_mean",
+    "target_transform": "raw"
+  },
+  "metrics": {
+    "cross_validation": {
+      "cv_mae_mean": 69.04071145198984,
+      "cv_mae_std": 8.380442584110837,
+      "cv_median_absolute_error_mean": 41.59683979372086,
+      "cv_median_absolute_error_std": 7.320702979865898,
+      "cv_r2_mean": 0.3867351284777613,
+      "cv_r2_std": 0.15623880932341233,
+      "cv_rmse_mean": 117.09755583204523,
+      "cv_rmse_std": 29.666255438267935,
+      "cv_within_10_percent_mean": 0.06868415419342137,
+      "cv_within_10_percent_std": 0.03501469903332318,
+      "cv_within_20_percent_mean": 0.1531746876876311,
+      "cv_within_20_percent_std": 0.031220425832990468,
+      "cv_within_30_percent_mean": 0.2240003451252021,
+      "cv_within_30_percent_std": 0.04758476616484867
+    },
+    "locked_test": {
+      "mae": 72.4945954445611,
+      "median_absolute_error": 41.233805152043544,
+      "r2": 0.2979633330518998,
+      "rmse": 131.56691443616646,
+      "within_10_percent": 0.06306306306306306,
+      "within_20_percent": 0.12612612612612611,
+      "within_30_percent": 0.1891891891891892
+    },
+    "performance": {
+      "cold_load_ms": 62.49401200147986,
+      "first_inference_ms": 141.95034399926953,
+      "latency_repeats": 200,
+      "model_size_bytes": 199835,
+      "p50_inference_ms": 9.088518000680779,
+      "p95_inference_ms": 17.478041899539654,
+      "warm_inference_mean_ms": 10.337490365054691
+    }
+  },
+  "model_name": "duration",
+  "model_version": "duration-features-v3",
+  "preprocessing": {
+    "feature_columns": [],
+    "feature_extractor": {
+      "action_type_vocabulary": [
+        "membaca",
+        "menulis",
+        "belajar",
+        "membersihkan",
+        "mengirim",
+        "mengisi",
+        "membuat",
+        "menonton",
+        "mengedit",
+        "mengorganisir",
+        "mengerjakan",
+        "transaksi",
+        "perawatan",
+        "olahraga",
+        "perjalanan",
+        "sosial",
+        "mencari"
+      ],
+      "complexity_signals": [
+        "analysis",
+        "research",
+        "revision",
+        "long_form",
+        "completion",
+        "learning"
+      ],
+      "extractor_version": "duration-text-rules-v3",
+      "future_information_used": false,
+      "input": "task text only",
+      "n_token": "Unicode word tokens from task text; punctuation is not a token.",
+      "quantity": "First explicit numeric/number-word immediately followed by a controlled unit. Numbers after nomor/project/bab/kuliah/ujian and bare years are rejected.",
+      "scope_signals": [
+        "scope_all",
+        "scope_multiple",
+        "scope_each",
+        "scope_complete"
+      ],
+      "target_used": false,
+      "task_category_vocabulary": [
+        "akademik",
+        "pekerjaan",
+        "kesehatan",
+        "olahraga",
+        "perjalanan",
+        "rumah",
+        "administrasi",
+        "sosial",
+        "pribadi",
+        "lainnya"
+      ],
+      "unit_type_vocabulary": [
+        "soal",
+        "halaman",
+        "bab",
+        "file",
+        "dokumen",
+        "email",
+        "slide",
+        "video",
+        "orang",
+        "item",
+        "menit",
+        "jam"
+      ]
+    },
+    "feature_schema": {
+      "deadline": {
+        "deadline_encoding": {
+          "deadline_days_or_zero": "tenggat_hari",
+          "has_deadline": 1.0
+        },
+        "features": [
+          "has_deadline",
+          "deadline_days_or_zero"
+        ],
+        "mode": "clean_presence_plus_days",
+        "no_deadline_encoding": {
+          "deadline_days_or_zero": 0.0,
+          "has_deadline": 0.0
+        },
+        "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+      },
+      "importance": "tingkat_kepentingan_1_10",
+      "name": "A_phase1",
+      "structured_columns": [],
+      "text": {
+        "analyzer": "char_wb",
+        "max_features": 300,
+        "min_df": 2,
+        "ngram_range": [
+          3,
+          5
+        ],
+        "source": "tugas",
+        "sublinear_tf": true,
+        "transformer": "TfidfVectorizer"
+      }
+    },
+    "fit_scope": "CV train folds/final 80% training split only"
+  },
+  "random_seed": 42,
+  "runtime_versions": {
+    "joblib": "1.5.3",
+    "numpy": "2.5.1",
+    "python": "3.13.7",
+    "scikit-learn": "1.9.0",
+    "scipy": "1.18.0"
+  },
+  "split_config": {
+    "cv": "GroupKFold(shuffle=True)",
+    "cv_folds": 5,
+    "group_column": "source_group_id",
+    "holdout": "GroupShuffleSplit",
+    "overlapping_groups": 0,
+    "test_fraction": 0.2,
+    "test_groups": 109,
+    "test_rows": 111,
+    "training_groups": 433,
+    "training_rows": 438
+  },
+  "status": "experimental",
+  "test_row_count": 111,
+  "training_row_count": 438,
+  "training_timestamp": "2026-08-12T10:31:32.055815+00:00"
+}

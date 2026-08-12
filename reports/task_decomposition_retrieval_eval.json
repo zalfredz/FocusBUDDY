@@ -1,0 +1,295 @@
+{
+  "by_case_type": {
+    "easy": {
+      "correct": 20,
+      "coverage": 1.0,
+      "fallback_rate": 0.0,
+      "false_retrieval": 0,
+      "negative_false_accept_rate": null,
+      "negative_query_count": 0,
+      "positive_query_count": 20,
+      "precision": 1.0,
+      "query_count": 20,
+      "retrieval_accuracy": 1.0,
+      "retrieved": 20,
+      "wrong_retrieval_rate": 0.0
+    },
+    "negative": {
+      "correct": 0,
+      "coverage": null,
+      "fallback_rate": 1.0,
+      "false_retrieval": 0,
+      "negative_false_accept_rate": 0.0,
+      "negative_query_count": 20,
+      "positive_query_count": 0,
+      "precision": 0.0,
+      "query_count": 20,
+      "retrieval_accuracy": null,
+      "retrieved": 0,
+      "wrong_retrieval_rate": 0.0
+    },
+    "paraphrase": {
+      "correct": 1,
+      "coverage": 0.03333333333333333,
+      "fallback_rate": 0.9666666666666667,
+      "false_retrieval": 0,
+      "negative_false_accept_rate": null,
+      "negative_query_count": 0,
+      "positive_query_count": 30,
+      "precision": 1.0,
+      "query_count": 30,
+      "retrieval_accuracy": 0.03333333333333333,
+      "retrieved": 1,
+      "wrong_retrieval_rate": 0.0
+    }
+  },
+  "corpus": {
+    "language": "id",
+    "path": "datasets/task_decomposition_id.csv",
+    "pattern_count": 212
+  },
+  "definitions": {
+    "coverage": "accepted positive retrievals / all positive queries",
+    "fallback_rate": "queries rejected by retrieval / all queries",
+    "precision": "correct retrievals / all accepted retrievals",
+    "retrieval_accuracy": "correct retrieved positive queries / all positive queries",
+    "wrong_retrieval_rate": "wrong accepted retrievals / all queries"
+  },
+  "evaluation_version": "task-decomposition-retrieval-eval-v1",
+  "failure_count": 29,
+  "failures": [
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.580344
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.621366
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.487661
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.650725
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.293972
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.578829
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.461538
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.553059
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.290191
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.34712
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.397911
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.305184
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.491668
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.372678
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.514496
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.657031
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.340604
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.541603
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.467707
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.417855
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.588913
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.415339
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.715329
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.26024
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.393004
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.68986
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.214145
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.479167
+    },
+    {
+      "case_type": "paraphrase",
+      "failure": "fallback",
+      "reason": "confidence_di_bawah_ambang",
+      "returned_title": "",
+      "score": 0.29757
+    }
+  ],
+  "overall": {
+    "correct": 21,
+    "coverage": 0.42,
+    "fallback_rate": 0.7,
+    "false_retrieval": 0,
+    "negative_false_accept_rate": 0.0,
+    "negative_query_count": 20,
+    "positive_query_count": 50,
+    "precision": 1.0,
+    "query_count": 70,
+    "retrieval_accuracy": 0.42,
+    "retrieved": 21,
+    "wrong_retrieval_rate": 0.0
+  },
+  "privacy": {
+    "contains_raw_user_task_text": false,
+    "contains_user_ids": false
+  },
+  "production_runtime": true,
+  "query_counts": {
+    "easy": 20,
+    "negative": 20,
+    "paraphrase": 30
+  },
+  "retrieval_policy": {
+    "ambiguity_margin": 0.03,
+    "confidence_threshold": 0.72,
+    "low_confidence_behavior": "KALEM_or_rule_based_manual_fallback",
+    "matching": "character_ngram_hashing_cosine_similarity"
+  }
+}

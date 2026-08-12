@@ -1,0 +1,3461 @@
+{
+  "all_candidates": [
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 84.50820505679413,
+        "cv_mae_std": 11.347713312713632,
+        "cv_median_absolute_error_mean": 36.9,
+        "cv_median_absolute_error_std": 6.945502141674136,
+        "cv_r2_mean": -0.1442336949459933,
+        "cv_r2_std": 0.09240647136776312,
+        "cv_rmse_mean": 159.53837682323928,
+        "cv_rmse_std": 25.1788883576266,
+        "cv_within_10_percent_mean": 0.054923146842855264,
+        "cv_within_10_percent_std": 0.04956045798488668,
+        "cv_within_20_percent_mean": 0.08710766240748309,
+        "cv_within_20_percent_std": 0.05498766306232001,
+        "cv_within_30_percent_mean": 0.14619857149839222,
+        "cv_within_30_percent_std": 0.02653879763179022
+      },
+      "cv_time_seconds": 0.25303487699966354,
+      "experiment_id": "phase0_original__raw",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {},
+      "locked_test_metrics": null,
+      "model_name": "median_baseline",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 0.042787877000591834
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 86.08978280966912,
+        "cv_mae_std": 22.075949837313463,
+        "cv_median_absolute_error_mean": 44.55744771590257,
+        "cv_median_absolute_error_std": 8.035611500462364,
+        "cv_r2_mean": -0.06830119944118034,
+        "cv_r2_std": 0.32300817281845895,
+        "cv_rmse_mean": 153.66600767763185,
+        "cv_rmse_std": 37.817484146474854,
+        "cv_within_10_percent_mean": 0.0416217102865058,
+        "cv_within_10_percent_std": 0.051301853112498345,
+        "cv_within_20_percent_mean": 0.134729288323983,
+        "cv_within_20_percent_std": 0.06849787400284985,
+        "cv_within_30_percent_mean": 0.15978329604943592,
+        "cv_within_30_percent_std": 0.05460836049729468
+      },
+      "cv_time_seconds": 0.23983328600115783,
+      "experiment_id": "phase0_original__raw",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "max_depth": 8,
+        "min_samples_leaf": 2,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "decision_tree",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 0.04950361800001701
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 68.18753616357377,
+        "cv_mae_std": 12.264789463923288,
+        "cv_median_absolute_error_mean": 38.319876796536796,
+        "cv_median_absolute_error_std": 8.374586332819355,
+        "cv_r2_mean": 0.3651077795832869,
+        "cv_r2_std": 0.16497606099498102,
+        "cv_rmse_mean": 119.5851551269706,
+        "cv_rmse_std": 32.3620164508967,
+        "cv_within_10_percent_mean": 0.07082743903720991,
+        "cv_within_10_percent_std": 0.02742819006416133,
+        "cv_within_20_percent_mean": 0.13501903376411184,
+        "cv_within_20_percent_std": 0.027924533961689126,
+        "cv_within_30_percent_mean": 0.2124271353051887,
+        "cv_within_30_percent_std": 0.04818484559507537
+      },
+      "cv_time_seconds": 4.591979991000699,
+      "experiment_id": "phase0_original__raw",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "random_forest",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 1.1121870099996158
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 67.3150956181164,
+        "cv_mae_std": 11.02633163636135,
+        "cv_median_absolute_error_mean": 35.49823000000003,
+        "cv_median_absolute_error_std": 5.6825050697968065,
+        "cv_r2_mean": 0.3429797021601628,
+        "cv_r2_std": 0.18942788388500242,
+        "cv_rmse_mean": 121.61158335049655,
+        "cv_rmse_std": 34.473641715463195,
+        "cv_within_10_percent_mean": 0.08227244194374296,
+        "cv_within_10_percent_std": 0.013850455084120769,
+        "cv_within_20_percent_mean": 0.14622767095916137,
+        "cv_within_20_percent_std": 0.014356246884462659,
+        "cv_within_30_percent_mean": 0.22821091354695597,
+        "cv_within_30_percent_std": 0.019066829579484343
+      },
+      "cv_time_seconds": 5.494576131999565,
+      "experiment_id": "phase0_original__raw",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "extra_trees",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 1.3987951150011213
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 71.25957307921388,
+        "cv_mae_std": 13.297371138212661,
+        "cv_median_absolute_error_mean": 36.92502987849224,
+        "cv_median_absolute_error_std": 5.397319585460276,
+        "cv_r2_mean": 0.3050363809814034,
+        "cv_r2_std": 0.17004625518380387,
+        "cv_rmse_mean": 125.44279548772313,
+        "cv_rmse_std": 33.63158119367691,
+        "cv_within_10_percent_mean": 0.061812551690280715,
+        "cv_within_10_percent_std": 0.021438678534133414,
+        "cv_within_20_percent_mean": 0.12814384758353653,
+        "cv_within_20_percent_std": 0.04876805363481769,
+        "cv_within_30_percent_mean": 0.20325485967138293,
+        "cv_within_30_percent_std": 0.05050176687169736
+      },
+      "cv_time_seconds": 3.4015248859996063,
+      "experiment_id": "phase0_original__raw",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "learning_rate": 0.05,
+        "max_depth": 3,
+        "n_estimators": 200,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "gradient_boosting",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 0.72902656900078
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 69.04071145198984,
+        "cv_mae_std": 8.380442584110837,
+        "cv_median_absolute_error_mean": 41.59683979372086,
+        "cv_median_absolute_error_std": 7.320702979865898,
+        "cv_r2_mean": 0.3867351284777613,
+        "cv_r2_std": 0.15623880932341233,
+        "cv_rmse_mean": 117.09755583204523,
+        "cv_rmse_std": 29.666255438267935,
+        "cv_within_10_percent_mean": 0.06868415419342137,
+        "cv_within_10_percent_std": 0.03501469903332318,
+        "cv_within_20_percent_mean": 0.1531746876876311,
+        "cv_within_20_percent_std": 0.031220425832990468,
+        "cv_within_30_percent_mean": 0.2240003451252021,
+        "cv_within_30_percent_std": 0.04758476616484867
+      },
+      "cv_time_seconds": 5.534412140001223,
+      "experiment_id": "phase0_original__raw",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "l2_regularization": 1.0,
+        "learning_rate": 0.05,
+        "max_iter": 200,
+        "max_leaf_nodes": 31,
+        "random_state": 42
+      },
+      "locked_test_metrics": {
+        "mae": 72.4945954445611,
+        "median_absolute_error": 41.233805152043544,
+        "r2": 0.2979633330518998,
+        "rmse": 131.56691443616646,
+        "within_10_percent": 0.06306306306306306,
+        "within_20_percent": 0.12612612612612611,
+        "within_30_percent": 0.1891891891891892
+      },
+      "model_name": "hist_gradient_boosting",
+      "performance": {
+        "cold_load_ms": 56.00282199884532,
+        "first_inference_ms": 10.515202000533463,
+        "latency_repeats": 200,
+        "model_size_bytes": 197859,
+        "p50_inference_ms": 7.812942000782641,
+        "p95_inference_ms": 12.582000350175798,
+        "warm_inference_mean_ms": 8.263822824983436
+      },
+      "selected_final_by_cv": false,
+      "selected_within_configuration": true,
+      "target_transform": "raw",
+      "training_time_seconds": 1.234326345998852
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 84.50820505679413,
+        "cv_mae_std": 11.347713312713632,
+        "cv_median_absolute_error_mean": 36.9,
+        "cv_median_absolute_error_std": 6.94550214167414,
+        "cv_r2_mean": -0.1442336949459933,
+        "cv_r2_std": 0.09240647136776312,
+        "cv_rmse_mean": 159.53837682323928,
+        "cv_rmse_std": 25.1788883576266,
+        "cv_within_10_percent_mean": 0.054923146842855264,
+        "cv_within_10_percent_std": 0.04956045798488668,
+        "cv_within_20_percent_mean": 0.08021111068334516,
+        "cv_within_20_percent_std": 0.04852153485020731,
+        "cv_within_30_percent_mean": 0.14619857149839222,
+        "cv_within_30_percent_std": 0.02653879763179022
+      },
+      "cv_time_seconds": 0.2926878990001569,
+      "experiment_id": "phase0_original__log1p",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {},
+      "locked_test_metrics": null,
+      "model_name": "median_baseline",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 0.04989910299991607
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 74.04292100044188,
+        "cv_mae_std": 15.640436478989502,
+        "cv_median_absolute_error_mean": 32.074235927822954,
+        "cv_median_absolute_error_std": 7.878219599641305,
+        "cv_r2_mean": 0.16467042928375702,
+        "cv_r2_std": 0.20150000512687388,
+        "cv_rmse_mean": 136.17344949101536,
+        "cv_rmse_std": 32.462215325085545,
+        "cv_within_10_percent_mean": 0.06597200663273846,
+        "cv_within_10_percent_std": 0.04204749223204322,
+        "cv_within_20_percent_mean": 0.14322097924361335,
+        "cv_within_20_percent_std": 0.06612760350985696,
+        "cv_within_30_percent_mean": 0.18035069662593697,
+        "cv_within_30_percent_std": 0.05915897400273284
+      },
+      "cv_time_seconds": 0.26873214899933373,
+      "experiment_id": "phase0_original__log1p",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "max_depth": 8,
+        "min_samples_leaf": 2,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "decision_tree",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 0.05347022400019341
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 63.18513509007268,
+        "cv_mae_std": 9.742840698661476,
+        "cv_median_absolute_error_mean": 27.879186893381256,
+        "cv_median_absolute_error_std": 5.6652291884603665,
+        "cv_r2_mean": 0.30733450193158995,
+        "cv_r2_std": 0.15797704172931548,
+        "cv_rmse_mean": 124.64509639955288,
+        "cv_rmse_std": 30.92727345386045,
+        "cv_within_10_percent_mean": 0.07521613329259547,
+        "cv_within_10_percent_std": 0.014905243655292532,
+        "cv_within_20_percent_mean": 0.15785320929577257,
+        "cv_within_20_percent_std": 0.0369810911288854,
+        "cv_within_30_percent_mean": 0.23095517768350543,
+        "cv_within_30_percent_std": 0.04500707197921296
+      },
+      "cv_time_seconds": 4.771911515999818,
+      "experiment_id": "phase0_original__log1p",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "random_forest",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 1.0277843359999679
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 63.50421042488656,
+        "cv_mae_std": 10.56873550582787,
+        "cv_median_absolute_error_mean": 27.666655723317177,
+        "cv_median_absolute_error_std": 4.20865338233718,
+        "cv_r2_mean": 0.3060068559380998,
+        "cv_r2_std": 0.17946833951066618,
+        "cv_rmse_mean": 124.49560180892838,
+        "cv_rmse_std": 32.547285223378125,
+        "cv_within_10_percent_mean": 0.08898669711632058,
+        "cv_within_10_percent_std": 0.02505173389705049,
+        "cv_within_20_percent_mean": 0.1597601079499208,
+        "cv_within_20_percent_std": 0.017020915230668496,
+        "cv_within_30_percent_mean": 0.2558268683792413,
+        "cv_within_30_percent_std": 0.02455938660599942
+      },
+      "cv_time_seconds": 5.6142547559993545,
+      "experiment_id": "phase0_original__log1p",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "extra_trees",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 1.3202109130015742
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 65.63198279695794,
+        "cv_mae_std": 9.447032628285935,
+        "cv_median_absolute_error_mean": 29.814740245901312,
+        "cv_median_absolute_error_std": 2.347195493437135,
+        "cv_r2_mean": 0.27375744750755604,
+        "cv_r2_std": 0.12609125337397442,
+        "cv_rmse_mean": 128.10378901497822,
+        "cv_rmse_std": 29.81630659701177,
+        "cv_within_10_percent_mean": 0.07788139952638119,
+        "cv_within_10_percent_std": 0.02712071162928552,
+        "cv_within_20_percent_mean": 0.13946056166396217,
+        "cv_within_20_percent_std": 0.016716684478577715,
+        "cv_within_30_percent_mean": 0.18039812403701466,
+        "cv_within_30_percent_std": 0.018498622439495647
+      },
+      "cv_time_seconds": 3.3723439939985838,
+      "experiment_id": "phase0_original__log1p",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "learning_rate": 0.05,
+        "max_depth": 3,
+        "n_estimators": 200,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "gradient_boosting",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 0.7522983270009718
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 62.384790179552304,
+        "cv_mae_std": 7.88283962385323,
+        "cv_median_absolute_error_mean": 29.75218243081472,
+        "cv_median_absolute_error_std": 3.7363869568415446,
+        "cv_r2_mean": 0.3469987845021031,
+        "cv_r2_std": 0.15865450239748438,
+        "cv_rmse_mean": 120.7781778910755,
+        "cv_rmse_std": 30.21563671383832,
+        "cv_within_10_percent_mean": 0.07764679493637983,
+        "cv_within_10_percent_std": 0.023361596585247505,
+        "cv_within_20_percent_mean": 0.1690612184940145,
+        "cv_within_20_percent_std": 0.016235021930983008,
+        "cv_within_30_percent_mean": 0.25802003118686756,
+        "cv_within_30_percent_std": 0.023578521111489795
+      },
+      "cv_time_seconds": 8.320269838999593,
+      "experiment_id": "phase0_original__log1p",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "l2_regularization": 1.0,
+        "learning_rate": 0.05,
+        "max_iter": 200,
+        "max_leaf_nodes": 31,
+        "random_state": 42
+      },
+      "locked_test_metrics": {
+        "mae": 59.67291748561787,
+        "median_absolute_error": 29.037801192648956,
+        "r2": 0.2967557778323766,
+        "rmse": 131.6800182536083,
+        "within_10_percent": 0.07207207207207207,
+        "within_20_percent": 0.16216216216216217,
+        "within_30_percent": 0.22522522522522523
+      },
+      "model_name": "hist_gradient_boosting",
+      "performance": {
+        "cold_load_ms": 57.62767299893312,
+        "first_inference_ms": 11.31329499912681,
+        "latency_repeats": 200,
+        "model_size_bytes": 196926,
+        "p50_inference_ms": 9.703445499326335,
+        "p95_inference_ms": 15.272648149129962,
+        "warm_inference_mean_ms": 9.438836129929769
+      },
+      "selected_final_by_cv": false,
+      "selected_within_configuration": true,
+      "target_transform": "log1p",
+      "training_time_seconds": 2.0999474700001883
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 84.50820505679413,
+        "cv_mae_std": 11.347713312713632,
+        "cv_median_absolute_error_mean": 36.9,
+        "cv_median_absolute_error_std": 6.945502141674136,
+        "cv_r2_mean": -0.1442336949459933,
+        "cv_r2_std": 0.09240647136776312,
+        "cv_rmse_mean": 159.53837682323928,
+        "cv_rmse_std": 25.1788883576266,
+        "cv_within_10_percent_mean": 0.054923146842855264,
+        "cv_within_10_percent_std": 0.04956045798488668,
+        "cv_within_20_percent_mean": 0.08710766240748309,
+        "cv_within_20_percent_std": 0.05498766306232001,
+        "cv_within_30_percent_mean": 0.14619857149839222,
+        "cv_within_30_percent_std": 0.02653879763179022
+      },
+      "cv_time_seconds": 0.31411268300144,
+      "experiment_id": "clean_deadline__raw",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {},
+      "locked_test_metrics": null,
+      "model_name": "median_baseline",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 0.07124597700021695
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 85.87975146170672,
+        "cv_mae_std": 21.360616571936657,
+        "cv_median_absolute_error_mean": 43.19381135226621,
+        "cv_median_absolute_error_std": 5.467450688518968,
+        "cv_r2_mean": -0.062269291030012594,
+        "cv_r2_std": 0.31186716888580157,
+        "cv_rmse_mean": 153.338231040553,
+        "cv_rmse_std": 37.54768310345264,
+        "cv_within_10_percent_mean": 0.039348983013778524,
+        "cv_within_10_percent_std": 0.05183408342323215,
+        "cv_within_20_percent_mean": 0.13245656105125575,
+        "cv_within_20_percent_std": 0.06551311246394512,
+        "cv_within_30_percent_mean": 0.15978329604943592,
+        "cv_within_30_percent_std": 0.05460836049729468
+      },
+      "cv_time_seconds": 0.34224414699929184,
+      "experiment_id": "clean_deadline__raw",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "max_depth": 8,
+        "min_samples_leaf": 2,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "decision_tree",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 0.07454956599940488
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 68.31112347775635,
+        "cv_mae_std": 12.332631927676212,
+        "cv_median_absolute_error_mean": 38.331804761904756,
+        "cv_median_absolute_error_std": 8.228831473594116,
+        "cv_r2_mean": 0.36248822326049285,
+        "cv_r2_std": 0.16599681557510118,
+        "cv_rmse_mean": 119.81865563366367,
+        "cv_rmse_std": 32.42463013811344,
+        "cv_within_10_percent_mean": 0.06855471176448262,
+        "cv_within_10_percent_std": 0.02510047088955287,
+        "cv_within_20_percent_mean": 0.14410994285502093,
+        "cv_within_20_percent_std": 0.028720864784920346,
+        "cv_within_30_percent_mean": 0.21018113885309764,
+        "cv_within_30_percent_std": 0.04943622705759104
+      },
+      "cv_time_seconds": 5.978376827999455,
+      "experiment_id": "clean_deadline__raw",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "random_forest",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 1.4345768219991442
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 67.67133608080276,
+        "cv_mae_std": 12.025952028492322,
+        "cv_median_absolute_error_mean": 37.31978619047618,
+        "cv_median_absolute_error_std": 7.084029852177395,
+        "cv_r2_mean": 0.3447699677702852,
+        "cv_r2_std": 0.17704972901790017,
+        "cv_rmse_mean": 121.67251132933552,
+        "cv_rmse_std": 33.82465562568002,
+        "cv_within_10_percent_mean": 0.08911794162305502,
+        "cv_within_10_percent_std": 0.020016539362761796,
+        "cv_within_20_percent_mean": 0.16893416518336551,
+        "cv_within_20_percent_std": 0.0262433837296678,
+        "cv_within_30_percent_mean": 0.23970818353561657,
+        "cv_within_30_percent_std": 0.03219846493699611
+      },
+      "cv_time_seconds": 6.251665227999183,
+      "experiment_id": "clean_deadline__raw",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "extra_trees",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 1.239850034000483
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 71.80244742666841,
+        "cv_mae_std": 13.075451709008028,
+        "cv_median_absolute_error_mean": 37.05090949455076,
+        "cv_median_absolute_error_std": 4.440434797502466,
+        "cv_r2_mean": 0.2901588837698366,
+        "cv_r2_std": 0.17120659813433908,
+        "cv_rmse_mean": 126.7158520081002,
+        "cv_rmse_std": 33.62923960453027,
+        "cv_within_10_percent_mean": 0.059539824417553434,
+        "cv_within_10_percent_std": 0.019991848099351704,
+        "cv_within_20_percent_mean": 0.12589724361279464,
+        "cv_within_20_percent_std": 0.047609524451912445,
+        "cv_within_30_percent_mean": 0.19191734660973195,
+        "cv_within_30_percent_std": 0.04004262620370172
+      },
+      "cv_time_seconds": 3.1192830969994247,
+      "experiment_id": "clean_deadline__raw",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "learning_rate": 0.05,
+        "max_depth": 3,
+        "n_estimators": 200,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "gradient_boosting",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "raw",
+      "training_time_seconds": 0.6908269010000367
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 69.04071145198984,
+        "cv_mae_std": 8.380442584110837,
+        "cv_median_absolute_error_mean": 41.59683979372086,
+        "cv_median_absolute_error_std": 7.320702979865898,
+        "cv_r2_mean": 0.3867351284777613,
+        "cv_r2_std": 0.15623880932341233,
+        "cv_rmse_mean": 117.09755583204523,
+        "cv_rmse_std": 29.666255438267935,
+        "cv_within_10_percent_mean": 0.06868415419342137,
+        "cv_within_10_percent_std": 0.03501469903332318,
+        "cv_within_20_percent_mean": 0.1531746876876311,
+        "cv_within_20_percent_std": 0.031220425832990468,
+        "cv_within_30_percent_mean": 0.2240003451252021,
+        "cv_within_30_percent_std": 0.04758476616484867
+      },
+      "cv_time_seconds": 4.1632685140011745,
+      "experiment_id": "clean_deadline__raw",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "l2_regularization": 1.0,
+        "learning_rate": 0.05,
+        "max_iter": 200,
+        "max_leaf_nodes": 31,
+        "random_state": 42
+      },
+      "locked_test_metrics": {
+        "mae": 72.4945954445611,
+        "median_absolute_error": 41.233805152043544,
+        "r2": 0.2979633330518998,
+        "rmse": 131.56691443616646,
+        "within_10_percent": 0.06306306306306306,
+        "within_20_percent": 0.12612612612612611,
+        "within_30_percent": 0.1891891891891892
+      },
+      "model_name": "hist_gradient_boosting",
+      "performance": {
+        "cold_load_ms": 57.55137800042576,
+        "first_inference_ms": 11.433324998506578,
+        "latency_repeats": 200,
+        "model_size_bytes": 199240,
+        "p50_inference_ms": 10.097009000674007,
+        "p95_inference_ms": 37.35839289947758,
+        "warm_inference_mean_ms": 13.415151519948267
+      },
+      "selected_final_by_cv": true,
+      "selected_within_configuration": true,
+      "target_transform": "raw",
+      "training_time_seconds": 0.9630461929991725
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 84.50820505679413,
+        "cv_mae_std": 11.347713312713632,
+        "cv_median_absolute_error_mean": 36.9,
+        "cv_median_absolute_error_std": 6.94550214167414,
+        "cv_r2_mean": -0.1442336949459933,
+        "cv_r2_std": 0.09240647136776312,
+        "cv_rmse_mean": 159.53837682323928,
+        "cv_rmse_std": 25.1788883576266,
+        "cv_within_10_percent_mean": 0.054923146842855264,
+        "cv_within_10_percent_std": 0.04956045798488668,
+        "cv_within_20_percent_mean": 0.08021111068334516,
+        "cv_within_20_percent_std": 0.04852153485020731,
+        "cv_within_30_percent_mean": 0.14619857149839222,
+        "cv_within_30_percent_std": 0.02653879763179022
+      },
+      "cv_time_seconds": 0.27445356299904233,
+      "experiment_id": "clean_deadline__log1p",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {},
+      "locked_test_metrics": null,
+      "model_name": "median_baseline",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 0.044376685000315774
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 74.09143161972004,
+        "cv_mae_std": 15.191609891837372,
+        "cv_median_absolute_error_mean": 31.480452911745555,
+        "cv_median_absolute_error_std": 8.381881281338982,
+        "cv_r2_mean": 0.1625489350704576,
+        "cv_r2_std": 0.18959097439546366,
+        "cv_rmse_mean": 136.79501365906594,
+        "cv_rmse_std": 32.818256915019695,
+        "cv_within_10_percent_mean": 0.061425357528139025,
+        "cv_within_10_percent_std": 0.03978050567154923,
+        "cv_within_20_percent_mean": 0.14094705741174118,
+        "cv_within_20_percent_std": 0.06621530227505816,
+        "cv_within_30_percent_mean": 0.18264835264150475,
+        "cv_within_30_percent_std": 0.051255516132056256
+      },
+      "cv_time_seconds": 0.2573350050006411,
+      "experiment_id": "clean_deadline__log1p",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "max_depth": 8,
+        "min_samples_leaf": 2,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "decision_tree",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 0.056331627998588374
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 63.213244303102854,
+        "cv_mae_std": 9.809535468150177,
+        "cv_median_absolute_error_mean": 27.973901985812716,
+        "cv_median_absolute_error_std": 6.7010695933392554,
+        "cv_r2_mean": 0.3064104562634508,
+        "cv_r2_std": 0.15715120658804344,
+        "cv_rmse_mean": 124.7511728771213,
+        "cv_rmse_std": 30.924262604429185,
+        "cv_within_10_percent_mean": 0.0706974095677771,
+        "cv_within_10_percent_std": 0.012898133389076003,
+        "cv_within_20_percent_mean": 0.14413728119430794,
+        "cv_within_20_percent_std": 0.04035309653532041,
+        "cv_within_30_percent_mean": 0.2218369507314661,
+        "cv_within_30_percent_std": 0.043297529005745954
+      },
+      "cv_time_seconds": 4.164892253000289,
+      "experiment_id": "clean_deadline__log1p",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "random_forest",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 0.9510692200001358
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 63.51923692626483,
+        "cv_mae_std": 10.672990904917247,
+        "cv_median_absolute_error_mean": 28.393440010843733,
+        "cv_median_absolute_error_std": 6.061189927425338,
+        "cv_r2_mean": 0.31303334515159076,
+        "cv_r2_std": 0.17337075511004155,
+        "cv_rmse_mean": 124.00321140173048,
+        "cv_rmse_std": 32.32767988830854,
+        "cv_within_10_percent_mean": 0.07310196838773288,
+        "cv_within_10_percent_std": 0.01399039798308254,
+        "cv_within_20_percent_mean": 0.1530446582181983,
+        "cv_within_20_percent_std": 0.015952862464974488,
+        "cv_within_30_percent_mean": 0.23262631814482101,
+        "cv_within_30_percent_std": 0.02529426547163841
+      },
+      "cv_time_seconds": 4.505135087998497,
+      "experiment_id": "clean_deadline__log1p",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "extra_trees",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 1.0368774069993378
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 65.90667603651539,
+        "cv_mae_std": 9.435678343983593,
+        "cv_median_absolute_error_mean": 30.987511696127818,
+        "cv_median_absolute_error_std": 2.725940241650333,
+        "cv_r2_mean": 0.2688987023952638,
+        "cv_r2_std": 0.12188160215218793,
+        "cv_rmse_mean": 128.50921285057908,
+        "cv_rmse_std": 29.47810234261329,
+        "cv_within_10_percent_mean": 0.07795978991049407,
+        "cv_within_10_percent_std": 0.034131281683010876,
+        "cv_within_20_percent_mean": 0.13938277879850014,
+        "cv_within_20_percent_std": 0.014446544941769524,
+        "cv_within_30_percent_mean": 0.1825158726193119,
+        "cv_within_30_percent_std": 0.01257641065521065
+      },
+      "cv_time_seconds": 3.6816900440007885,
+      "experiment_id": "clean_deadline__log1p",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "learning_rate": 0.05,
+        "max_depth": 3,
+        "n_estimators": 200,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "gradient_boosting",
+      "performance": null,
+      "selected_final_by_cv": false,
+      "selected_within_configuration": false,
+      "target_transform": "log1p",
+      "training_time_seconds": 0.8498915600011969
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 62.384790179552304,
+        "cv_mae_std": 7.88283962385323,
+        "cv_median_absolute_error_mean": 29.75218243081472,
+        "cv_median_absolute_error_std": 3.7363869568415446,
+        "cv_r2_mean": 0.3469987845021031,
+        "cv_r2_std": 0.15865450239748438,
+        "cv_rmse_mean": 120.7781778910755,
+        "cv_rmse_std": 30.21563671383832,
+        "cv_within_10_percent_mean": 0.07764679493637983,
+        "cv_within_10_percent_std": 0.023361596585247505,
+        "cv_within_20_percent_mean": 0.1690612184940145,
+        "cv_within_20_percent_std": 0.016235021930983008,
+        "cv_within_30_percent_mean": 0.25802003118686756,
+        "cv_within_30_percent_std": 0.023578521111489795
+      },
+      "cv_time_seconds": 5.1318623469996965,
+      "experiment_id": "clean_deadline__log1p",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "l2_regularization": 1.0,
+        "learning_rate": 0.05,
+        "max_iter": 200,
+        "max_leaf_nodes": 31,
+        "random_state": 42
+      },
+      "locked_test_metrics": {
+        "mae": 59.67291748561787,
+        "median_absolute_error": 29.037801192648956,
+        "r2": 0.2967557778323766,
+        "rmse": 131.6800182536083,
+        "within_10_percent": 0.07207207207207207,
+        "within_20_percent": 0.16216216216216217,
+        "within_30_percent": 0.22522522522522523
+      },
+      "model_name": "hist_gradient_boosting",
+      "performance": {
+        "cold_load_ms": 56.98537799980841,
+        "first_inference_ms": 9.507892000328866,
+        "latency_repeats": 200,
+        "model_size_bytes": 196824,
+        "p50_inference_ms": 9.921003999806999,
+        "p95_inference_ms": 18.037844300033612,
+        "warm_inference_mean_ms": 9.843374065003445
+      },
+      "selected_final_by_cv": false,
+      "selected_within_configuration": true,
+      "target_transform": "log1p",
+      "training_time_seconds": 1.4261811420001322
+    }
+  ],
+  "comparison_to_phase0": {
+    "mae_change_minutes": -14.126741786629353,
+    "mae_improved": true,
+    "r2_change": 0.23270473330072516,
+    "rmse_change_minutes": -76.03598336488966,
+    "rmse_improved": true,
+    "warning": "Phase 0 used a different dataset/split. Changes are descriptive, not a causal estimate of cleaning alone."
+  },
+  "configuration_winners": [
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 69.04071145198984,
+        "cv_mae_std": 8.380442584110837,
+        "cv_median_absolute_error_mean": 41.59683979372086,
+        "cv_median_absolute_error_std": 7.320702979865898,
+        "cv_r2_mean": 0.3867351284777613,
+        "cv_r2_std": 0.15623880932341233,
+        "cv_rmse_mean": 117.09755583204523,
+        "cv_rmse_std": 29.666255438267935,
+        "cv_within_10_percent_mean": 0.06868415419342137,
+        "cv_within_10_percent_std": 0.03501469903332318,
+        "cv_within_20_percent_mean": 0.1531746876876311,
+        "cv_within_20_percent_std": 0.031220425832990468,
+        "cv_within_30_percent_mean": 0.2240003451252021,
+        "cv_within_30_percent_std": 0.04758476616484867
+      },
+      "cv_time_seconds": 5.534412140001223,
+      "experiment_id": "phase0_original__raw",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "l2_regularization": 1.0,
+        "learning_rate": 0.05,
+        "max_iter": 200,
+        "max_leaf_nodes": 31,
+        "random_state": 42
+      },
+      "locked_test_metrics": {
+        "mae": 72.4945954445611,
+        "median_absolute_error": 41.233805152043544,
+        "r2": 0.2979633330518998,
+        "rmse": 131.56691443616646,
+        "within_10_percent": 0.06306306306306306,
+        "within_20_percent": 0.12612612612612611,
+        "within_30_percent": 0.1891891891891892
+      },
+      "model_name": "hist_gradient_boosting",
+      "performance": {
+        "cold_load_ms": 56.00282199884532,
+        "first_inference_ms": 10.515202000533463,
+        "latency_repeats": 200,
+        "model_size_bytes": 197859,
+        "p50_inference_ms": 7.812942000782641,
+        "p95_inference_ms": 12.582000350175798,
+        "warm_inference_mean_ms": 8.263822824983436
+      },
+      "selected_final_by_cv": false,
+      "selected_within_configuration": true,
+      "target_transform": "raw",
+      "training_time_seconds": 1.234326345998852
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 62.384790179552304,
+        "cv_mae_std": 7.88283962385323,
+        "cv_median_absolute_error_mean": 29.75218243081472,
+        "cv_median_absolute_error_std": 3.7363869568415446,
+        "cv_r2_mean": 0.3469987845021031,
+        "cv_r2_std": 0.15865450239748438,
+        "cv_rmse_mean": 120.7781778910755,
+        "cv_rmse_std": 30.21563671383832,
+        "cv_within_10_percent_mean": 0.07764679493637983,
+        "cv_within_10_percent_std": 0.023361596585247505,
+        "cv_within_20_percent_mean": 0.1690612184940145,
+        "cv_within_20_percent_std": 0.016235021930983008,
+        "cv_within_30_percent_mean": 0.25802003118686756,
+        "cv_within_30_percent_std": 0.023578521111489795
+      },
+      "cv_time_seconds": 8.320269838999593,
+      "experiment_id": "phase0_original__log1p",
+      "feature_config": "phase0_original",
+      "feature_schema": {
+        "deadline": {
+          "features": [
+            "jatuh_tempo_hari"
+          ],
+          "mode": "phase0_raw",
+          "warning": "-1 is retained only to reproduce the Phase 0 representation"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "phase0_original",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "l2_regularization": 1.0,
+        "learning_rate": 0.05,
+        "max_iter": 200,
+        "max_leaf_nodes": 31,
+        "random_state": 42
+      },
+      "locked_test_metrics": {
+        "mae": 59.67291748561787,
+        "median_absolute_error": 29.037801192648956,
+        "r2": 0.2967557778323766,
+        "rmse": 131.6800182536083,
+        "within_10_percent": 0.07207207207207207,
+        "within_20_percent": 0.16216216216216217,
+        "within_30_percent": 0.22522522522522523
+      },
+      "model_name": "hist_gradient_boosting",
+      "performance": {
+        "cold_load_ms": 57.62767299893312,
+        "first_inference_ms": 11.31329499912681,
+        "latency_repeats": 200,
+        "model_size_bytes": 196926,
+        "p50_inference_ms": 9.703445499326335,
+        "p95_inference_ms": 15.272648149129962,
+        "warm_inference_mean_ms": 9.438836129929769
+      },
+      "selected_final_by_cv": false,
+      "selected_within_configuration": true,
+      "target_transform": "log1p",
+      "training_time_seconds": 2.0999474700001883
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 69.04071145198984,
+        "cv_mae_std": 8.380442584110837,
+        "cv_median_absolute_error_mean": 41.59683979372086,
+        "cv_median_absolute_error_std": 7.320702979865898,
+        "cv_r2_mean": 0.3867351284777613,
+        "cv_r2_std": 0.15623880932341233,
+        "cv_rmse_mean": 117.09755583204523,
+        "cv_rmse_std": 29.666255438267935,
+        "cv_within_10_percent_mean": 0.06868415419342137,
+        "cv_within_10_percent_std": 0.03501469903332318,
+        "cv_within_20_percent_mean": 0.1531746876876311,
+        "cv_within_20_percent_std": 0.031220425832990468,
+        "cv_within_30_percent_mean": 0.2240003451252021,
+        "cv_within_30_percent_std": 0.04758476616484867
+      },
+      "cv_time_seconds": 4.1632685140011745,
+      "experiment_id": "clean_deadline__raw",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "l2_regularization": 1.0,
+        "learning_rate": 0.05,
+        "max_iter": 200,
+        "max_leaf_nodes": 31,
+        "random_state": 42
+      },
+      "locked_test_metrics": {
+        "mae": 72.4945954445611,
+        "median_absolute_error": 41.233805152043544,
+        "r2": 0.2979633330518998,
+        "rmse": 131.56691443616646,
+        "within_10_percent": 0.06306306306306306,
+        "within_20_percent": 0.12612612612612611,
+        "within_30_percent": 0.1891891891891892
+      },
+      "model_name": "hist_gradient_boosting",
+      "performance": {
+        "cold_load_ms": 57.55137800042576,
+        "first_inference_ms": 11.433324998506578,
+        "latency_repeats": 200,
+        "model_size_bytes": 199240,
+        "p50_inference_ms": 10.097009000674007,
+        "p95_inference_ms": 37.35839289947758,
+        "warm_inference_mean_ms": 13.415151519948267
+      },
+      "selected_final_by_cv": true,
+      "selected_within_configuration": true,
+      "target_transform": "raw",
+      "training_time_seconds": 0.9630461929991725
+    },
+    {
+      "cv_fold_audit": [
+        {
+          "fold": 1,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 351,
+          "validation_groups": 87,
+          "validation_rows": 87
+        },
+        {
+          "fold": 2,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 349,
+          "validation_groups": 87,
+          "validation_rows": 89
+        },
+        {
+          "fold": 3,
+          "overlapping_groups": 0,
+          "training_groups": 346,
+          "training_rows": 350,
+          "validation_groups": 87,
+          "validation_rows": 88
+        },
+        {
+          "fold": 4,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 352,
+          "validation_groups": 86,
+          "validation_rows": 86
+        },
+        {
+          "fold": 5,
+          "overlapping_groups": 0,
+          "training_groups": 347,
+          "training_rows": 350,
+          "validation_groups": 86,
+          "validation_rows": 88
+        }
+      ],
+      "cv_metrics": {
+        "cv_mae_mean": 62.384790179552304,
+        "cv_mae_std": 7.88283962385323,
+        "cv_median_absolute_error_mean": 29.75218243081472,
+        "cv_median_absolute_error_std": 3.7363869568415446,
+        "cv_r2_mean": 0.3469987845021031,
+        "cv_r2_std": 0.15865450239748438,
+        "cv_rmse_mean": 120.7781778910755,
+        "cv_rmse_std": 30.21563671383832,
+        "cv_within_10_percent_mean": 0.07764679493637983,
+        "cv_within_10_percent_std": 0.023361596585247505,
+        "cv_within_20_percent_mean": 0.1690612184940145,
+        "cv_within_20_percent_std": 0.016235021930983008,
+        "cv_within_30_percent_mean": 0.25802003118686756,
+        "cv_within_30_percent_std": 0.023578521111489795
+      },
+      "cv_time_seconds": 5.1318623469996965,
+      "experiment_id": "clean_deadline__log1p",
+      "feature_config": "clean_deadline",
+      "feature_schema": {
+        "deadline": {
+          "deadline_encoding": {
+            "deadline_days_or_zero": "tenggat_hari",
+            "has_deadline": 1.0
+          },
+          "features": [
+            "has_deadline",
+            "deadline_days_or_zero"
+          ],
+          "mode": "clean_presence_plus_days",
+          "no_deadline_encoding": {
+            "deadline_days_or_zero": 0.0,
+            "has_deadline": 0.0
+          },
+          "note": "The presence flag disambiguates no deadline from a real 0-day deadline"
+        },
+        "importance": "tingkat_kepentingan_1_10",
+        "name": "clean_deadline",
+        "structured_columns": [],
+        "text": {
+          "analyzer": "char_wb",
+          "max_features": 300,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "source": "tugas",
+          "sublinear_tf": true,
+          "transformer": "TfidfVectorizer"
+        }
+      },
+      "hyperparameters": {
+        "l2_regularization": 1.0,
+        "learning_rate": 0.05,
+        "max_iter": 200,
+        "max_leaf_nodes": 31,
+        "random_state": 42
+      },
+      "locked_test_metrics": {
+        "mae": 59.67291748561787,
+        "median_absolute_error": 29.037801192648956,
+        "r2": 0.2967557778323766,
+        "rmse": 131.6800182536083,
+        "within_10_percent": 0.07207207207207207,
+        "within_20_percent": 0.16216216216216217,
+        "within_30_percent": 0.22522522522522523
+      },
+      "model_name": "hist_gradient_boosting",
+      "performance": {
+        "cold_load_ms": 56.98537799980841,
+        "first_inference_ms": 9.507892000328866,
+        "latency_repeats": 200,
+        "model_size_bytes": 196824,
+        "p50_inference_ms": 9.921003999806999,
+        "p95_inference_ms": 18.037844300033612,
+        "warm_inference_mean_ms": 9.843374065003445
+      },
+      "selected_final_by_cv": false,
+      "selected_within_configuration": true,
+      "target_transform": "log1p",
+      "training_time_seconds": 1.4261811420001322
+    }
+  ],
+  "dataset": {
+    "name": "task_duration_id_clean",
+    "sha256": "3a730c016f68236b640e05a16f4a2b7bc1ad304b594ffb6fdf65af64b96939fb",
+    "source_path": "datasets/task_duration_id_clean.csv",
+    "validation": {
+      "available_structured_feature_columns": [],
+      "columns": [
+        "row_id",
+        "task_en",
+        "tugas",
+        "tugas_raw",
+        "task_en_raw",
+        "jatuh_tempo_hari",
+        "ada_tenggat",
+        "tenggat_hari",
+        "durasi_jam",
+        "durasi_menit",
+        "tingkat_kepentingan_1_10",
+        "notes_en",
+        "catatan",
+        "quality_flag",
+        "label_review_needed",
+        "source_group_id",
+        "data_source",
+        "source_dataset",
+        "source_row_id",
+        "upstream_match",
+        "label_provenance",
+        "license",
+        "created_at"
+      ],
+      "distributions": {
+        "action_type": null,
+        "ada_tenggat": {
+          "0": 111,
+          "1": 438
+        },
+        "complexity_indicator": null,
+        "task_category": null,
+        "tenggat_hari": {
+          "0.0": 53,
+          "0.5": 1,
+          "1.0": 32,
+          "1.5": 1,
+          "10.0": 12,
+          "12.0": 6,
+          "13.0": 1,
+          "14.0": 6,
+          "15.0": 5,
+          "16.0": 4,
+          "17.0": 2,
+          "18.0": 6,
+          "2.0": 50,
+          "20.0": 12,
+          "21.0": 4,
+          "22.0": 1,
+          "23.0": 1,
+          "24.0": 1,
+          "25.0": 3,
+          "28.0": 1,
+          "29.0": 1,
+          "3.0": 60,
+          "30.0": 6,
+          "35.0": 1,
+          "37.0": 1,
+          "4.0": 45,
+          "40.0": 2,
+          "41.0": 1,
+          "5.0": 30,
+          "50.0": 1,
+          "55.0": 1,
+          "6.0": 25,
+          "65.0": 1,
+          "7.0": 32,
+          "70.0": 2,
+          "75.0": 1,
+          "8.0": 13,
+          "80.0": 2,
+          "9.0": 10,
+          "90.0": 1,
+          "<missing>": 111
+        }
+      },
+      "duplicate_model_rows": 0,
+      "duplicate_rows": 0,
+      "duplicate_title_rows": 7,
+      "label_review_needed_count": 2,
+      "missing_requested_structured_feature_columns": [
+        "task_category",
+        "action_type",
+        "complexity_indicator",
+        "n_token"
+      ],
+      "missing_values": {
+        "ada_tenggat": 0,
+        "catatan": 495,
+        "created_at": 0,
+        "data_source": 0,
+        "durasi_jam": 0,
+        "durasi_menit": 0,
+        "jatuh_tempo_hari": 0,
+        "label_provenance": 0,
+        "label_review_needed": 0,
+        "license": 0,
+        "notes_en": 495,
+        "quality_flag": 495,
+        "row_id": 0,
+        "source_dataset": 0,
+        "source_group_id": 0,
+        "source_row_id": 549,
+        "task_en": 0,
+        "task_en_raw": 0,
+        "tenggat_hari": 111,
+        "tingkat_kepentingan_1_10": 0,
+        "tugas": 0,
+        "tugas_raw": 0,
+        "upstream_match": 0
+      },
+      "row_count": 549,
+      "source_groups": {
+        "count": 542,
+        "groups_with_multiple_rows": 7,
+        "max_group_size": 2,
+        "rows_in_multirow_groups": 14
+      },
+      "target": {
+        "histogram_minutes": {
+          "(0,15]": 156,
+          "(120,300]": 64,
+          "(15,30]": 113,
+          "(30,60]": 83,
+          "(300,600]": 35,
+          "(60,120]": 92,
+          ">600": 6
+        },
+        "internal_name": "estimated_duration_minutes",
+        "max": 1500.0,
+        "mean": 100.19344262295083,
+        "meaning": "human_estimated_duration",
+        "median": 39.0,
+        "min": 1.8,
+        "over_300_count": 41,
+        "over_600_count": 6,
+        "p25": 15.0,
+        "p75": 120.0,
+        "p95": 420.0,
+        "source_column": "durasi_menit",
+        "standard_deviation": 153.42457606545292
+      }
+    },
+    "version": "task-duration-id-clean-v2"
+  },
+  "decomposition_validation": {
+    "augmented_rows": 0,
+    "categories": {
+      "Administrasi": 27,
+      "Akademik": 39,
+      "Digital": 24,
+      "Kerja": 35,
+      "Komunikasi": 21,
+      "Perawatan diri": 16,
+      "Personal": 23,
+      "Rumah": 27
+    },
+    "columns": [
+      "row_id",
+      "judul",
+      "deskripsi",
+      "langkah",
+      "kategori",
+      "language",
+      "sumber",
+      "judul_raw",
+      "langkah_raw",
+      "jumlah_langkah",
+      "langkah_pertama",
+      "quality_flag",
+      "ada_di_file_en",
+      "source_group_id",
+      "data_source",
+      "source_dataset",
+      "source_row_id",
+      "license",
+      "created_at",
+      "panjang_langkah_rata"
+    ],
+    "declared_step_count_mismatches": 0,
+    "duplicate_rows": 0,
+    "duplicate_titles": 0,
+    "english_contamination": {
+      "flagged_count": 4,
+      "flagged_titles": [
+        "Belajar satu bab",
+        "Review draf kontrak",
+        "Review kerjaan tim",
+        "Review dokumen"
+      ],
+      "method": "existing quality_flag=kontaminasi_inggris:review"
+    },
+    "first_step_quality": {
+      "available": true,
+      "evaluated_patterns": 50,
+      "mean_score": 2.0,
+      "method": "existing manually scored 0..2 low-friction rubric",
+      "passed_existing_target": true,
+      "score_distribution": {
+        "2": 50
+      },
+      "target_mean": 1.8,
+      "valid_for_dataset": true
+    },
+    "missing_or_empty_steps": 0,
+    "retrieval_benchmark": {
+      "excluded_old_english_benchmark": "datasets/task_decomposition_queries.csv",
+      "indonesian_evaluation_dataset": null,
+      "production_pattern_count": 212,
+      "reason": "No independent Indonesian evaluation dataset was found. The existing task_decomposition_queries.csv is the old English benchmark, and the query generator derives easy queries from production titles.",
+      "run": false
+    },
+    "semantic_duplicates": {
+      "count": null,
+      "groups_with_multiple_rows": 20,
+      "note": "Source-group relationships are reported, not mislabeled as semantic matches.",
+      "reason": "No independent semantic-duplicate detector exists in the repository.",
+      "source_group_related_row_excess": 22
+    },
+    "sha256": "376896a72105b91528fb246b6c232880b7f31c341136516cb4f3e3fad8a0b0cc",
+    "source_groups": {
+      "count": 190,
+      "groups_with_multiple_rows": 20,
+      "max_group_size": 3
+    },
+    "source_path": "datasets/task_decomposition_id_v2.csv",
+    "steps_per_pattern": {
+      "distribution": {
+        "5": 212
+      },
+      "max": 5,
+      "mean": 5.0,
+      "median": 5.0,
+      "min": 5
+    },
+    "total_patterns": 212,
+    "translated_rows": 179
+  },
+  "experiment": {
+    "cross_validation": {
+      "folds": 5,
+      "groups": "source_group_id",
+      "random_seed": 42,
+      "shuffle": true,
+      "type": "GroupKFold"
+    },
+    "locked_test_policy": "Each feature/target configuration selected its model by train-only CV. The global artifact was also selected by CV. Locked test was then evaluated once for each pre-registered configuration winner solely for final comparison; its values did not change any selection.",
+    "name": "duration_clean_v2",
+    "pre_registered_matrix": [
+      {
+        "candidates": [
+          "median_baseline",
+          "decision_tree",
+          "random_forest",
+          "extra_trees",
+          "gradient_boosting",
+          "hist_gradient_boosting"
+        ],
+        "feature_config": "phase0_original",
+        "target_transforms": [
+          "raw",
+          "log1p"
+        ]
+      },
+      {
+        "candidates": [
+          "median_baseline",
+          "decision_tree",
+          "random_forest",
+          "extra_trees",
+          "gradient_boosting",
+          "hist_gradient_boosting"
+        ],
+        "feature_config": "clean_deadline",
+        "target_transforms": [
+          "raw",
+          "log1p"
+        ]
+      }
+    ],
+    "selection_metric": "cv_rmse_mean",
+    "selection_uses_locked_test": false,
+    "split": {
+      "overlapping_groups": 0,
+      "random_seed": 42,
+      "test_fraction_requested": 0.2,
+      "test_groups": 109,
+      "test_indices_sha256": "6b02699ea6f303d305bd3d1391ba40cfec1d7cad225a5f8ae23e96ef30a82f41",
+      "test_rows": 111,
+      "train_fraction_requested": 0.8,
+      "training_groups": 433,
+      "training_indices_sha256": "69b40d5e43a872de8e55ce48c792ac4adecfb7ac5d0d633d8fc35377ba5cd43a",
+      "training_rows": 438,
+      "type": "GroupShuffleSplit"
+    },
+    "status": "experimental_not_production_ready",
+    "tie_breaker": "prefer cleaned deadline representation on exact CV RMSE tie",
+    "timestamp": "2026-08-12T09:54:04.345760+00:00"
+  },
+  "leakage_audit": {
+    "augmented_duplicate_check": {
+      "available": true,
+      "method": "data_source plus source_group_id",
+      "non_original_rows": 0
+    },
+    "exact_or_normalized_text_overlap": {
+      "task_en": {
+        "overlap_count": 0,
+        "overlap_examples": []
+      },
+      "task_en_raw": {
+        "overlap_count": 0,
+        "overlap_examples": []
+      },
+      "tugas": {
+        "overlap_count": 0,
+        "overlap_examples": []
+      },
+      "tugas_raw": {
+        "overlap_count": 0,
+        "overlap_examples": []
+      }
+    },
+    "semantic_duplicate_check": {
+      "reason": "No independent semantic duplicate detector is available; source_group_id is used as the authoritative relationship boundary.",
+      "supported": false
+    },
+    "source_group_overlap_count": 0,
+    "translated_duplicate_check": "task_en/task_en_raw normalized overlap is checked explicitly"
+  },
+  "phase0_reference": {
+    "comparable_split": false,
+    "cv_rmse": 93.57834114433254,
+    "experiment": "phase0_baseline",
+    "feature_config": "phase0_original_dataset",
+    "model_name": "gradient_boosting",
+    "note": "Reference used the original dataset and row-random split. It is historical context, not a like-for-like statistical comparison with the group-aware split.",
+    "target_transform": "log1p",
+    "test_metrics": {
+      "mae": 86.62133723119045,
+      "median_absolute_error": 26.572508974179435,
+      "r2": 0.06525859975117465,
+      "rmse": 207.60289780105612,
+      "within_10_percent": 0.045454545454545456,
+      "within_20_percent": 0.14545454545454545,
+      "within_30_percent": 0.2545454545454545
+    }
+  },
+  "preprocessing": {
+    "deadline_clean_encoding": "has_deadline plus deadline_days_or_zero; no deadline=(0,0); real deadline today=(1,0); -1 is never used in cleaned experiments",
+    "fit_scope": "each CV training fold or final 80% training split only",
+    "structured_categorical": "OneHotEncoder(handle_unknown=ignore), if available",
+    "test_influence": "none",
+    "text": "char_wb TF-IDF; 3-5 grams; min_df=2; max_features=300"
+  },
+  "reproducibility": {
+    "command": "PYTHONPATH=\"$PWD\" python -m ml.experiments.duration_clean_v2",
+    "executable": "/Users/Alfredo/.venvs/focusbuddy/bin/python",
+    "packages": {
+      "joblib": "1.5.3",
+      "numpy": "2.5.1",
+      "scikit-learn": "1.9.0",
+      "scipy": "1.18.0"
+    },
+    "platform": "macOS-15.7.9-x86_64-i386-64bit-Mach-O",
+    "python_implementation": "CPython",
+    "python_version": "3.13.7"
+  },
+  "selected_model": {
+    "artifact_path": "ml/registry/artifacts/duration-clean-v2.joblib",
+    "candidate": "hist_gradient_boosting",
+    "experiment_id": "clean_deadline__raw",
+    "feature_config": "clean_deadline",
+    "metadata_path": "ml/registry/metadata/duration-clean-v2.json",
+    "production_ready": false,
+    "selection_metric": "cv_rmse_mean",
+    "target_transform": "raw",
+    "tie_breaker_applied": true
+  },
+  "skipped_experiments": [
+    {
+      "experiment": "clean_deadline_structured",
+      "missing_columns": [
+        "task_category",
+        "action_type",
+        "complexity_indicator",
+        "n_token"
+      ],
+      "reason": "Dataset does not contain task_category, action_type, complexity_indicator, or n_token; no feature was invented."
+    }
+  ],
+  "target": {
+    "evaluation_unit": "minutes_after_inverse_transform",
+    "internal_name": "estimated_duration_minutes",
+    "meaning": "human_estimated_duration",
+    "prediction_floor_minutes": 0.0,
+    "source_column": "durasi_menit",
+    "tested_transforms": [
+      "raw",
+      "log1p"
+    ]
+  }
+}

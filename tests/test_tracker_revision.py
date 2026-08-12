@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import tempfile
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -232,6 +232,68 @@ def scenario_deadline_and_no_deadline() -> None:
         and added["deadline"] == ""
         and added["scheduled_date"] == today.isoformat(),
         "form Tracker memisahkan tanggal kerja dari deadline opsional",
+    )
+
+
+def scenario_task_input_supports_voice_description_and_time_picker() -> None:
+    print("\n=== Input tugas: deskripsi suara dan pemilih waktu ===")
+    page = FakePage()
+    root = tracker.build(page, lambda route: None)
+    open_add = clickable(root, "Tambah Tugas")
+    if open_add is not None:
+        open_add.on_click(SimpleNamespace(control=open_add))
+    dialog = page.dialogs[-1] if page.dialogs else None
+
+    mic = next(
+        (
+            control
+            for control in walk(dialog)
+            if isinstance(control, ft.IconButton)
+            and control.icon == ft.Icons.MIC_NONE
+            and control.tooltip == "Isi pakai suara · maksimal 120 detik"
+        ),
+        None,
+    )
+    check(mic is not None, "deskripsi tugas menyediakan mikrofon untuk transkrip yang bisa diedit")
+    check(
+        not any(
+            isinstance(control, ft.TextField) and control.label == "Jam deadline (opsional)"
+            for control in walk(dialog)
+        ),
+        "jam deadline bukan lagi input teks bebas",
+    )
+
+    time_button = clickable(dialog, "Pilih jam")
+    check(time_button is not None, "form tugas menyediakan tombol pemilih jam")
+    if time_button is not None:
+        time_button.on_click(SimpleNamespace(control=time_button))
+    picker = page.dialogs[-1] if page.dialogs else None
+    check(isinstance(picker, ft.TimePicker), "tombol jam membuka TimePicker native")
+    if isinstance(picker, ft.TimePicker):
+        picker.value = time(17, 45)
+        picker.on_change(SimpleNamespace(control=picker))
+        page.pop_dialog()
+    check("Pukul 17:45" in texts(dialog), "jam hasil picker ditampilkan dengan format HH:MM")
+
+    title_field = next(
+        (
+            control
+            for control in walk(dialog)
+            if isinstance(control, ft.TextField) and control.label == "Nama tugas"
+        ),
+        None,
+    )
+    if title_field is not None:
+        title_field.value = "Task dengan jam dari picker"
+        submit = clickable(dialog, "Tambah")
+        submit.on_click(SimpleNamespace(control=submit))
+    saved = next(
+        (task for task in storage.get_tasks() if task["title"] == "Task dengan jam dari picker"),
+        None,
+    )
+    check(
+        saved is not None and saved["deadline_time"] == "17:45",
+        "jam dari TimePicker tersimpan dalam format yang dipakai deadline engine",
     )
 
 
@@ -489,6 +551,7 @@ def main() -> int:
             for scenario in (
                 scenario_calendar_modes_and_done,
                 scenario_deadline_and_no_deadline,
+                scenario_task_input_supports_voice_description_and_time_picker,
                 scenario_decomposition_identity_and_persistence,
                 scenario_step_crud_and_done,
                 scenario_focus_outcomes_keep_task_identity,

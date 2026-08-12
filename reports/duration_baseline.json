@@ -1,0 +1,335 @@
+{
+  "candidates": [
+    {
+      "cv_metrics": {
+        "cv_mae_mean": 76.23521259075943,
+        "cv_mae_std": 10.43906022492567,
+        "cv_median_absolute_error_mean": 29.03415362466854,
+        "cv_median_absolute_error_std": 5.361709527544813,
+        "cv_r2_mean": -0.18625746452785025,
+        "cv_r2_std": 0.03976530447754512,
+        "cv_rmse_mean": 142.4090779513952,
+        "cv_rmse_std": 20.758932407284707,
+        "cv_within_10_percent_mean": 0.034090909090909095,
+        "cv_within_10_percent_std": 0.057495957457606904,
+        "cv_within_20_percent_mean": 0.09328631138975965,
+        "cv_within_20_percent_std": 0.06107158705275707,
+        "cv_within_30_percent_mean": 0.15501567398119123,
+        "cv_within_30_percent_std": 0.04161478903425207
+      },
+      "cv_time_seconds": 0.2366796299993439,
+      "hyperparameters": {},
+      "locked_test_metrics": null,
+      "model_name": "median_baseline",
+      "performance": {
+        "cold_load_ms": 2.4002649988688063,
+        "first_inference_ms": 1.7550880002090707,
+        "latency_repeats": 200,
+        "model_size_bytes": 3669,
+        "p50_inference_ms": 0.9723610000946792,
+        "p95_inference_ms": 1.5687309991335496,
+        "warm_inference_mean_ms": 1.0625077900476754
+      },
+      "selected_by_cv": false,
+      "test_rows": 110,
+      "training_rows": 439,
+      "training_time_seconds": 0.045236505999127985
+    },
+    {
+      "cv_metrics": {
+        "cv_mae_mean": 66.17679201030312,
+        "cv_mae_std": 7.035655145780887,
+        "cv_median_absolute_error_mean": 29.29577391704015,
+        "cv_median_absolute_error_std": 3.5505607124532697,
+        "cv_r2_mean": 0.2530228753509215,
+        "cv_r2_std": 0.061638207844995734,
+        "cv_rmse_mean": 112.62451521433768,
+        "cv_rmse_std": 14.884316116899,
+        "cv_within_10_percent_mean": 0.08874085684430512,
+        "cv_within_10_percent_std": 0.05804410767220575,
+        "cv_within_20_percent_mean": 0.1525078369905956,
+        "cv_within_20_percent_std": 0.05845333847744721,
+        "cv_within_30_percent_mean": 0.23699059561128527,
+        "cv_within_30_percent_std": 0.03075596980041451
+      },
+      "cv_time_seconds": 0.24842999599968607,
+      "hyperparameters": {
+        "max_depth": 8,
+        "min_samples_leaf": 2,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "decision_tree",
+      "performance": {
+        "cold_load_ms": 2.444226998704835,
+        "first_inference_ms": 1.1431630009610672,
+        "latency_repeats": 200,
+        "model_size_bytes": 6555,
+        "p50_inference_ms": 1.0203514993918361,
+        "p95_inference_ms": 1.5292184991267277,
+        "warm_inference_mean_ms": 1.1023707898948487
+      },
+      "selected_by_cv": false,
+      "test_rows": 110,
+      "training_rows": 439,
+      "training_time_seconds": 0.04948655299995153
+    },
+    {
+      "cv_metrics": {
+        "cv_mae_mean": 53.60837859316797,
+        "cv_mae_std": 8.239324423671626,
+        "cv_median_absolute_error_mean": 21.011811969589253,
+        "cv_median_absolute_error_std": 4.3185212768040895,
+        "cv_r2_mean": 0.4422197338503099,
+        "cv_r2_std": 0.08881980576359542,
+        "cv_rmse_mean": 97.67830414506071,
+        "cv_rmse_std": 17.38506266949148,
+        "cv_within_10_percent_mean": 0.08652037617554857,
+        "cv_within_10_percent_std": 0.019671314735460528,
+        "cv_within_20_percent_mean": 0.1777168234064786,
+        "cv_within_20_percent_std": 0.032051769237397464,
+        "cv_within_30_percent_mean": 0.2619905956112853,
+        "cv_within_30_percent_std": 0.05097515094143641
+      },
+      "cv_time_seconds": 5.25996324299922,
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "random_forest",
+      "performance": {
+        "cold_load_ms": 99.38701899955049,
+        "first_inference_ms": 61.96352500046487,
+        "latency_repeats": 200,
+        "model_size_bytes": 1631312,
+        "p50_inference_ms": 64.52708449978672,
+        "p95_inference_ms": 83.3543324997663,
+        "warm_inference_mean_ms": 65.76875524007846
+      },
+      "selected_by_cv": false,
+      "test_rows": 110,
+      "training_rows": 439,
+      "training_time_seconds": 1.2117167140004312
+    },
+    {
+      "cv_metrics": {
+        "cv_mae_mean": 52.93270575667842,
+        "cv_mae_std": 5.217818276829067,
+        "cv_median_absolute_error_mean": 21.87078231839252,
+        "cv_median_absolute_error_std": 3.1286456733848245,
+        "cv_r2_mean": 0.4473284359299699,
+        "cv_r2_std": 0.12962234457039706,
+        "cv_rmse_mean": 95.72344985190759,
+        "cv_rmse_std": 14.959070343383988,
+        "cv_within_10_percent_mean": 0.1047805642633229,
+        "cv_within_10_percent_std": 0.015047430114631092,
+        "cv_within_20_percent_mean": 0.1892110762800418,
+        "cv_within_20_percent_std": 0.03733856107884305,
+        "cv_within_30_percent_mean": 0.26658829676071055,
+        "cv_within_30_percent_std": 0.037629072746166996
+      },
+      "cv_time_seconds": 5.8788503970008605,
+      "hyperparameters": {
+        "min_samples_leaf": 2,
+        "n_estimators": 300,
+        "n_jobs": -1,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "extra_trees",
+      "performance": {
+        "cold_load_ms": 132.73571100035042,
+        "first_inference_ms": 82.39080000021204,
+        "latency_repeats": 200,
+        "model_size_bytes": 2463538,
+        "p50_inference_ms": 88.06217849996756,
+        "p95_inference_ms": 222.1697579994724,
+        "warm_inference_mean_ms": 107.49086169011207
+      },
+      "selected_by_cv": false,
+      "test_rows": 110,
+      "training_rows": 439,
+      "training_time_seconds": 1.518868842998927
+    },
+    {
+      "cv_metrics": {
+        "cv_mae_mean": 52.25705348327891,
+        "cv_mae_std": 6.242809361774702,
+        "cv_median_absolute_error_mean": 24.379306856103803,
+        "cv_median_absolute_error_std": 4.574576844929256,
+        "cv_r2_mean": 0.4838547749316523,
+        "cv_r2_std": 0.09696313855690529,
+        "cv_rmse_mean": 93.57834114433254,
+        "cv_rmse_std": 16.536887553145487,
+        "cv_within_10_percent_mean": 0.08200104493207941,
+        "cv_within_10_percent_std": 0.04026417000445578,
+        "cv_within_20_percent_mean": 0.16862591431556948,
+        "cv_within_20_percent_std": 0.05513186572039307,
+        "cv_within_30_percent_mean": 0.24156217345872516,
+        "cv_within_30_percent_std": 0.036310318500544635
+      },
+      "cv_time_seconds": 5.294995780001045,
+      "hyperparameters": {
+        "learning_rate": 0.05,
+        "max_depth": 3,
+        "n_estimators": 200,
+        "random_state": 42
+      },
+      "locked_test_metrics": {
+        "mae": 86.62133723119045,
+        "median_absolute_error": 26.572508974179435,
+        "r2": 0.06525859975117465,
+        "rmse": 207.60289780105612,
+        "within_10_percent": 0.045454545454545456,
+        "within_20_percent": 0.14545454545454545,
+        "within_30_percent": 0.2545454545454545
+      },
+      "model_name": "gradient_boosting",
+      "performance": {
+        "cold_load_ms": 12.20772700071393,
+        "first_inference_ms": 2.5932239987014327,
+        "latency_repeats": 200,
+        "model_size_bytes": 71932,
+        "p50_inference_ms": 1.9567929994082078,
+        "p95_inference_ms": 3.2886791486816946,
+        "warm_inference_mean_ms": 2.147209369995835
+      },
+      "selected_by_cv": true,
+      "test_rows": 110,
+      "training_rows": 439,
+      "training_time_seconds": 1.0752010340002016
+    },
+    {
+      "cv_metrics": {
+        "cv_mae_mean": 55.96900933695703,
+        "cv_mae_std": 7.1918503595061445,
+        "cv_median_absolute_error_mean": 26.100841312730743,
+        "cv_median_absolute_error_std": 6.000779887365766,
+        "cv_r2_mean": 0.39865656191950843,
+        "cv_r2_std": 0.15969557792289038,
+        "cv_rmse_mean": 98.97049297991445,
+        "cv_rmse_std": 12.984233982578933,
+        "cv_within_10_percent_mean": 0.09574190177638454,
+        "cv_within_10_percent_std": 0.0379859220715259,
+        "cv_within_20_percent_mean": 0.1526907001044932,
+        "cv_within_20_percent_std": 0.03876428674733298,
+        "cv_within_30_percent_mean": 0.22557471264367815,
+        "cv_within_30_percent_std": 0.01899040081388007
+      },
+      "cv_time_seconds": 10.942621441001393,
+      "hyperparameters": {
+        "l2_regularization": 1.0,
+        "learning_rate": 0.05,
+        "max_iter": 200,
+        "max_leaf_nodes": 31,
+        "random_state": 42
+      },
+      "locked_test_metrics": null,
+      "model_name": "hist_gradient_boosting",
+      "performance": {
+        "cold_load_ms": 60.702384000251186,
+        "first_inference_ms": 6.214806000571116,
+        "latency_repeats": 200,
+        "model_size_bytes": 201347,
+        "p50_inference_ms": 10.67524349946325,
+        "p95_inference_ms": 20.026748951022455,
+        "warm_inference_mean_ms": 11.094369794927843
+      },
+      "selected_by_cv": false,
+      "test_rows": 110,
+      "training_rows": 439,
+      "training_time_seconds": 2.064707618999819
+    }
+  ],
+  "dataset": {
+    "name": "task_duration_id",
+    "sha256": "ef4a3dccf49c0f1fb933c1340a33a1681fd07b0a89dadba8366c6e300c3a58bc",
+    "source_path": "datasets/task_duration_id.csv",
+    "validation": {
+      "duplicate_title_rows": 7,
+      "duration_minutes": {
+        "max": 1500.0,
+        "median": 39.0,
+        "min": 1.7999999999999998,
+        "over_300_count": 41,
+        "p25": 15.0,
+        "p75": 120.0,
+        "p95": 420.0
+      },
+      "row_count": 549
+    },
+    "version": "task-duration-id-v1"
+  },
+  "experiment": {
+    "locked_test_policy": "Candidate dipilih hanya dari CV RMSE pada training split. Locked test dievaluasi sekali hanya untuk kandidat terpilih.",
+    "name": "duration_baseline",
+    "random_seed": 42,
+    "split": {
+      "cross_validation_folds": 5,
+      "selection_uses_locked_test": false,
+      "stratified": false,
+      "test_fraction": 0.2,
+      "test_indices_sha256": "c5da1aeab3c1a2de932d1d6490f2ed012f04d1e2c7208de8bbf6297624d9ef04",
+      "test_rows": 110,
+      "train_fraction": 0.8,
+      "training_indices_sha256": "eefd6a112a712a7647c365b31c94cb322bf3392b26e2ba76982804943a9b05c9",
+      "training_rows": 439
+    },
+    "status": "experimental_not_production_ready",
+    "timestamp": "2026-08-12T08:58:50.188357+00:00"
+  },
+  "feature_schema": {
+    "numeric": [
+      {
+        "name": "due_days",
+        "source": "jatuh_tempo_hari"
+      },
+      {
+        "name": "importance",
+        "source": "tingkat_kepentingan_1_10"
+      }
+    ],
+    "target": {
+      "converted_to": "duration_minutes",
+      "evaluation_cap": null,
+      "prediction_inverse": "expm1",
+      "source": "durasi_jam",
+      "training_transform": "log1p"
+    },
+    "text": {
+      "analyzer": "char_wb",
+      "max_features": 300,
+      "min_df": 2,
+      "ngram_range": [
+        3,
+        5
+      ],
+      "source": "tugas",
+      "sublinear_tf": true,
+      "transformer": "TfidfVectorizer"
+    }
+  },
+  "framework": {
+    "artifact_serializer": "joblib 1.5.3",
+    "name": "scikit-learn",
+    "version": "1.9.0"
+  },
+  "metric_units": {
+    "latency": "milliseconds",
+    "model_size": "bytes",
+    "r2": "unitless",
+    "time_errors": "minutes",
+    "training_time": "seconds",
+    "within_tolerance": "proportion_0_to_1"
+  },
+  "selected_model": {
+    "artifact_path": "ml/registry/artifacts/duration-baseline-v1.joblib",
+    "candidate": "gradient_boosting",
+    "metadata_path": "ml/registry/metadata/duration-baseline-v1.json",
+    "production_ready": false,
+    "selection_metric": "cv_rmse_mean"
+  }
+}

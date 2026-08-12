@@ -1,0 +1,25 @@
+{
+  "dataset_name": "task_duration_id",
+  "dataset_version": "task-duration-id-v1",
+  "source_path": "datasets/task_duration_id.csv",
+  "sha256": "ef4a3dccf49c0f1fb933c1340a33a1681fd07b0a89dadba8366c6e300c3a58bc",
+  "row_count": 549,
+  "required_columns": [
+    "tugas",
+    "jatuh_tempo_hari",
+    "durasi_jam",
+    "tingkat_kepentingan_1_10"
+  ],
+  "target": {
+    "column": "durasi_jam",
+    "unit_in_source": "hour",
+    "unit_for_training": "minute",
+    "transform": "log1p"
+  },
+  "provenance": "Existing FocusBuddy dataset; original provenance is not yet documented.",
+  "status": "experimental",
+  "notes": [
+    "Manifest is immutable. If the CSV changes, create a new dataset version.",
+    "The dataset has no user_id, source_id, or temporal grouping columns."
+  ]
+}
