@@ -215,8 +215,8 @@ def scenario_medication_only_when_relevant() -> None:
           "di luar jendela pengingat, task kembali menjadi keputusan utama")
 
 
-def scenario_meal_modal_hides_decision_logging() -> None:
-    print("\n=== Prompt makan menjadi satu-satunya interruption ===")
+def scenario_meal_prompt_is_removed_from_home() -> None:
+    print("\n=== Prompt makan dihapus sepenuhnya dari Home ===")
     state = storage.load_state()
     state["profile"].update({"name": "Ari", "onboarded": True})
     storage.save_state(state)
@@ -224,9 +224,9 @@ def scenario_meal_modal_hides_decision_logging() -> None:
     page = FakePage()
     with patch("app.views.home.storage.perlu_tanya_makan", return_value=True):
         home.build(page, lambda route: None)
-    check(len(page.dialogs) == 1, "hanya modal makan yang tampil setelah check-in selesai")
-    check(storage.get_decision_records() == [],
-          "decision di balik modal makan belum dicatat sebagai shown")
+    check(not page.dialogs, "Home tidak lagi membuka modal pertanyaan makan")
+    check(len(storage.get_decision_records()) == 1,
+          "decision Home tetap berjalan tanpa dihalangi pertanyaan makan")
 
 
 def scenario_overwhelm_does_not_auto_open_reset() -> None:
@@ -453,7 +453,7 @@ def main() -> int:
             storage.reset_all_data()
             scenario_medication_only_when_relevant()
             storage.reset_all_data()
-            scenario_meal_modal_hides_decision_logging()
+            scenario_meal_prompt_is_removed_from_home()
             storage.reset_all_data()
             scenario_overwhelm_does_not_auto_open_reset()
             storage.reset_all_data()

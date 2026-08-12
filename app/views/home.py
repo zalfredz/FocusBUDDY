@@ -27,10 +27,9 @@ _FALLBACK_DAILY_FLOW: dict = {"checkin_snoozed_date": ""}
 
 HOME_BACKGROUND = "#141416"
 HOME_TEXT = "#FFFFFF"
-HOME_ACCENT = "#95D899"
 HOME_PANEL = "#484863"
 HOME_BUTTON = "#DDE0FF"
-HOME_BUTTON_TEXT = "#484863"
+HOME_BUTTON_TEXT = "#181A35"
 HOME_FONT = "Plus Jakarta Sans"
 
 
@@ -98,55 +97,12 @@ def _checkin_required() -> bool:
     )
 
 
-def _popup_makan(page: ft.Page, navigate) -> None:
-    def jawab(makan: bool):
-        log = storage.today_mood()
-        if not log:
-            page.pop_dialog()
-            return
-        storage.add_mood_log(
-            mood=log.get("mood", buddy.DEFAULT_MOOD),
-            score=log.get("score", 3),
-            energy=log.get("energy", 3),
-            diary=log.get("diary", ""),
-            tags=log.get("tags", []),
-            quick_tags=log.get("quick_tags", []),
-            ate_today=makan,
-            rested_enough=log.get("rested_enough"),
-        )
-        page.pop_dialog()
-        navigate("home")
-
-    page.show_dialog(
-        ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Udah makan hari ini? 🍚", size=16),
-            content=ft.Column(
-                [
-                    ft.Text(
-                        "Jawab jujur aja — dua-duanya nggak apa-apa.",
-                        size=12.5,
-                        color=theme.ON_BACKGROUND,
-                    ),
-                    ft.Text(
-                        "KALEM nanya ini cuma malem, buat tau kamu keurus apa "
-                        "nggak — bukan buat nilai kamu.",
-                        size=10.5,
-                        color=theme.MUTED,
-                    ),
-                ],
-                spacing=8,
-                tight=True,
-            ),
-            actions=[
-                ft.TextButton(
-                    content=ft.Text("Belum", color=theme.WARN, weight=ft.FontWeight.BOLD),
-                    on_click=lambda e: jawab(False),
-                ),
-                ui_helpers.primary_button("Udah", lambda e: jawab(True), icon=ft.Icons.CHECK),
-            ],
-        )
-    )
+def _energy_label(level: int) -> str:
+    if level <= 2:
+        return "Kurang Bertenaga"
+    if level <= 4:
+        return "Bertenaga"
+    return "Sangat Bertenaga"
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
@@ -163,12 +119,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         else ""
     )
     needs_checkin = not session_active and _checkin_required()
-    needs_meal = (
-        not session_active
-        and not needs_checkin
-        and storage.perlu_tanya_makan()
-    )
-    interruption_active = needs_checkin or needs_meal
+    interruption_active = needs_checkin
     decision = (
         kalem_engine.KalemDecision(
             kind="pending",
@@ -248,120 +199,85 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
     display_name = storage.display_name()
-    greeting = ft.Row(
-        [
-            ft.Column(
-                [
-                    ft.Text(
-                        f"Halo, {display_name}",
-                        color=HOME_ACCENT,
-                        size=22,
-                        weight=ft.FontWeight.W_700,
-                        font_family=HOME_FONT,
-                    ),
-                    ft.Row(
-                        [
-                            ft.Text(
-                                clock.today().strftime("%A, %d %B %Y"),
-                                size=12,
-                                color=HOME_TEXT,
-                                font_family=HOME_FONT,
-                            ),
-                            *(
-                                [
-                                    ft.Container(
-                                        content=ft.Row(
-                                            [
-                                                ft.Icon(
-                                                    ft.Icons.WORKSPACE_PREMIUM,
-                                                    size=11,
-                                                    color="#FFFFFF",
-                                                ),
-                                                ft.Text(
-                                                    "PREMIUM",
-                                                    size=9,
-                                                    weight=ft.FontWeight.BOLD,
-                                                    color="#FFFFFF",
-                                                ),
-                                            ],
-                                            spacing=3,
-                                            tight=True,
-                                        ),
-                                        bgcolor=theme.TERTIARY,
-                                        border_radius=8,
-                                        padding=ft.Padding.symmetric(vertical=2, horizontal=6),
-                                    )
-                                ]
-                                if storage.is_premium()
-                                else []
-                            ),
-                        ],
-                        spacing=6,
-                    ),
-                ],
-                spacing=2,
-                expand=True,
-            ),
-            *(
-                [
-                    ft.IconButton(
-                        icon=ft.Icons.SCIENCE_OUTLINED,
-                        icon_color=HOME_TEXT,
-                        icon_size=20,
-                        tooltip="Alat Demo",
-                        on_click=lambda e: navigate("demo_tools"),
-                    )
-                ]
-                if config.DEMO_MODE
-                else []
-            ),
-            ft.IconButton(
-                icon=ft.Icons.WORKSPACE_PREMIUM,
-                icon_color=HOME_TEXT,
-                icon_size=20,
-                tooltip="Langganan KALEM",
-                on_click=lambda e: navigate("subscription"),
-            ),
-            ft.IconButton(
-                icon=ft.Icons.SETTINGS,
-                icon_color=HOME_TEXT,
-                icon_size=20,
-                tooltip="Pengaturan",
-                on_click=lambda e: navigate("settings"),
-            ),
-        ],
-        spacing=0,
+    today_log = storage.today_mood() or {}
+    energy_level = int(today_log.get("energy") or storage.today_energy() or 3)
+    selected_mood = str(today_log.get("mood") or decision.mood or buddy.DEFAULT_MOOD)
+    has_tasks = any(not storage.task_is_done(task) for task in day.tasks_today)
+
+    greeting = ft.Container(
+        width=360,
+        content=ft.Row(
+            [
+                ft.Column(
+                    [
+                        ft.Text(
+                            f"Hai!, {display_name}",
+                            color=HOME_TEXT,
+                            size=28,
+                            weight=ft.FontWeight.W_800,
+                            font_family=HOME_FONT,
+                        ),
+                        ft.Text(
+                            _energy_label(energy_level),
+                            size=14,
+                            color="#DDE0FF",
+                            weight=ft.FontWeight.W_700,
+                            font_family=HOME_FONT,
+                        ),
+                    ],
+                    spacing=2,
+                    expand=True,
+                ),
+                ft.Row(
+                    [
+                        *(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.SCIENCE_OUTLINED,
+                                    icon_color="#DDE0FF",
+                                    icon_size=18,
+                                    tooltip="Alat Demo",
+                                    on_click=lambda e: navigate("demo_tools"),
+                                )
+                            ]
+                            if config.DEMO_MODE
+                            else []
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.SETTINGS,
+                            icon_color="#DDE0FF",
+                            icon_size=20,
+                            tooltip="Pengaturan",
+                            on_click=lambda e: navigate("settings"),
+                        ),
+                    ],
+                    spacing=0,
+                    tight=True,
+                ),
+            ],
+            vertical_alignment=ft.CrossAxisAlignment.START,
+        ),
     )
 
-
-    accent = storage.favorite_color_hex()
-    kalem_face_block: ft.Control = buddy.face(decision.mood, 170)
-    if accent:
-        kalem_face_block = ft.Container(
-            content=kalem_face_block,
-            bgcolor=ft.Colors.with_opacity(0.18, accent),
-            border_radius=110,
-            padding=10,
-        )
-
-    kalem_children: list[ft.Control] = [kalem_face_block]
-    if decision.message:
-        kalem_children.append(
-            ft.Text(
-                decision.message,
-                size=13.5,
-                color=HOME_TEXT,
-                font_family=HOME_FONT,
-                text_align=ft.TextAlign.CENTER,
-            )
-        )
     kalem_block = ft.Container(
-        content=ft.Column(
-            kalem_children,
-            spacing=12,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
+        width=360,
         alignment=ft.Alignment.CENTER,
+        content=buddy.face(selected_mood, 145),
+    )
+
+    task_heading = ft.Container(
+        width=360,
+        content=ft.Text(
+            (
+                "Ayo, Sekarang kerjain ini dulu"
+                if has_tasks
+                else f"Nggak ada tugas hari ini {display_name}, nikmati aja"
+            ),
+            size=17,
+            color=HOME_TEXT,
+            weight=ft.FontWeight.W_800,
+            font_family=HOME_FONT,
+        ),
     )
 
 
@@ -460,33 +376,34 @@ def build(page: ft.Page, navigate) -> ft.Control:
     }
 
     def centered_home_block(content: ft.Control) -> ft.Control:
-        return ft.ResponsiveRow(
+        return ft.Row(
             [
                 ft.Container(
-                    col={"xs": 12, "sm": 10, "md": 7, "lg": 5, "xl": 4},
+                    width=360,
                     content=content,
                 )
             ],
             alignment=ft.MainAxisAlignment.CENTER,
-            spacing=0,
         )
 
-    def home_action_button(label: str, on_click, icon=None) -> ft.Control:
+    def home_action_button(label: str, on_click, icon=None, *, dark: bool = False) -> ft.Control:
+        background = "#343446" if dark else HOME_BUTTON
+        foreground = "#DDE0FF" if dark else HOME_BUTTON_TEXT
         return ft.Button(
-            height=48,
+            height=40,
             expand=True,
             content=ft.Text(
                 label,
-                size=15,
-                color=HOME_BUTTON_TEXT,
+                size=13,
+                color=foreground,
                 font_family=HOME_FONT,
                 weight=ft.FontWeight.W_700,
             ),
             icon=icon,
-            icon_color=HOME_BUTTON_TEXT,
+            icon_color=foreground,
             style=ft.ButtonStyle(
-                bgcolor=HOME_BUTTON,
-                color=HOME_BUTTON_TEXT,
+                bgcolor=background,
+                color=foreground,
                 padding=0,
                 shape=ft.RoundedRectangleBorder(radius=100),
             ),
@@ -500,23 +417,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
         card_children = [
             ft.Text(
-                "SEKARANG INI AJA",
-                size=12,
-                color=HOME_TEXT,
-                font_family=HOME_FONT,
-                weight=ft.FontWeight.W_700,
-            ),
-            ft.Text(
                 decision.detail,
-                size=16,
+                size=14,
                 weight=ft.FontWeight.BOLD,
-                color=HOME_TEXT,
+                color="#DDE0FF",
                 font_family=HOME_FONT,
             ),
             ft.Row(
                 [
-                    ft.Icon(ft.Icons.SUBDIRECTORY_ARROW_RIGHT, size=14, color=HOME_TEXT),
-                    ft.Text(decision.step_text, size=12.5, color=HOME_TEXT, expand=True),
+                    ft.Icon(ft.Icons.SUBDIRECTORY_ARROW_RIGHT, size=13, color="#DDE0FF"),
+                    ft.Text(decision.step_text, size=11.5, color="#DDE0FF", expand=True),
                 ],
                 spacing=4,
             ),
@@ -526,8 +436,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     if estimate
                     else f"Sesi ini {decision.focus_minutes} menit"
                 ),
-                size=11,
-                color=HOME_TEXT,
+                size=10.5,
+                color="#DDE0FF",
             ),
         ]
         cue, cue_color = deadline_cue(decision.task or {})
@@ -535,18 +445,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
             card_children.append(
                 ft.Row(
                     [
-                        ft.Icon(ft.Icons.EVENT_OUTLINED, size=14, color=HOME_TEXT),
-                        ft.Text(cue, size=11, color=HOME_TEXT, expand=True),
+                        ft.Icon(ft.Icons.EVENT_OUTLINED, size=13, color="#DDE0FF"),
+                        ft.Text(cue, size=10.5, color="#DDE0FF", expand=True),
                     ],
                     spacing=6,
                 )
             )
-    elif decision.detail:
+    elif decision.detail and decision.action_kind != "add_task":
         card_children = [
             ft.Text(
                 decision.detail,
-                size=13.5,
-                color=HOME_TEXT,
+                size=12.5,
+                color="#DDE0FF",
                 font_family=HOME_FONT,
                 text_align=ft.TextAlign.CENTER,
             )
@@ -562,17 +472,27 @@ def build(page: ft.Page, navigate) -> ft.Control:
             decision.action_label,
             _aksi_dicatat,
             icon=ACTION_ICONS.get(decision.action_kind),
+            dark=decision.action_kind == "add_task",
         )
     )
+    if decision.action_kind != "add_task":
+        card_children.append(
+            home_action_button(
+                "+ Tambah Tugas",
+                lambda e: navigate("tracker"),
+                dark=True,
+            )
+        )
 
     action_card = centered_home_block(
         ft.Container(
-            bgcolor=HOME_PANEL,
-            border_radius=20,
-            padding=18,
+            bgcolor="#1C1C26",
+            border=ft.Border.all(1, "#484863"),
+            border_radius=16,
+            padding=ft.Padding.symmetric(vertical=12, horizontal=14),
             content=ft.Column(
                 card_children,
-                spacing=12,
+                spacing=8,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
         )
@@ -920,67 +840,89 @@ def build(page: ft.Page, navigate) -> ft.Control:
     inbox_count = len(storage.get_inbox())
 
     capture_children: list[ft.Control] = [
-        ft.Icon(ft.Icons.EDIT_NOTE, color=HOME_BUTTON, size=20),
+        ft.Icon(ft.Icons.EDIT_OUTLINED, color="#181A35", size=17),
         ft.Container(
             content=ft.Text(
-                "Ada yang keinget? Tulis cepat",
-                size=12.5,
-                color=HOME_BUTTON,
+                "Ada yang keinget?",
+                size=12,
+                color="#181A35",
                 font_family=HOME_FONT,
+                weight=ft.FontWeight.W_600,
             ),
             expand=True,
             on_click=open_capture,
-            ink=True,
-            border_radius=10,
-            padding=ft.Padding.symmetric(vertical=4, horizontal=2),
         ),
     ]
     if inbox_count:
         capture_children.append(
-            ft.TextButton(
+            ft.Container(
                 content=ft.Text(
-                    f"Buka {inbox_count} catatan",
-                    size=11.5,
-                    color=HOME_BUTTON,
+                    f"{inbox_count} tersimpan",
+                    size=9,
+                    color="#DDE0FF",
                     weight=ft.FontWeight.BOLD,
                 ),
-                icon=ft.Icons.CHEVRON_RIGHT,
-                style=ft.ButtonStyle(color=HOME_BUTTON),
+                bgcolor="#343446",
+                border_radius=100,
+                padding=ft.Padding.symmetric(vertical=4, horizontal=8),
                 on_click=lambda e: navigate("inbox"),
             )
         )
 
     capture_row = centered_home_block(
         ft.Container(
-            content=ft.Row(capture_children, spacing=10),
-            bgcolor=HOME_PANEL,
+            content=ft.Container(
+                height=38,
+                bgcolor="#DDE0FF",
+                border_radius=100,
+                padding=ft.Padding.symmetric(vertical=5, horizontal=10),
+                content=ft.Row(capture_children, spacing=7),
+                on_click=open_capture,
+                ink=True,
+            ),
+            bgcolor="#1C1C26",
+            border=ft.Border.all(1, "#484863"),
             border_radius=14,
-            padding=ft.Padding.symmetric(vertical=12, horizontal=14),
+            padding=4,
         )
     )
 
 
     sos_row = centered_home_block(
         ft.Container(
-            content=ft.Row(
-                [
-                    ft.Icon(ft.Icons.SPA, color=HOME_TEXT, size=18),
-                    ft.Text(
-                        "OVERWHELM",
-                        size=12.5,
-                        color=HOME_TEXT,
-                        font_family=HOME_FONT,
-                        weight=ft.FontWeight.BOLD,
-                        expand=True,
-                    ),
-                ],
-                spacing=10,
+            alignment=ft.Alignment.CENTER,
+            content=ft.Container(
+                width=320,
+                content=ft.Row(
+                    [
+                        ft.Image(
+                            src="kalem_cemas.svg",
+                            width=36,
+                            height=36,
+                            fit=ft.BoxFit.CONTAIN,
+                        ),
+                        ft.Text(
+                            "Kewalahan? Ambil Jeda Dulu",
+                            size=12,
+                            color="#17153A",
+                            font_family=HOME_FONT,
+                            weight=ft.FontWeight.W_700,
+                        ),
+                    ],
+                    spacing=7,
+                    tight=True,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+                gradient=ft.LinearGradient(
+                    begin=ft.Alignment.CENTER_LEFT,
+                    end=ft.Alignment.CENTER_RIGHT,
+                    colors=["#95D899", "#AEEEF8", "#BBFFBF57"],
+                ),
+                border_radius=18,
+                padding=ft.Padding.symmetric(vertical=4, horizontal=9),
+                on_click=lambda e: navigate("reset"),
+                ink=True,
             ),
-            border=ft.Border.all(1, HOME_TEXT),
-            border_radius=14,
-            padding=ft.Padding.symmetric(vertical=12, horizontal=14),
-            on_click=lambda e: navigate("reset"),
-            ink=True,
         )
     )
 
@@ -989,51 +931,43 @@ def build(page: ft.Page, navigate) -> ft.Control:
         *med_banner,
         greeting,
         kalem_block,
+        task_heading,
         focus_card if session_active else action_card,
         capture_row,
         sos_row,
-        ft.Text(
-            "FocusBuddy bukan alat diagnosis ADHD dan bukan pengganti tenaga medis.",
-            size=10.5,
-            color=HOME_TEXT,
-            font_family=HOME_FONT,
-            text_align=ft.TextAlign.CENTER,
-        ),
     ]
-    layout = ft.Stack(
-        [
-            ft.Container(
-                bgcolor=HOME_BACKGROUND,
-                alignment=ft.Alignment.CENTER,
-                ignore_interactions=True,
-                content=ft.Image(
-                    src="Property 1=good_mood.png",
-                    width=650,
-                    height=720,
-                    fit=ft.BoxFit.CONTAIN,
-                    opacity=0.72,
+    layout = ft.Container(
+        bgcolor=HOME_BACKGROUND,
+        content=ft.Column(
+            [
+                ft.Column(
+                    home_controls,
+                    spacing=12,
+                    scroll=ft.ScrollMode.AUTO,
+                    expand=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-            ),
-            ft.Container(
-                bgcolor="#59141416",
-                blur=22,
-                ignore_interactions=True,
-            ),
-            ft.Column(
-                home_controls,
-                spacing=18,
-                scroll=ft.ScrollMode.AUTO,
-                expand=True,
-            ),
-        ],
-        fit=ft.StackFit.EXPAND,
+                ft.Container(
+                    width=360,
+                    alignment=ft.Alignment.CENTER,
+                    padding=ft.Padding(left=4, top=2, right=4, bottom=0),
+                    content=ft.Text(
+                        "FocusBuddy bukan alat diagnosis ADHD dan bukan pengganti tenaga medis.",
+                        size=9.5,
+                        color="#DDE0FF",
+                        font_family=HOME_FONT,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                ),
+            ],
+            spacing=8,
+            expand=True,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
         expand=True,
     )
 
     if session_active:
         page.run_task(ticker)
-
-    if needs_meal:
-        _popup_makan(page, navigate)
 
     return layout

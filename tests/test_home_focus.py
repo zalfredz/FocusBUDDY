@@ -222,7 +222,7 @@ def scenario_focus_ui_has_done_and_is_compact() -> None:
     normal_text = texts(normal_root)
     check(
         all(expected in normal_text for expected in (
-            "SEKARANG INI AJA", "Tulis laporan", "Buka laporan",
+            "Ayo, Sekarang kerjain ini dulu", "Tulis laporan", "Buka laporan",
         ))
         and any(
             text.startswith("Sisa estimasi ~20 menit · sesi ini ")
@@ -241,7 +241,7 @@ def scenario_focus_ui_has_done_and_is_compact() -> None:
     check(done is not None, "tombol DONE tersedia saat timer masih berjalan")
     visible = texts(root)
     check(all(text in visible for text in (
-        "Halo, Ari", "Ada yang keinget? Tulis cepat", "OVERWHELM",
+        "Hai!, Ari", "Ada yang keinget?", "Kewalahan? Ambil Jeda Dulu",
     )), "saat Focus aktif shell Home tetap tampil seperti biasa")
     check(button(root, "Jeda") is not None and button(root, "Akhiri sesi") is not None,
           "kontrol Jeda, DONE, dan Akhiri sesi terlihat di kartu Focus")
@@ -439,7 +439,7 @@ def scenario_multiple_diary_and_quick_capture() -> None:
     routes: list[str] = []
     page = FakePage()
     root = home.build(page, routes.append)
-    capture = button(root, "Ada yang keinget? Tulis cepat")
+    capture = button(root, "Ada yang keinget?")
     check(capture is not None, "quick capture tersedia di Home normal")
     if capture is not None:
         capture.on_click(SimpleNamespace(control=None))
@@ -463,7 +463,7 @@ def scenario_multiple_diary_and_quick_capture() -> None:
         )
 
         refreshed_home = home.build(page, routes.append)
-        open_notes = button(refreshed_home, "Buka 1 catatan")
+        open_notes = button(refreshed_home, "1 tersimpan")
         check(open_notes is not None, "Home menampilkan akses untuk membuka note tersimpan")
         if open_notes is not None:
             open_notes.on_click(SimpleNamespace(control=None))

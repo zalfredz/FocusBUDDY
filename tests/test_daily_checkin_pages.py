@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import flet as ft
 
 from app import buddy, storage
-from app.views import daily_checkin
+from app.views import daily_checkin, home
 
 
 class FakePage:
@@ -47,6 +47,14 @@ def images(root) -> set[str]:
         for control in walk(root)
         if isinstance(control, ft.Image) and isinstance(control.src, str)
     }
+
+
+def texts(root) -> list[str]:
+    return [
+        control.value
+        for control in walk(root)
+        if isinstance(getattr(control, "value", None), str)
+    ]
 
 
 def prepare_storage(monkeypatch, tmp_path) -> None:
@@ -100,3 +108,41 @@ def test_daily_checkin_is_two_full_pages_and_saves(monkeypatch, tmp_path) -> Non
     assert storage.today_mood()["mood"] == "sedih"
     assert storage.today_mood()["energy"] == 6
     assert storage.today_energy() == 6
+
+
+def test_home_uses_checkin_energy_mood_and_has_no_meal_popup(
+    monkeypatch, tmp_path
+) -> None:
+    prepare_storage(monkeypatch, tmp_path)
+    state = storage.load_state()
+    state["profile"].update({"name": "Ari", "onboarded": True})
+    storage.save_state(state)
+    storage.add_mood_log("cemas", buddy.score_for("cemas"), 2)
+    storage.set_today_energy(2)
+
+    page = FakePage()
+    page.dialogs = []
+    page.overlay = []
+    page.run_task = lambda fn, *args: None
+    page.show_dialog = page.dialogs.append
+    root = home.build(page, lambda route: None)
+    shown = texts(root)
+
+    assert "Hai!, Ari" in shown
+    assert "Kurang Bertenaga" in shown
+    assert "Nggak ada tugas hari ini Ari, nikmati aja" in shown
+    assert "kalem_cemas.svg" in images(root)
+    assert "Ada yang keinget?" in shown
+    assert "Kewalahan? Ambil Jeda Dulu" in shown
+    assert not page.dialogs
+
+
+def test_home_energy_copy_matches_all_ranges() -> None:
+    assert [home._energy_label(level) for level in range(1, 7)] == [
+        "Kurang Bertenaga",
+        "Kurang Bertenaga",
+        "Bertenaga",
+        "Bertenaga",
+        "Sangat Bertenaga",
+        "Sangat Bertenaga",
+    ]
