@@ -26,6 +26,7 @@ from app.views import (
     reset,
     settings,
     subscription,
+    task_add,
     tracker,
 )
 
@@ -50,6 +51,7 @@ ROUTES = {
     "settings": settings.build,
     "profile_settings": settings.build_profile,
     "subscription": subscription.build,
+    "task_add": task_add.build,
     "morning_brief": morning_brief.build,
     "inbox": inbox.build,
 }
@@ -57,7 +59,7 @@ ROUTES = {
 if config.DEMO_MODE:
     ROUTES["demo_tools"] = demo_tools.build
 
-FULLSCREEN_ROUTES = {"onboarding", "morning_brief", "daily_checkin"}
+FULLSCREEN_ROUTES = {"onboarding", "morning_brief", "daily_checkin", "task_add"}
 
 FOKUS_BOLEH = {"home"}
 

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import flet as ft
 
 from app import buddy, storage
-from app.views import daily_checkin, home
+from app.views import daily_checkin, home, task_add
 
 
 class FakePage:
@@ -161,16 +161,80 @@ def test_home_uses_checkin_energy_mood_and_has_no_meal_popup(
         for control in controls
         if isinstance(control, ft.Image)
         and control.src == "kalem_cemas.svg"
-        and control.width == 52
+        and control.width == 60
     )
 
     assert home.HOME_CONTENT_WIDTH == 320
-    assert greeting.size == 32 and greeting.weight == ft.FontWeight.W_900
+    assert greeting.size == 35 and greeting.weight == ft.FontWeight.W_900
+    assert greeting.style.letter_spacing == 1.1
     assert task_copy.size == 21
     assert capture.height == 42
     assert reset_gradient.colors == ["#95D899", "#95D899", "#AEEEF8"]
     assert reset_gradient.stops == [0.0, 0.8, 1.0]
-    assert reset_face.left == 0
+    assert reset_face.left == -10
+
+
+def test_home_add_task_opens_dedicated_page(monkeypatch, tmp_path) -> None:
+    prepare_storage(monkeypatch, tmp_path)
+    state = storage.load_state()
+    state["profile"].update({"name": "Ari", "onboarded": True})
+    storage.save_state(state)
+    storage.add_mood_log("tenang", buddy.score_for("tenang"), 4)
+
+    routes: list[str] = []
+    page = FakePage()
+    page.dialogs = []
+    page.overlay = []
+    page.run_task = lambda fn, *args: None
+    page.show_dialog = page.dialogs.append
+    root = home.build(page, routes.append)
+    add = button(root, "Tambah tugas")
+
+    assert add is not None
+    add.on_click(SimpleNamespace(control=add))
+    assert routes == ["task_add"]
+
+
+def test_task_add_page_saves_and_returns_home(monkeypatch, tmp_path) -> None:
+    from app import main as main_module
+
+    prepare_storage(monkeypatch, tmp_path)
+    estimate = SimpleNamespace(
+        menit=30,
+        model_version="test",
+        global_minutes=30,
+        global_dataset_version="test-data",
+        global_artifact_sha256="test-sha",
+        personalization_version="",
+        personalization_dataset_version="",
+        sumber="test",
+    )
+    monkeypatch.setattr(task_add.duration_predictions, "predict", lambda *a, **k: estimate)
+
+    page = FakePage()
+    page.dialogs = []
+    page.show_dialog = page.dialogs.append
+    routes: list[str] = []
+    root = task_add.build(page, routes.append)
+    fields = [control for control in walk(root) if isinstance(control, ft.TextField)]
+    title = next(field for field in fields if field.hint_text == "Nama Tugas")
+    description = next(field for field in fields if field.hint_text == "Deskripsi Tugas")
+    title.value = "Siapkan alat tulis"
+    description.value = "Pensil dan kalkulator"
+
+    save = button(root, "Tambah")
+    assert save is not None
+    save.on_click(SimpleNamespace(control=save))
+
+    tasks = storage.get_tasks()
+    assert routes == ["home"]
+    assert len(tasks) == 1
+    assert tasks[0]["title"] == "Siapkan alat tulis"
+    assert tasks[0]["description"] == "Pensil dan kalkulator"
+    assert tasks[0]["deadline_time"] == "07:00"
+    assert root.bgcolor == "#141416"
+    assert main_module.ROUTES["task_add"] is task_add.build
+    assert "task_add" in main_module.FULLSCREEN_ROUTES
 
 
 def test_home_energy_copy_matches_all_ranges() -> None:

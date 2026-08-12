@@ -207,27 +207,31 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     greeting = ft.Container(
         width=HOME_CONTENT_WIDTH,
-        content=ft.Row(
+        height=112,
+        content=ft.Stack(
             [
                 ft.Column(
                     [
                         ft.Text(
                             f"Hai!, {display_name}",
                             color=HOME_TEXT,
-                            size=32,
+                            size=35,
                             weight=ft.FontWeight.W_900,
                             font_family=HOME_FONT,
+                            style=ft.TextStyle(letter_spacing=1.1),
                         ),
                         ft.Text(
                             _energy_label(energy_level),
-                            size=17,
+                            size=19,
                             color="#DDE0FF",
                             weight=ft.FontWeight.W_800,
                             font_family=HOME_FONT,
+                            style=ft.TextStyle(letter_spacing=0.8),
                         ),
                     ],
-                    spacing=2,
-                    expand=True,
+                    spacing=4,
+                    left=0,
+                    top=34,
                 ),
                 ft.Row(
                     [
@@ -254,16 +258,17 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ],
                     spacing=0,
                     tight=True,
+                    right=0,
+                    top=0,
                 ),
             ],
-            vertical_alignment=ft.CrossAxisAlignment.START,
         ),
     )
 
     kalem_block = ft.Container(
         width=HOME_CONTENT_WIDTH,
         alignment=ft.Alignment.CENTER,
-        content=buddy.face(selected_mood, 145),
+        content=buddy.face(selected_mood, 165),
     )
 
     task_heading = ft.Container(
@@ -362,7 +367,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "med_taken": take_med,
         "reset": lambda e: navigate("reset"),
         "focus": start_focus,
-        "add_task": lambda e: navigate("tracker"),
+        "add_task": lambda e: navigate("task_add"),
         "rest": choose_rest,
         "pending": lambda e: navigate("daily_checkin"),
     }
@@ -393,7 +398,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         is_add_task = "tambah tugas" in label.lower()
         return ft.Button(
             height=42,
-            expand=True,
             content=ft.Text(
                 label,
                 size=15 if is_add_task else 13,
@@ -407,7 +411,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 bgcolor=background,
                 color=foreground,
                 padding=0,
-                shape=ft.RoundedRectangleBorder(radius=100),
+                shape=ft.RoundedRectangleBorder(radius=18),
             ),
             on_click=on_click,
         )
@@ -481,7 +485,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         card_children.append(
             home_action_button(
                 "+ Tambah Tugas",
-                lambda e: navigate("tracker"),
+                lambda e: navigate("task_add"),
                 dark=True,
             )
         )
@@ -499,7 +503,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             content=ft.Column(
                 card_children,
                 spacing=8,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             ),
         )
     )
@@ -879,7 +883,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ft.Container(
             height=42,
             bgcolor="#DDE0FF",
-            border_radius=100,
+            border_radius=18,
             padding=ft.Padding.symmetric(vertical=5, horizontal=11),
             content=ft.Row(capture_children, spacing=7),
             on_click=open_capture,
@@ -892,10 +896,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ft.Stack(
             [
                 ft.Container(
-                    left=20,
-                    top=6,
-                    width=HOME_CONTENT_WIDTH - 20,
-                    height=40,
+                    left=0,
+                    top=0,
+                    width=HOME_CONTENT_WIDTH,
+                    height=42,
                     content=ft.Text(
                         "Kewalahan? Ambil Jeda Dulu",
                         size=12.5,
@@ -918,15 +922,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ),
                 ft.Image(
                     src="kalem_cemas.svg",
-                    left=0,
-                    top=0,
-                    width=52,
-                    height=52,
+                    left=-10,
+                    top=-9,
+                    width=60,
+                    height=60,
                     fit=ft.BoxFit.CONTAIN,
                 ),
             ],
             width=HOME_CONTENT_WIDTH,
-            height=52,
+            height=42,
             clip_behavior=ft.ClipBehavior.NONE,
         )
     )
@@ -958,7 +962,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     padding=ft.Padding(left=4, top=2, right=4, bottom=0),
                     content=ft.Text(
                         "FocusBuddy bukan alat diagnosis ADHD dan bukan pengganti tenaga medis.",
-                        size=10.5,
+                        size=11.5,
                         color="#DDE0FF",
                         font_family=HOME_FONT,
                         text_align=ft.TextAlign.CENTER,
