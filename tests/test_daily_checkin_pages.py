@@ -136,6 +136,42 @@ def test_home_uses_checkin_energy_mood_and_has_no_meal_popup(
     assert "Kewalahan? Ambil Jeda Dulu" in shown
     assert not page.dialogs
 
+    controls = list(walk(root))
+    greeting = next(control for control in controls if getattr(control, "value", None) == "Hai!, Ari")
+    task_copy = next(
+        control
+        for control in controls
+        if getattr(control, "value", "").startswith("Nggak ada tugas hari ini")
+    )
+    capture = next(
+        control
+        for control in controls
+        if isinstance(control, ft.Container)
+        and control.bgcolor == "#DDE0FF"
+        and "Ada yang keinget?" in texts(control)
+    )
+    reset_gradient = next(
+        control.gradient
+        for control in controls
+        if isinstance(control, ft.Container)
+        and isinstance(control.gradient, ft.LinearGradient)
+    )
+    reset_face = next(
+        control
+        for control in controls
+        if isinstance(control, ft.Image)
+        and control.src == "kalem_cemas.svg"
+        and control.width == 52
+    )
+
+    assert home.HOME_CONTENT_WIDTH == 320
+    assert greeting.size == 32 and greeting.weight == ft.FontWeight.W_900
+    assert task_copy.size == 21
+    assert capture.height == 42
+    assert reset_gradient.colors == ["#95D899", "#95D899", "#AEEEF8"]
+    assert reset_gradient.stops == [0.0, 0.8, 1.0]
+    assert reset_face.left == 0
+
 
 def test_home_energy_copy_matches_all_ranges() -> None:
     assert [home._energy_label(level) for level in range(1, 7)] == [

@@ -31,6 +31,7 @@ HOME_PANEL = "#484863"
 HOME_BUTTON = "#DDE0FF"
 HOME_BUTTON_TEXT = "#181A35"
 HOME_FONT = "Plus Jakarta Sans"
+HOME_CONTENT_WIDTH = 320
 
 
 def deadline_cue(task: dict, now: datetime | None = None) -> tuple[str, str]:
@@ -205,7 +206,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     has_tasks = any(not storage.task_is_done(task) for task in day.tasks_today)
 
     greeting = ft.Container(
-        width=360,
+        width=HOME_CONTENT_WIDTH,
         content=ft.Row(
             [
                 ft.Column(
@@ -213,15 +214,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ft.Text(
                             f"Hai!, {display_name}",
                             color=HOME_TEXT,
-                            size=28,
-                            weight=ft.FontWeight.W_800,
+                            size=32,
+                            weight=ft.FontWeight.W_900,
                             font_family=HOME_FONT,
                         ),
                         ft.Text(
                             _energy_label(energy_level),
-                            size=14,
+                            size=17,
                             color="#DDE0FF",
-                            weight=ft.FontWeight.W_700,
+                            weight=ft.FontWeight.W_800,
                             font_family=HOME_FONT,
                         ),
                     ],
@@ -260,20 +261,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
     )
 
     kalem_block = ft.Container(
-        width=360,
+        width=HOME_CONTENT_WIDTH,
         alignment=ft.Alignment.CENTER,
         content=buddy.face(selected_mood, 145),
     )
 
     task_heading = ft.Container(
-        width=360,
+        width=HOME_CONTENT_WIDTH,
         content=ft.Text(
             (
                 "Ayo, Sekarang kerjain ini dulu"
                 if has_tasks
                 else f"Nggak ada tugas hari ini {display_name}, nikmati aja"
             ),
-            size=17,
+            size=21,
             color=HOME_TEXT,
             weight=ft.FontWeight.W_800,
             font_family=HOME_FONT,
@@ -379,7 +380,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         return ft.Row(
             [
                 ft.Container(
-                    width=360,
+                    width=HOME_CONTENT_WIDTH,
                     content=content,
                 )
             ],
@@ -389,12 +390,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def home_action_button(label: str, on_click, icon=None, *, dark: bool = False) -> ft.Control:
         background = "#343446" if dark else HOME_BUTTON
         foreground = "#DDE0FF" if dark else HOME_BUTTON_TEXT
+        is_add_task = "tambah tugas" in label.lower()
         return ft.Button(
-            height=40,
+            height=42,
             expand=True,
             content=ft.Text(
                 label,
-                size=13,
+                size=15 if is_add_task else 13,
                 color=foreground,
                 font_family=HOME_FONT,
                 weight=ft.FontWeight.W_700,
@@ -489,7 +491,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
             bgcolor="#1C1C26",
             border=ft.Border.all(1, "#484863"),
             border_radius=16,
-            padding=ft.Padding.symmetric(vertical=12, horizontal=14),
+            padding=(
+                ft.Padding.symmetric(vertical=5, horizontal=6)
+                if decision.action_kind == "add_task"
+                else ft.Padding.symmetric(vertical=12, horizontal=14)
+            ),
             content=ft.Column(
                 card_children,
                 spacing=8,
@@ -871,58 +877,57 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     capture_row = centered_home_block(
         ft.Container(
-            content=ft.Container(
-                height=38,
-                bgcolor="#DDE0FF",
-                border_radius=100,
-                padding=ft.Padding.symmetric(vertical=5, horizontal=10),
-                content=ft.Row(capture_children, spacing=7),
-                on_click=open_capture,
-                ink=True,
-            ),
-            bgcolor="#1C1C26",
-            border=ft.Border.all(1, "#484863"),
-            border_radius=14,
-            padding=4,
+            height=42,
+            bgcolor="#DDE0FF",
+            border_radius=100,
+            padding=ft.Padding.symmetric(vertical=5, horizontal=11),
+            content=ft.Row(capture_children, spacing=7),
+            on_click=open_capture,
+            ink=True,
         )
     )
 
 
     sos_row = centered_home_block(
-        ft.Container(
-            alignment=ft.Alignment.CENTER,
-            content=ft.Container(
-                width=320,
-                content=ft.Row(
-                    [
-                        ft.Image(
-                            src="kalem_cemas.svg",
-                            width=36,
-                            height=36,
-                            fit=ft.BoxFit.CONTAIN,
-                        ),
-                        ft.Text(
-                            "Kewalahan? Ambil Jeda Dulu",
-                            size=12,
-                            color="#17153A",
-                            font_family=HOME_FONT,
-                            weight=ft.FontWeight.W_700,
-                        ),
-                    ],
-                    spacing=7,
-                    tight=True,
-                    alignment=ft.MainAxisAlignment.CENTER,
+        ft.Stack(
+            [
+                ft.Container(
+                    left=20,
+                    top=6,
+                    width=HOME_CONTENT_WIDTH - 20,
+                    height=40,
+                    content=ft.Text(
+                        "Kewalahan? Ambil Jeda Dulu",
+                        size=12.5,
+                        color="#17153A",
+                        font_family=HOME_FONT,
+                        weight=ft.FontWeight.W_700,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    alignment=ft.Alignment.CENTER,
+                    gradient=ft.LinearGradient(
+                        begin=ft.Alignment.CENTER_LEFT,
+                        end=ft.Alignment.CENTER_RIGHT,
+                        colors=["#95D899", "#95D899", "#AEEEF8"],
+                        stops=[0.0, 0.8, 1.0],
+                    ),
+                    border_radius=18,
+                    padding=ft.Padding(left=28, top=4, right=8, bottom=4),
+                    on_click=lambda e: navigate("reset"),
+                    ink=True,
                 ),
-                gradient=ft.LinearGradient(
-                    begin=ft.Alignment.CENTER_LEFT,
-                    end=ft.Alignment.CENTER_RIGHT,
-                    colors=["#95D899", "#AEEEF8", "#BBFFBF57"],
+                ft.Image(
+                    src="kalem_cemas.svg",
+                    left=0,
+                    top=0,
+                    width=52,
+                    height=52,
+                    fit=ft.BoxFit.CONTAIN,
                 ),
-                border_radius=18,
-                padding=ft.Padding.symmetric(vertical=4, horizontal=9),
-                on_click=lambda e: navigate("reset"),
-                ink=True,
-            ),
+            ],
+            width=HOME_CONTENT_WIDTH,
+            height=52,
+            clip_behavior=ft.ClipBehavior.NONE,
         )
     )
 
@@ -948,12 +953,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
                 ft.Container(
-                    width=360,
+                    width=HOME_CONTENT_WIDTH,
                     alignment=ft.Alignment.CENTER,
                     padding=ft.Padding(left=4, top=2, right=4, bottom=0),
                     content=ft.Text(
                         "FocusBuddy bukan alat diagnosis ADHD dan bukan pengganti tenaga medis.",
-                        size=9.5,
+                        size=10.5,
                         color="#DDE0FF",
                         font_family=HOME_FONT,
                         text_align=ft.TextAlign.CENTER,
