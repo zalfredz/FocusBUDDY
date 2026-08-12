@@ -813,6 +813,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
             min_lines=3,
             max_lines=6,
             autofocus=True,
+            text_size=14,
+            color="#DDE0FF",
+            bgcolor="#343446",
+            border_color="#484863",
+            focused_border_color="#DDE0FF",
+            border_radius=14,
+            cursor_color="#DDE0FF",
+            hint_style=ft.TextStyle(
+                color="#9292A9",
+                size=13,
+                font_family=HOME_FONT,
+            ),
         )
 
         def save(ev):
@@ -827,23 +839,66 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("Buang dari kepala dulu", size=16),
+                bgcolor="#1C1C26",
+                shape=ft.RoundedRectangleBorder(radius=22),
+                title_padding=ft.Padding(left=24, top=26, right=24, bottom=10),
+                content_padding=ft.Padding(left=24, top=4, right=24, bottom=10),
+                actions_padding=ft.Padding(left=24, top=8, right=24, bottom=22),
+                title=ft.Text(
+                    "Buang dari kepala\ndulu",
+                    size=28,
+                    color="#DDE0FF",
+                    font_family=HOME_FONT,
+                    weight=ft.FontWeight.W_900,
+                    style=ft.TextStyle(letter_spacing=0.5),
+                ),
                 content=ft.Column(
                     [
                         ft.Text(
                             "Simpen mentah dulu di sini. Nanti bisa dirapikan jadi tugas.",
-                            size=12,
-                            color=theme.MUTED,
+                            size=13,
+                            color="#DDE0FF",
+                            font_family=HOME_FONT,
                         ),
                         note_field,
                     ],
-                    spacing=10,
+                    width=280,
+                    spacing=12,
                     tight=True,
                 ),
                 actions=[
-                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()),
-                    ui_helpers.primary_button("Simpan", save),
+                    ft.OutlinedButton(
+                        width=100,
+                        height=42,
+                        content=ft.Text(
+                            "Batal",
+                            color="#DDE0FF",
+                            weight=ft.FontWeight.W_700,
+                            font_family=HOME_FONT,
+                        ),
+                        style=ft.ButtonStyle(
+                            side=ft.BorderSide(1, "#DDE0FF"),
+                            shape=ft.RoundedRectangleBorder(radius=18),
+                        ),
+                        on_click=lambda ev: page.pop_dialog(),
+                    ),
+                    ft.Button(
+                        width=176,
+                        height=42,
+                        content=ft.Text(
+                            "Simpan",
+                            color="#181A35",
+                            weight=ft.FontWeight.W_800,
+                            font_family=HOME_FONT,
+                        ),
+                        style=ft.ButtonStyle(
+                            bgcolor="#DDE0FF",
+                            shape=ft.RoundedRectangleBorder(radius=18),
+                        ),
+                        on_click=save,
+                    ),
                 ],
+                actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             )
         )
 

@@ -59,7 +59,13 @@ ROUTES = {
 if config.DEMO_MODE:
     ROUTES["demo_tools"] = demo_tools.build
 
-FULLSCREEN_ROUTES = {"onboarding", "morning_brief", "daily_checkin", "task_add"}
+FULLSCREEN_ROUTES = {
+    "onboarding",
+    "morning_brief",
+    "daily_checkin",
+    "task_add",
+    "reset",
+}
 
 FOKUS_BOLEH = {"home"}
 
@@ -519,6 +525,7 @@ async def main(page: ft.Page) -> None:
                 route = "daily_checkin"
 
             builder = ROUTES.get(route, home.build)
+            content.padding = 0 if route in FULLSCREEN_ROUTES else 20
             content.content = builder(page, navigate)
             if route in NAV_INDEX:
                 nav_bar.selected_index = NAV_INDEX[route]
