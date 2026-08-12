@@ -3,13 +3,28 @@ from __future__ import annotations
 
 import flet as ft
 
-from app import buddy, storage, theme, ui_helpers
+from app import storage, ui_helpers
 from app.core import kalem_engine
+
+BACKGROUND = "#141416"
+TEXT_PRIMARY = "#FFFFFF"
+TYPEBOX_BG = "#484863"
+BUTTON_BG = "#DDE0FF"
+BUTTON_TEXT = "#484863"
+FONT = "Plus Jakarta Sans"
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
     profile, day = kalem_engine.snapshot()
     brief = kalem_engine.build_morning_brief(profile, day)
+    plan_text = ft.Text(
+        brief.plan,
+        size=13.5,
+        color=TEXT_PRIMARY,
+        font_family=FONT,
+        weight=ft.FontWeight.W_400,
+        text_align=ft.TextAlign.CENTER,
+    )
 
     def dismiss(route: str):
         storage.set_last_brief_date()
@@ -22,143 +37,249 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def override(e):
         dismiss("mood")
 
-
-    card_children: list[ft.Control] = [
-        buddy.face(brief.mood, 120),
-        ft.Text(
-            brief.greeting,
-            size=20,
-            weight=ft.FontWeight.BOLD,
-            color=theme.ON_BACKGROUND,
-            font_family=theme.FONT_DISPLAY,
-            text_align=ft.TextAlign.CENTER,
+    name = str(profile.get("name") or "Teman")
+    before_name, separator, after_name = brief.greeting.partition(name)
+    greeting = ft.Text(
+        spans=(
+            [
+                ft.TextSpan(
+                    before_name,
+                    style=ft.TextStyle(
+                        color=TEXT_PRIMARY,
+                        font_family=FONT,
+                        size=26,
+                        weight=ft.FontWeight.W_400,
+                    ),
+                ),
+                ft.TextSpan(
+                    name,
+                    style=ft.TextStyle(
+                        color="#95D899",
+                        font_family=FONT,
+                        size=26,
+                        weight=ft.FontWeight.W_700,
+                    ),
+                ),
+                ft.TextSpan(
+                    after_name,
+                    style=ft.TextStyle(
+                        color=TEXT_PRIMARY,
+                        font_family=FONT,
+                        size=26,
+                        weight=ft.FontWeight.W_400,
+                    ),
+                ),
+            ]
+            if separator
+            else [
+                ft.TextSpan(
+                    brief.greeting,
+                    style=ft.TextStyle(
+                        color=TEXT_PRIMARY,
+                        font_family=FONT,
+                        size=26,
+                        weight=ft.FontWeight.W_700,
+                    ),
+                )
+            ]
         ),
+        text_align=ft.TextAlign.CENTER,
+        font_family=FONT,
+    )
+
+    content_items: list[ft.Control] = [
+        greeting,
         ft.Text(
             brief.forecast,
             size=14,
-            color=theme.ON_BACKGROUND,
+            color=TEXT_PRIMARY,
+            font_family=FONT,
             text_align=ft.TextAlign.CENTER,
         ),
     ]
 
     if brief.reasons:
-        card_children.append(
+        content_items.append(
             ft.Container(
+                bgcolor=TYPEBOX_BG,
+                border_radius=14,
+                padding=14,
+                alignment=ft.Alignment.CENTER,
                 content=ft.Column(
                     [
-                        ui_helpers.section_header("Kenapa KALEM mikir gitu"),
+                        ft.Text(
+                            "Kenapa KALEM mikir gitu",
+                            size=12,
+                            weight=ft.FontWeight.W_700,
+                            color=TEXT_PRIMARY,
+                            font_family=FONT,
+                            text_align=ft.TextAlign.CENTER,
+                        ),
                         *[
-                            ft.Row(
-                                [
-                                    ft.Icon(ft.Icons.CIRCLE, size=5, color=theme.SECONDARY),
-                                    ft.Text(reason, size=12, color=theme.MUTED, expand=True),
-                                ],
-                                spacing=8,
-                                vertical_alignment=ft.CrossAxisAlignment.START,
+                            ft.Text(
+                                reason,
+                                size=12,
+                                color=TEXT_PRIMARY,
+                                font_family=FONT,
+                                text_align=ft.TextAlign.CENTER,
                             )
                             for reason in brief.reasons
                         ],
                     ],
-                    spacing=6,
+                    spacing=7,
+                    tight=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                bgcolor=theme.BACKGROUND,
-                border_radius=12,
-                padding=12,
             )
         )
 
-    card_children.append(
-        ft.Container(
-            content=ft.Row(
-                [
-                    ft.Icon(ft.Icons.AUTO_AWESOME, size=18, color=theme.PRIMARY),
-                    ft.Text(brief.plan, size=13, color=theme.ON_BACKGROUND, expand=True),
-                ],
-                spacing=10,
-                vertical_alignment=ft.CrossAxisAlignment.START,
-            ),
-            bgcolor=theme.BACKGROUND,
-            border_radius=12,
-            padding=12,
-        )
-    )
+    content_items.append(plan_text)
 
     if brief.long_pattern:
-        card_children.append(
+        content_items.append(
             ft.Container(
+                bgcolor=TYPEBOX_BG,
+                border_radius=14,
+                padding=14,
+                alignment=ft.Alignment.CENTER,
                 content=ft.Column(
                     [
-                        ft.Row(
-                            [
-                                ft.Icon(ft.Icons.INSIGHTS, size=15, color=theme.TERTIARY),
-                                ft.Text("Pola beberapa minggu terakhir", size=10.5,
-                                        weight=ft.FontWeight.BOLD, color=theme.TERTIARY),
-                            ],
-                            spacing=6,
+                        ft.Text(
+                            "Pola beberapa minggu terakhir",
+                            size=11,
+                            weight=ft.FontWeight.W_700,
+                            color=TEXT_PRIMARY,
+                            font_family=FONT,
+                            text_align=ft.TextAlign.CENTER,
                         ),
-                        ft.Text(brief.long_pattern, size=12.5, color=theme.ON_BACKGROUND),
+                        ft.Text(
+                            brief.long_pattern,
+                            size=12.5,
+                            color=TEXT_PRIMARY,
+                            font_family=FONT,
+                            text_align=ft.TextAlign.CENTER,
+                        ),
                     ],
                     spacing=6,
+                    tight=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                bgcolor=theme.BACKGROUND,
-                border=ft.Border.all(1, theme.TERTIARY),
-                border_radius=12,
-                padding=12,
             )
         )
     elif brief.ready and not storage.is_premium():
-        card_children.append(
-            ui_helpers.upgrade_hint(
-                "Premium: KALEM nyambungin pola berminggu-minggu, bukan cuma hari ini."
+        content_items.append(
+            ft.Container(
+                bgcolor=TYPEBOX_BG,
+                border_radius=14,
+                padding=14,
+                alignment=ft.Alignment.CENTER,
+                content=ft.Text(
+                    "Premium: KALEM nyambungin pola berminggu-minggu, "
+                    "bukan cuma hari ini.",
+                    size=12,
+                    color=TEXT_PRIMARY,
+                    font_family=FONT,
+                    text_align=ft.TextAlign.CENTER,
+                ),
             )
         )
 
     if brief.task_count:
-        card_children.append(
+        content_items.append(
             ft.Text(
                 f"Ada {brief.task_count} tugas hari ini.",
                 size=11.5,
-                color=theme.MUTED,
+                color=TEXT_PRIMARY,
+                font_family=FONT,
                 text_align=ft.TextAlign.CENTER,
             )
         )
 
     if brief.encouragement and (brief.energy_level <= 2 or brief.burnout_risk):
-        card_children.append(
+        content_items.append(
             ft.Text(
-                f"“{brief.encouragement}”",
+                f'"{brief.encouragement}"',
                 size=13,
                 italic=True,
-                color=theme.ON_BACKGROUND,
+                color=TEXT_PRIMARY,
+                font_family=FONT,
                 text_align=ft.TextAlign.CENTER,
             )
         )
 
     accept_label = "Sesuai, mulai hari ini" if brief.ready else "Oke, mulai aja"
-    card_children.append(ui_helpers.wide_button(accept_label, accept, icon=ft.Icons.CHECK))
-    card_children.append(
-        ft.TextButton(
-            content=ft.Text("Aku ngerasa beda", size=12.5, color=theme.MUTED),
-            on_click=override,
-        )
+    content_items.extend(
+        [
+            ui_helpers.primary_button(
+                accept_label,
+                accept,
+                icon=ft.Icons.CHECK,
+                expand=True,
+            ),
+            ft.TextButton(
+                content=ft.Text(
+                    "Aku ngerasa beda",
+                    size=12.5,
+                    color=TEXT_PRIMARY,
+                    font_family=FONT,
+                ),
+                on_click=override,
+            ),
+            ft.Text(
+                "Ramalan ini dari pola catatan kamu sendiri, bukan diagnosis. "
+                "Kalau kamu ngerasa beda, kamu yang bener -- bukan modelnya.",
+                size=10.5,
+                color=TEXT_PRIMARY,
+                font_family=FONT,
+                text_align=ft.TextAlign.CENTER,
+            ),
+        ]
     )
 
-    return ft.Column(
+    foreground = ft.Container(
+        padding=ft.Padding(left=24, top=36, right=24, bottom=36),
+        content=ft.Column(
+            [
+                ft.ResponsiveRow(
+                    [
+                        ft.Container(
+                            col={"xs": 12, "sm": 10, "md": 7, "lg": 4.5, "xl": 3.4},
+                            content=ft.Column(
+                                content_items,
+                                spacing=18,
+                                tight=True,
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            ),
+                        )
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=0,
+                ),
+            ],
+            spacing=0,
+            scroll=ft.ScrollMode.AUTO,
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            expand=True,
+        ),
+    )
+
+    return ft.Stack(
         [
-            ft.Container(height=8),
-            ui_helpers.card(
-                ft.Column(
-                    card_children,
-                    spacing=14,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                )
+            ft.Container(
+                bgcolor=BACKGROUND,
+                alignment=ft.Alignment.CENTER,
+                content=ft.Image(
+                    src="Property 1=med_mood.png",
+                    width=520,
+                    height=620,
+                    fit=ft.BoxFit.CONTAIN,
+                    opacity=0.55,
+                ),
             ),
-            ui_helpers.disclaimer(
-                "Ramalan ini dari pola catatan kamu sendiri, bukan diagnosis. "
-                "Kalau kamu ngerasa beda, kamu yang bener -- bukan modelnya."
-            ),
+            ft.Container(bgcolor="#66141416", blur=8),
+            foreground,
         ],
-        spacing=14,
-        scroll=ft.ScrollMode.AUTO,
+        fit=ft.StackFit.EXPAND,
         expand=True,
     )

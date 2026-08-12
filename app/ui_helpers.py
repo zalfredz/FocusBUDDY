@@ -8,6 +8,34 @@ import flet as ft
 from app import theme
 
 
+BRAND_TEXT_COLOR = "#95D899"
+
+
+def brand_text(value: str, *, size: float = 20, **kwargs) -> ft.Text:
+    """Teks brand yang eksplisit, tanpa memodifikasi ``ft.Text`` secara global."""
+    import re
+
+    pattern = re.compile(r"(?i)(?<!\w)(FocusBuddy|Kalem)(?!\w)")
+    spans: list[ft.TextSpan] = []
+    cursor = 0
+    for match in pattern.finditer(value):
+        if match.start() > cursor:
+            spans.append(ft.TextSpan(value[cursor:match.start()]))
+        spans.append(
+            ft.TextSpan(
+                match.group(0),
+                style=ft.TextStyle(
+                    color=BRAND_TEXT_COLOR,
+                    weight=ft.FontWeight.W_700,
+                ),
+            )
+        )
+        cursor = match.end()
+    if cursor < len(value):
+        spans.append(ft.TextSpan(value[cursor:]))
+    return ft.Text(spans=spans, size=size, **kwargs)
+
+
 def card(content: ft.Control, bgcolor: str = theme.SURFACE, padding: int = 20) -> ft.Container:
     return ft.Container(
         content=content,
@@ -36,8 +64,8 @@ def primary_button(label: str, on_click, icon: Optional[str] = None, expand: boo
     return ft.ElevatedButton(
         content=ft.Text(label, weight=ft.FontWeight.BOLD),
         icon=icon,
-        bgcolor=theme.PRIMARY,
-        color="#FFFFFF",
+        bgcolor="#DDE0FF",
+        color="#181A35",
         on_click=on_click,
         expand=expand,
         elevation=0,
@@ -53,7 +81,10 @@ def soft_button(label: str, on_click, icon: Optional[str] = None) -> ft.Outlined
         content=ft.Text(label),
         icon=icon,
         on_click=on_click,
-        style=ft.ButtonStyle(color=theme.ON_BACKGROUND),
+        style=ft.ButtonStyle(
+            color="#DDE0FF",
+            side=ft.BorderSide(1, "#DDE0FF"),
+        ),
     )
 
 
@@ -136,7 +167,7 @@ def choice_chip(label: str, active: bool, on_click) -> ft.Container:
         content=ft.Text(
             label,
             size=12.5,
-            color="#FFFFFF" if active else theme.ON_BACKGROUND,
+            color="#181A35" if active else theme.ON_BACKGROUND,
             text_align=ft.TextAlign.CENTER,
         ),
         bgcolor=theme.PRIMARY if active else theme.SURFACE,

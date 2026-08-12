@@ -41,7 +41,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
                 ft.Text("Nama", size=11, color=theme.MUTED),
-                ft.Text(name, size=14, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND),
+                ft.Text(name, size=14, weight=ft.FontWeight.BOLD, color="#95D899"),
                 ft.Text("Usia", size=11, color=theme.MUTED),
                 ft.Text(age, size=14, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND),
             ],

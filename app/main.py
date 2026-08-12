@@ -340,53 +340,102 @@ async def main(page: ft.Page) -> None:
             show_login("Nggak bisa membuka login Google. Coba beberapa saat lagi.")
 
     def show_login(message: str = "", busy: bool = False) -> None:
+        message_color = theme.DANGER if "gagal" in message.lower() else theme.MUTED
+        heading = ft.Text(
+            spans=[
+                ft.TextSpan(
+                    "Selamat datang di\n",
+                    style=ft.TextStyle(
+                        color="#FFFFFF",
+                        font_family=theme.FONT_AUTH,
+                        size=33,
+                        height=1.0,
+                        weight=ft.FontWeight.W_300,
+                    ),
+                ),
+                ft.TextSpan(
+                    "FocusBuddy",
+                    style=ft.TextStyle(
+                        color="#95D899",
+                        font_family=theme.FONT_AUTH,
+                        size=33,
+                        height=1.0,
+                        weight=ft.FontWeight.W_700,
+                    ),
+                ),
+            ],
+            font_family=theme.FONT_AUTH,
+            text_align=ft.TextAlign.LEFT,
+        )
         page.clean()
         page.add(
             ft.Container(
                 expand=True,
+                bgcolor="#141416",
                 alignment=ft.Alignment.CENTER,
-                padding=28,
-                content=ft.Column(
-                    [
-                        ft.Image(src="kalem_tenang.svg", width=112, height=112),
-                        ft.Text(
-                            "FocusBuddy",
-                            size=28,
-                            weight=ft.FontWeight.BOLD,
-                            color=theme.ON_BACKGROUND,
-                            text_align=ft.TextAlign.CENTER,
-                        ),
-                        ft.Text(
-                            "Bantu kamu mengatur tugas, fokus, dan ritme harian "
-                            "dengan lebih ringan.",
-                            size=13,
-                            color=theme.MUTED,
-                            text_align=ft.TextAlign.CENTER,
-                        ),
-                        ft.Button(
-                            content=ft.Row(
+                padding=ft.Padding(left=24, top=32, right=24, bottom=32),
+                content=ft.Container(
+                    content=ft.Column(
+                        [
+                            heading,
+                            ft.Image(
+                                src="Property 1=good_mood.png",
+                                width=300,
+                                height=300,
+                                fit=ft.BoxFit.CONTAIN,
+                            ),
+                            ft.Column(
                                 [
-                                    ft.Icon(ft.Icons.LOGIN, size=18),
-                                    ft.Text("Lanjut dengan google"),
+                                    ft.Button(
+                                        width=230,
+                                        height=48,
+                                        content=ft.Row(
+                                            [
+                                                ft.Image(
+                                                    src="google_logo.svg",
+                                                    width=18,
+                                                    height=18,
+                                                ),
+                                                ft.Text(
+                                                    "Masuk dengan Google",
+                                                    size=15,
+                                                    weight=ft.FontWeight.W_800,
+                                                    color="#1C1B2C",
+                                                    font_family=theme.FONT_AUTH,
+                                                ),
+                                            ],
+                                            alignment=ft.MainAxisAlignment.CENTER,
+                                            spacing=10,
+                                            tight=True,
+                                        ),
+                                        style=ft.ButtonStyle(
+                                            bgcolor="#FFFFFF",
+                                            color="#1C1B2C",
+                                            padding=0,
+                                            shape=ft.RoundedRectangleBorder(radius=100),
+                                        ),
+                                        on_click=login_google,
+                                        disabled=busy,
+                                    ),
+                                    ft.ProgressRing(width=20, height=20, visible=busy),
+                                    ft.Text(
+                                        message,
+                                        size=11.5,
+                                        color=message_color,
+                                        font_family=theme.FONT_AUTH,
+                                        text_align=ft.TextAlign.CENTER,
+                                    ),
                                 ],
-                                alignment=ft.MainAxisAlignment.CENTER,
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                spacing=8,
                                 tight=True,
                             ),
-                            on_click=login_google,
-                            disabled=busy,
-                        ),
-                        ft.ProgressRing(width=22, height=22, visible=busy),
-                        ft.Text(
-                            message,
-                            size=11.5,
-                            color=theme.DANGER if "gagal" in message.lower() else theme.MUTED,
-                            text_align=ft.TextAlign.CENTER,
-                        ),
-                    ],
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=16,
-                    tight=True,
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        spacing=28,
+                        scroll=ft.ScrollMode.AUTO,
+                    ),
                 ),
             )
         )
@@ -462,21 +511,34 @@ async def main(page: ft.Page) -> None:
             content.content = builder(page, navigate)
             if route in NAV_INDEX:
                 nav_bar.selected_index = NAV_INDEX[route]
-            nav_bar.visible = main_navigation_visible(route)
+            nav_shell.visible = main_navigation_visible(route)
             page.update()
 
         nav_bar = ft.NavigationBar(
             selected_index=0,
-            bgcolor=theme.SURFACE,
-            indicator_color=theme.PRIMARY,
+            bgcolor="#484863",
+            indicator_color="#DDE0FF",
+            indicator_shape=ft.RoundedRectangleBorder(radius=24),
             on_change=lambda e: navigate(NAV_ROUTES[e.control.selected_index][0]),
             destinations=[
-                ft.NavigationBarDestination(icon=icon, label=label)
+                ft.NavigationBarDestination(
+                    icon=ft.Icon(icon, color="#DDE0FF"),
+                    selected_icon=ft.Icon(icon, color="#484863"),
+                    label=label,
+                )
                 for _, label, icon in NAV_ROUTES
             ],
         )
 
-        page.add(ft.Column([content, nav_bar], expand=True, spacing=0))
+        nav_shell = ft.Container(
+            content=nav_bar,
+            bgcolor="#484863",
+            border_radius=100,
+            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+            margin=ft.Padding(left=20, top=4, right=20, bottom=12),
+        )
+
+        page.add(ft.Column([content, nav_shell], expand=True, spacing=0))
         navigate("home")
 
     callback_code, _ = oauth_code_from_url(
