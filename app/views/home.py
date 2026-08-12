@@ -98,97 +98,6 @@ def _checkin_required() -> bool:
     )
 
 
-def _popup_checkin(page: ft.Page, navigate) -> None:
-    pilih = {"mood": buddy.DEFAULT_MOOD, "energi": 0}
-    isi = ft.Column(spacing=14, tight=True)
-
-    def gambar():
-        chip_mood = buddy.mood_picker(pilih["mood"], pick_mood)
-        chip_energi = ft.Row(
-            [
-                ft.Container(
-                    content=ft.Text(
-                        str(lv),
-                        size=13,
-                        weight=ft.FontWeight.BOLD,
-                        color="#FFFFFF" if lv == pilih["energi"] else theme.ON_BACKGROUND,
-                        text_align=ft.TextAlign.CENTER,
-                    ),
-                    height=38,
-                    expand=True,
-                    bgcolor=theme.PRIMARY if lv == pilih["energi"] else theme.SURFACE,
-                    border=ft.Border.all(
-                        1, theme.PRIMARY if lv == pilih["energi"] else theme.BORDER
-                    ),
-                    border_radius=10,
-                    alignment=ft.Alignment.CENTER,
-                    on_click=lambda e, v=lv: pick_energi(v),
-                    ink=True,
-                )
-                for lv in range(1, 7)
-            ],
-            spacing=5,
-        )
-        isi.controls = [
-            ft.Text("Hari ini kamu ngerasa gimana?", size=12.5, color=theme.ON_BACKGROUND),
-            chip_mood,
-            ft.Text("Tenaga kamu sekarang? (1-6)", size=12.5, color=theme.ON_BACKGROUND),
-            chip_energi,
-            ft.Text(
-                "Dua tap aja. Ini yang nentuin seberat apa KALEM naruh target "
-                "buat kamu hari ini.",
-                size=10.5,
-                color=theme.MUTED,
-            ),
-        ]
-        page.update()
-
-    def pick_mood(m: str):
-        pilih["mood"] = m
-        gambar()
-
-    def pick_energi(v: int):
-        pilih["energi"] = v
-        gambar()
-
-    def simpan(e):
-        skor = buddy.score_for(pilih["mood"])
-        energi = pilih["energi"] or _energi_dari_skor(skor)
-        storage.add_mood_log(
-            mood=pilih["mood"],
-            score=skor,
-            energy=energi,
-            diary="",
-            quick_tags=[],
-        )
-        storage.set_today_energy(energi)
-        _daily_flow_state()["checkin_snoozed_date"] = ""
-        page.pop_dialog()
-        navigate("home")
-
-    def nanti(e):
-        _daily_flow_state()["checkin_snoozed_date"] = clock.today().isoformat()
-        page.pop_dialog()
-        navigate("home")
-
-    gambar()
-    page.show_dialog(
-        ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Sebentar aja ya 🌿", size=16),
-            content=isi,
-            actions=[
-                ft.TextButton(content=ft.Text("Nanti aja", color=theme.MUTED), on_click=nanti),
-                ui_helpers.primary_button("Simpan", simpan, icon=ft.Icons.CHECK),
-            ],
-        )
-    )
-
-
-def _energi_dari_skor(score: int) -> int:
-    return {1: 1, 2: 2, 3: 3, 4: 5, 5: 6}.get(score, 3)
-
-
 def _popup_makan(page: ft.Page, navigate) -> None:
     def jawab(makan: bool):
         log = storage.today_mood()
@@ -538,7 +447,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "focus": start_focus,
         "add_task": lambda e: navigate("tracker"),
         "rest": choose_rest,
-        "pending": lambda e: None,
+        "pending": lambda e: navigate("daily_checkin"),
     }
 
     ACTION_ICONS = {
@@ -1124,9 +1033,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     if session_active:
         page.run_task(ticker)
 
-    if needs_checkin:
-        _popup_checkin(page, navigate)
-    elif needs_meal:
+    if needs_meal:
         _popup_makan(page, navigate)
 
     return layout

@@ -13,6 +13,7 @@ import flet as ft
 from app import config, focus_session, storage, theme, ui_helpers
 from app.cloud import CloudUnavailable, FocusBuddyCloud, oauth_code_from_url
 from app.views import (
+    daily_checkin,
     demo_tools,
     diary,
     favorites,
@@ -38,6 +39,7 @@ NAV_ROUTES = [
 
 ROUTES = {
     "home": home.build,
+    "daily_checkin": daily_checkin.build,
     "tracker": tracker.build,
     "mood": mood.build,
     "diary": diary.build,
@@ -55,7 +57,7 @@ ROUTES = {
 if config.DEMO_MODE:
     ROUTES["demo_tools"] = demo_tools.build
 
-FULLSCREEN_ROUTES = {"onboarding", "morning_brief"}
+FULLSCREEN_ROUTES = {"onboarding", "morning_brief", "daily_checkin"}
 
 FOKUS_BOLEH = {"home"}
 
@@ -506,6 +508,13 @@ async def main(page: ft.Page) -> None:
 
             if route == "home" and storage.ready_for_morning_brief():
                 route = "morning_brief"
+
+            if (
+                route == "home"
+                and not focus_session.is_active()
+                and storage.today_mood() is None
+            ):
+                route = "daily_checkin"
 
             builder = ROUTES.get(route, home.build)
             content.content = builder(page, navigate)

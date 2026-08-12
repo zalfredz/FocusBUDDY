@@ -117,8 +117,14 @@ def scenario_brief_before_checkin_and_decision() -> None:
         check(not ready(), "Morning Brief ditandai sudah tampil dan tidak mengulang")
 
     page = FakePage()
-    home.build(page, lambda route: None)
-    check(len(page.dialogs) == 1, "hanya satu interruption check-in yang tampil")
+    checkin_routes: list[str] = []
+    home_root = home.build(page, checkin_routes.append)
+    check(not page.dialogs, "check-in tidak lagi ditampilkan sebagai popup")
+    open_checkin = button_with_prefix(home_root, "Isi check-in")
+    check(open_checkin is not None, "Home menyediakan akses ke halaman check-in")
+    if open_checkin is not None:
+        open_checkin.on_click(SimpleNamespace(control=open_checkin))
+    check(checkin_routes == ["daily_checkin"], "check-in membuka halaman penuh tersendiri")
     check(
         storage.get_decision_records() == [],
         "decision di balik modal check-in belum dicatat sebagai shown",
