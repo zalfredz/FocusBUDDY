@@ -6,94 +6,55 @@ import uuid
 from datetime import date, datetime, timedelta
 from typing import Any, Callable, Optional
 
-JADWAL_KULIAH: dict[int, list[tuple[str, str, str]]] = {
-    0: [
-        ("08:00", "09:40", "Agama Kristen Protestan"),
-        ("10:00", "11:40", "Manajemen Bisnis B"),
-        ("13:00", "14:40", "Dasar-Dasar Pemrograman 1 (DDP 1) F"),
-    ],
-    1: [
-        ("08:00", "09:40", "Kombinatorika & Statistika (Kombistek) A"),
-        ("10:00", "11:40", "Matematika Diskrit 1 (MatDis 1) C"),
-        ("13:00", "14:40", "Kalkulus 1 F"),
-        ("16:00", "16:50", "Kalkulus 1 F"),
-    ],
-    2: [
-        ("11:00", "11:50", "Manajemen Bisnis B"),
-        ("14:00", "15:40", "Dasar-Dasar Pemrograman 1 (DDP 1) F"),
-    ],
-    3: [
-        ("08:00", "08:50", "Kombinatorika & Statistika (Kombistek) A"),
-        ("10:00", "10:50", "Matematika Diskrit 1 (MatDis 1) C"),
-        ("11:00", "11:50", "Kalkulus 1 F"),
-        ("15:00", "16:40", "Dasar-Dasar Pemrograman 1 (DDP 1) F"),
-    ],
-    4: [
-        ("08:00", "08:50", "Matematika Diskrit 1 (MatDis 1) C"),
-    ],
-    5: [],
-    6: [],
-}
-
-MATKUL_TAG = {
-    "Agama Kristen Protestan": "agama",
-    "Manajemen Bisnis B": "manbis",
-    "Dasar-Dasar Pemrograman 1 (DDP 1) F": "ddp1",
-    "Kombinatorika & Statistika (Kombistek) A": "kombistek",
-    "Matematika Diskrit 1 (MatDis 1) C": "matdis",
-    "Kalkulus 1 F": "kalkulus",
-}
-
-
 def _hari_depan(target_wd: int) -> date:
     today = date.today()
     delta = (target_wd - today.weekday()) % 7
     return today + timedelta(days=delta)
 
 
-def _tugas_mingguan_kuliah() -> list[dict]:
+def _tugas_riwayat_umum() -> list[dict]:
     return [
-        {"title": "Quiz Kalkulus 1", "important": True, "difficulty": 3,
-         "steps": ["Latihan soal integral", "Review catatan kelas"],
-         "deadline_date": _hari_depan(3), "deadline_time": "10:50"},
-        {"title": "Quiz Matematika Diskrit 1", "important": True, "difficulty": 3,
-         "steps": ["Baca ulang materi kombinatorik", "Latihan soal minggu lalu"],
-         "deadline_date": _hari_depan(4), "deadline_time": "08:50"},
-        {"title": "Tugas Kombistek mingguan", "important": True, "difficulty": 2,
-         "steps": ["Selesaiin soal nomor 1-5", "Submit ke portal"],
+        {"title": "Selesaikan draft proposal", "important": True, "difficulty": 3,
+         "steps": ["Buka draft terakhir", "Tulis satu bagian yang masih kosong"],
+         "deadline_date": _hari_depan(3), "deadline_time": "20:00"},
+        {"title": "Periksa anggaran bulanan", "important": True, "difficulty": 2,
+         "steps": ["Buka catatan pengeluaran", "Tandai pengeluaran terbesar"],
+         "deadline_date": _hari_depan(4), "deadline_time": "18:00"},
+        {"title": "Siapkan presentasi mingguan", "important": True, "difficulty": 2,
+         "steps": ["Tulis tiga poin utama", "Rapikan urutan slide"],
          "deadline_date": _hari_depan(3), "deadline_time": "23:59"},
-        {"title": "Diskusi kelompok Manajemen Bisnis", "important": False, "difficulty": 1,
-         "steps": ["Baca studi kasus", "Tulis poin diskusi"],
-         "deadline_date": _hari_depan(0), "deadline_time": "10:00"},
+        {"title": "Rapikan dokumen digital", "important": False, "difficulty": 1,
+         "steps": ["Buka folder unduhan", "Pindahkan lima file penting"],
+         "deadline_date": _hari_depan(0), "deadline_time": "19:00"},
     ]
 
 
 DIARY_NORMAL = [
-    "Kelas lumayan lancar hari ini.",
-    "Sempet ngantuk pas kelas tapi masih bisa ngikutin.",
-    "Nyicil tugas dikit-dikit, lumayan progres.",
-    "Biasa aja, jalanin rutinitas kuliah.",
+    "Rutinitas hari ini lumayan lancar.",
+    "Sempat ngantuk, tapi masih bisa menyelesaikan hal penting.",
+    "Nyicil pekerjaan dikit-dikit, lumayan ada progres.",
+    "Hari yang biasa, semuanya berjalan pelan-pelan.",
     "Ada waktu senggang buat istirahat bentar.",
-    "Ngerjain PR sambil dengerin musik, santai aja.",
+    "Ngerjain satu hal sambil dengerin musik, terasa lebih ringan.",
 ]
 DIARY_WEEKEND = [
     "Libur, akhirnya bisa napas.",
-    "Ngerjain hal santai, nggak mikirin kuliah dulu.",
+    "Ngerjain hal santai tanpa mikirin pekerjaan dulu.",
     "Ketemu temen, refreshing dikit.",
     "Tidur lebih lama dari biasanya.",
     "Beres-beres kos, lumayan lega rasanya.",
 ]
 DIARY_BERAT_KAMIS = [
-    "Kombistek deadline hari ini plus kelas numpuk dari pagi, capek banget.",
-    "Ngoding tugas Kombistek sampe mepet, plus kelas 4 sesi. Berat.",
-    "Kamis paling padet minggu ini, deadline Kombistek bikin panik.",
-    "Dari pagi ke kelas terus, sore masih harus submit Kombistek.",
+    "Beberapa deadline datang barengan, capek banget.",
+    "Pekerjaan menumpuk sampai mepet dan rasanya berat.",
+    "Hari paling padat minggu ini, deadline bikin panik.",
+    "Dari pagi banyak urusan, malam masih ada yang harus dikirim.",
 ]
 DIARY_BERAT_JUMAT = [
-    "Quiz MatDis hari ini, belum siap-siap banget rasanya.",
-    "Abis begadang belajar quiz MatDis, badan capek.",
-    "Jumat cuma 1 kelas tapi mental abis gara-gara quiz.",
-    "Deg-degan nunggu quiz MatDis dari semalem.",
+    "Ada pekerjaan penting hari ini dan rasanya belum siap.",
+    "Habis begadang menyelesaikan pekerjaan, badan capek.",
+    "Jadwal tidak banyak, tapi satu urusan besar cukup menguras tenaga.",
+    "Masih deg-degan memikirkan deadline sejak semalam.",
 ]
 DIARY_SENANG = [
     "Hari yang bagus banget, ada kabar baik!",
@@ -129,7 +90,7 @@ def _log(score: int, energy: int, tags: list[str], diary: str = "",
             "ate": ate, "rested": rested}
 
 
-def _riwayat_semester(
+def _riwayat_harian(
     n_hari: int,
     rng: random.Random,
     minggu_berat: frozenset[int] = frozenset(),
@@ -154,20 +115,27 @@ def _riwayat_semester(
                 entry = _log(1, rng.choice([1, 2]), ["overwhelmed"],
                              rng.choice(DIARY_JENUH), False, False)
         elif wd in (3, 4) and minggu in minggu_berat:
-            if wd == 3:
-                entry = _log(rng.choice([1, 2]), rng.choice([1, 2]), ["kuliah", "kombistek"],
-                             rng.choice(DIARY_BERAT_KAMIS), False, False)
-            else:
-                entry = _log(rng.choice([1, 2]), rng.choice([1, 2]), ["kuliah", "matdis"],
-                             rng.choice(DIARY_BERAT_JUMAT), False, False)
+            diary_pool = DIARY_BERAT_KAMIS if wd == 3 else DIARY_BERAT_JUMAT
+            entry = _log(
+                rng.choice([1, 2]),
+                rng.choice([1, 2]),
+                ["deadline", "pekerjaan_numpuk"],
+                rng.choice(diary_pool),
+                False,
+                False,
+            )
         elif wd >= 5:
             entry = _log(rng.choice([4, 5]), rng.choice([4, 5, 6]), ["istirahat"],
                          rng.choice(DIARY_WEEKEND), True, True)
         else:
-            kelas_hari = JADWAL_KULIAH.get(wd, [])
-            tag = MATKUL_TAG.get(kelas_hari[0][2], "kuliah") if kelas_hari else "kuliah"
-            entry = _log(rng.choice([3, 4]), rng.choice([3, 4]), ["kuliah", tag],
-                         rng.choice(DIARY_NORMAL), True, True)
+            entry = _log(
+                rng.choice([3, 4]),
+                rng.choice([3, 4]),
+                ["rutinitas"],
+                rng.choice(DIARY_NORMAL),
+                True,
+                True,
+            )
 
         entry["offset"] = offset
         hasil.append(entry)
@@ -227,8 +195,8 @@ def _obat_take_log(
 
 def _skenario_baru() -> dict:
     return {
-        "label": "0 — User baru",
-        "description": "Belum ada histori sama sekali. Nunjukin KALEM jujur pas datanya kosong.",
+        "label": "Data belum cukup",
+        "description": "Belum ada histori. KALEM tetap membantu tanpa mengarang pola personal.",
         "premium": False,
         "profile": {
             "name": "Alfredo", "age_range": "18-24", "status": ["mahasiswa"],
@@ -238,8 +206,8 @@ def _skenario_baru() -> dict:
         "favorites": {},
         "mood_history": [],
         "tasks": [
-            {"title": "Kenalan sama jadwal kuliah minggu ini", "important": True,
-             "difficulty": 1, "steps": ["Cek jadwal lengkap"]},
+            {"title": "Susun rencana hari ini", "important": True,
+             "difficulty": 1, "steps": ["Tulis satu hal yang paling ingin diselesaikan"]},
         ],
         "inbox": [],
         "medication": None,
@@ -250,15 +218,12 @@ def _skenario_baru() -> dict:
 
 def _skenario_deadline_stack() -> dict:
     rng = random.Random(11001)
-    riwayat = _riwayat_semester(7, rng)
+    riwayat = _riwayat_harian(7, rng)
     return {
-        "label": "Deadline stack — 3 tugas konflik, ~30 menit tersedia",
-        "description": "7 catatan biasa (bukan fokus skenario ini). 3 tugas hari ini "
-                        "sengaja tarik-menarik: besar+penting+deadline malam, kecil+penting+"
-                        "deadline sore, kecil+nggak penting+deadline paling deket.",
+        "label": "Deadline dekat",
+        "description": "Tiga pekerjaan bersaing, tetapi waktu fokus hanya sekitar 30 menit.",
         "premium": False,
         "available_minutes_hint": 30,
-        "include_classes": False,
         "profile": {
             "name": "Alfredo", "age_range": "18-24", "status": ["mahasiswa"],
             "productive_hours": [[19, 23]], "sleep_condition": "cukup",
@@ -267,15 +232,15 @@ def _skenario_deadline_stack() -> dict:
         "favorites": {"penyemangat": "satu-satu aja, nggak usah buru-buru"},
         "mood_history": riwayat,
         "tasks": [
-            {"title": "Tulis laporan praktikum", "important": True, "difficulty": 3,
+            {"title": "Selesaikan laporan bulanan", "important": True, "difficulty": 3,
              "estimated_minutes": 90, "deadline_time": "23:59",
-             "steps": ["Buka data hasil praktikum", "Tulis bagian metode", "Tulis pembahasan"]},
-            {"title": "Latihan 5 soal Kalkulus", "important": True, "difficulty": 1,
+             "steps": ["Buka draft laporan", "Lengkapi ringkasan", "Periksa kembali angka"]},
+            {"title": "Kirim formulir pendaftaran", "important": True, "difficulty": 1,
              "estimated_minutes": 15, "deadline_time": "18:00",
-             "steps": ["Buka buku soal", "Kerjain 5 soal"]},
-            {"title": "Balas email dosen", "important": False, "difficulty": 1,
+             "steps": ["Buka formulir", "Lengkapi data yang kosong"]},
+            {"title": "Balas email penting", "important": False, "difficulty": 1,
              "estimated_minutes": 5, "deadline_time": "17:00",
-             "steps": ["Buka email dosen", "Balas singkat"]},
+             "steps": ["Buka email", "Balas singkat dan jelas"]},
         ],
         "inbox": [],
         "medication": None,
@@ -288,9 +253,8 @@ def _skenario_low_energy() -> dict:
     rng = random.Random(12002)
     riwayat = _riwayat_energi_rendah(8, rng)
     return {
-        "label": "Energi rendah, TANPA pola SOS/overwhelm",
-        "description": "8 hari energi 1-2 (kurang tidur), tapi skor mood tetap 3 dan "
-                        "TIDAK ADA SOS -- beda dari overwhelm beneran.",
+        "label": "Energi rendah",
+        "description": "Kurang tidur beberapa hari, tetapi tidak ada pola kewalahan.",
         "premium": False,
         "profile": {
             "name": "Alfredo", "age_range": "18-24", "status": ["mahasiswa"],
@@ -300,10 +264,10 @@ def _skenario_low_energy() -> dict:
         "favorites": {"jam_capek": "sore"},
         "mood_history": riwayat,
         "tasks": [
-            {"title": "Baca bab kuliah yang ketinggalan", "important": True, "difficulty": 1,
-             "estimated_minutes": 20, "steps": ["Buka bab yang mau dibaca"]},
-            {"title": "Kerjain PR kecil DDP1", "important": True, "difficulty": 2,
-             "estimated_minutes": 30, "steps": ["Buka editor dan filenya"]},
+            {"title": "Baca dokumen yang tertunda", "important": True, "difficulty": 1,
+             "estimated_minutes": 20, "steps": ["Buka dokumen yang mau dibaca"]},
+            {"title": "Rapikan satu folder kerja", "important": False, "difficulty": 1,
+             "estimated_minutes": 15, "steps": ["Pilih lima file yang perlu dirapikan"]},
         ],
         "inbox": [],
         "medication": None,
@@ -315,11 +279,10 @@ def _skenario_low_energy() -> dict:
 def _skenario_overwhelmed() -> dict:
     rng = random.Random(13003)
     hari_event = {0: "jenuh", 1: "jenuh", 3: "jenuh"}
-    riwayat = _riwayat_semester(10, rng, hari_event=hari_event)
+    riwayat = _riwayat_harian(10, rng, hari_event=hari_event)
     return {
-        "label": "Overwhelmed — tugas besar numpuk + histori gampang overwhelmed",
-        "description": "3 dari 10 hari terakhir 'jenuh' (termasuk hari ini & kemarin), "
-                        "SOS 2x dalam 3 hari, plus 2 tugas besar hari ini.",
+        "label": "Sedang kewalahan",
+        "description": "Beberapa hari terasa berat dan dua pekerjaan besar sedang menumpuk.",
         "premium": False,
         "profile": {
             "name": "Alfredo", "age_range": "18-24", "status": ["mahasiswa"],
@@ -330,10 +293,10 @@ def _skenario_overwhelmed() -> dict:
         "favorites": {"penyemangat": "nggak apa-apa pelan", "jam_capek": "sore"},
         "mood_history": riwayat,
         "tasks": [
-            {"title": "Kejar laporan Kombistek yang numpuk", "important": True, "difficulty": 3,
+            {"title": "Kejar laporan yang menumpuk", "important": True, "difficulty": 3,
              "estimated_minutes": 90, "deadline_time": "23:59",
              "steps": ["List semua yang ketinggalan", "Mulai dari yang paling gampang"]},
-            {"title": "Bikin presentasi kelompok Manbis", "important": True, "difficulty": 3,
+            {"title": "Siapkan presentasi besok", "important": True, "difficulty": 3,
              "estimated_minutes": 60, "deadline_time": "23:59",
              "steps": ["Tulis outline poin per slide"]},
         ],
@@ -348,9 +311,8 @@ def _skenario_productive_streak() -> dict:
     rng = random.Random(14004)
     riwayat = _riwayat_stabil_bagus(14, rng)
     return {
-        "label": "Productive streak — kondisi bagus, jangan over-protect",
-        "description": "14 hari stabil (mood 4-5, energi 4-5, makan/istirahat selalu "
-                        "terjaga), kapasitas waktu cukup, 1 tugas normal.",
+        "label": "Sedang produktif",
+        "description": "Mood dan energi stabil, waktu cukup, dan satu pekerjaan siap dilanjutkan.",
         "premium": False,
         "profile": {
             "name": "Alfredo", "age_range": "18-24", "status": ["mahasiswa"],
@@ -360,8 +322,8 @@ def _skenario_productive_streak() -> dict:
         "favorites": {"penyemangat": "lagi on fire, lanjutin aja"},
         "mood_history": riwayat,
         "tasks": [
-            {"title": "Nulis bab 2 laporan penelitian", "important": True, "difficulty": 2,
-             "estimated_minutes": 45, "steps": ["Buka data hasil penelitian"]},
+            {"title": "Tulis draft rencana proyek", "important": True, "difficulty": 2,
+             "estimated_minutes": 45, "steps": ["Buka draft dan lanjutkan bagian berikutnya"]},
         ],
         "inbox": [],
         "medication": None,
@@ -372,7 +334,7 @@ def _skenario_productive_streak() -> dict:
 
 def _skenario_after_reset() -> dict:
     rng = random.Random(15005)
-    riwayat = _riwayat_semester(5, rng)
+    riwayat = _riwayat_harian(5, rng)
     return {
         "label": "After reset — decide() dipanggil ulang sesudah Reset",
         "description": "5 catatan biasa, SATU tugas besar (90 menit, sulit) sebagai "
@@ -424,7 +386,7 @@ def _skenario_low_mood_low_workload() -> dict:
         "favorites": {},
         "mood_history": riwayat,
         "tasks": [
-            {"title": "Rapikan catatan kuliah hari ini", "important": True, "difficulty": 1,
+            {"title": "Rapikan catatan hari ini", "important": True, "difficulty": 1,
              "estimated_minutes": 10, "steps": ["Buka catatan yang mau dirapikan"]},
         ],
         "inbox": [],
@@ -436,11 +398,11 @@ def _skenario_low_mood_low_workload() -> dict:
 
 def _skenario_chaotic_workload() -> dict:
     rng = random.Random(17007)
-    riwayat = _riwayat_semester(7, rng)
+    riwayat = _riwayat_harian(7, rng)
     return {
         "label": "Chaotic workload — kategori campur, semua kerasa mendesak",
-        "description": "7 catatan biasa. 4 tugas kategori beda (kuliah/email/organisasi/"
-                        "personal), 3 di antaranya penting+mendesak hari ini.",
+        "description": "7 catatan biasa. 4 tugas kategori berbeda, 3 di antaranya "
+                        "penting dan mendesak hari ini.",
         "premium": False,
         "profile": {
             "name": "Alfredo", "age_range": "18-24", "status": ["mahasiswa", "organisasi"],
@@ -450,12 +412,12 @@ def _skenario_chaotic_workload() -> dict:
         "favorites": {},
         "mood_history": riwayat,
         "tasks": [
-            {"title": "Kerjain tugas Kombistek", "important": True, "difficulty": 2,
+            {"title": "Selesaikan revisi dokumen", "important": True, "difficulty": 2,
              "estimated_minutes": 45, "deadline_time": "23:59",
              "steps": ["Selesaiin soal nomor 1-5"]},
-            {"title": "Balas email dosen soal revisi", "important": True, "difficulty": 1,
+            {"title": "Balas email soal revisi", "important": True, "difficulty": 1,
              "estimated_minutes": 10, "deadline_time": "20:00",
-             "steps": ["Buka email dosen"]},
+             "steps": ["Buka email yang perlu dibalas"]},
             {"title": "Siapin laporan pertanggungjawaban organisasi", "important": True,
              "difficulty": 3, "estimated_minutes": 60, "deadline_time": "23:59",
              "steps": ["Kumpulin data kegiatan"]},
@@ -471,7 +433,7 @@ def _skenario_chaotic_workload() -> dict:
 
 def _skenario_overdue_recovery() -> dict:
     rng = random.Random(18008)
-    riwayat = _riwayat_semester(7, rng)
+    riwayat = _riwayat_harian(7, rng)
     return {
         "label": "Overdue recovery — beberapa tugas telat, waktu mepet",
         "description": "7 catatan biasa. 3 tugas OVERDUE (1-3 hari telat), waktu "
@@ -486,12 +448,12 @@ def _skenario_overdue_recovery() -> dict:
         "favorites": {},
         "mood_history": riwayat,
         "tasks": [
-            {"title": "Kumpulin tugas DDP1 yang telat", "important": True, "difficulty": 3,
+            {"title": "Kirim dokumen yang terlambat", "important": True, "difficulty": 3,
              "estimated_minutes": 60, "deadline_date": date.today() - timedelta(days=2),
              "steps": ["Buka file dan cek progres terakhir"]},
-            {"title": "Isi absen manual yang kelewat", "important": True, "difficulty": 1,
+            {"title": "Isi formulir yang terlewat", "important": True, "difficulty": 1,
              "estimated_minutes": 5, "deadline_date": date.today() - timedelta(days=3),
-             "steps": ["Buka portal absensi"]},
+             "steps": ["Buka formulir yang perlu dilengkapi"]},
             {"title": "Balas chat grup kelompok yang telat dibales", "important": False,
              "difficulty": 1, "estimated_minutes": 10,
              "deadline_date": date.today() - timedelta(days=1),
@@ -512,17 +474,16 @@ def _skenario_learning_from_history() -> dict:
     rng.shuffle(offsets)
     hari_event = {o: "senang" for o in offsets[:n_senang]}
     hari_event.update({o: "jenuh" for o in offsets[n_senang:n_senang + n_jenuh]})
-    riwayat = _riwayat_semester(90, rng, hari_event=hari_event)
+    riwayat = _riwayat_harian(90, rng, hari_event=hari_event)
     obat = _obat_take_log(random.Random(19010), hari_event=hari_event, n_hari=90)
     sos_offsets = sorted(o for o, jenis in hari_event.items() if jenis == "jenuh")[:2]
 
     return {
-        "label": "Learning from history — 3 bulan aktif, pola cukup konsisten",
-        "description": "90 catatan penuh, 8 hari senang & 4 hari jenuh tersebar acak. "
-                        "Cukup buat model_mood/model_overwhelm mulai belajar pola personal.",
+        "label": "KALEM mengenali pola",
+        "description": "Tiga bulan catatan membuat insight dan rekomendasi terasa lebih personal.",
         "premium": True,
         "profile": {
-            "name": "Alfredo", "age_range": "18-24", "status": ["mahasiswa"],
+            "name": "Alfredo", "age_range": "18-24", "status": ["kerja"],
             "productive_hours": [[16, 18], [20, 24]], "sleep_condition": "cukup",
             "on_medication": "ya", "overwhelm_triggers": ["deadline", "gagal_fokus"],
             "custom_triggers": [],
@@ -532,8 +493,8 @@ def _skenario_learning_from_history() -> dict:
             "orang": "Rani", "jam_capek": "sore",
         },
         "mood_history": riwayat,
-        "tasks": _tugas_mingguan_kuliah(),
-        "inbox": ["cari referensi jurnal"],
+        "tasks": _tugas_riwayat_umum(),
+        "inbox": ["rapikan ide untuk proyek berikutnya"],
         "medication": {
             "name": "Concerta 18mg", "pills_left": 15, "per_day": 1,
             "start_date": (date.today() - timedelta(days=90)).isoformat(),
@@ -556,7 +517,6 @@ def _skenario_alur(
         "label": label,
         "description": description,
         "flow_case": flow_case,
-        "include_classes": False,
         "premium": False,
         "profile": {
             "name": "Demo", "age_range": "18-24", "status": ["mahasiswa"],
@@ -579,83 +539,62 @@ def _skenario_alur(
 
 
 SCENARIOS: dict[str, dict] = {
+    "no_task": _skenario_alur(
+        "Hari tanpa tugas",
+        "Tidak ada tugas hari ini. Home menampilkan keadaan kosong yang tenang.",
+        "no_task",
+        [],
+        available_minutes=None,
+    ),
     "baru": _skenario_baru(),
     "deadline_stack": _skenario_deadline_stack(),
     "low_energy": _skenario_low_energy(),
     "overwhelmed": _skenario_overwhelmed(),
     "productive_streak": _skenario_productive_streak(),
-    "after_reset": _skenario_after_reset(),
-    "low_mood_low_workload": _skenario_low_mood_low_workload(),
-    "chaotic_workload": _skenario_chaotic_workload(),
-    "overdue_recovery": _skenario_overdue_recovery(),
     "learning_from_history": _skenario_learning_from_history(),
-    "large_task_decomposition": _skenario_alur(
-        "Task besar — diubah jadi langkah konkret",
-        "Task 120 menit tanpa langkah diuji lewat decision engine dan materialisasi langkah.",
-        "large_task_decomposition",
-        [{"title": "Kerjakan skripsi", "important": True, "difficulty": 3,
-          "estimated_minutes": 120, "deadline_time": "23:59", "steps": []}],
-        available_minutes=15,
+}
+
+# Auto Feel hanya memuat kondisi yang berguna saat presentasi. Skenario teknis
+# tetap diuji di test unit masing-masing dan tidak perlu muncul sebagai pilihan UI.
+AUTO_FEEL_KEYS = (
+    "no_task",
+    "baru",
+    "deadline_stack",
+    "low_energy",
+    "overwhelmed",
+    "productive_streak",
+    "learning_from_history",
+)
+SCENARIOS = {key: SCENARIOS[key] for key in AUTO_FEEL_KEYS}
+
+AUTO_FEEL_PRESENTATION = {
+    "no_task": (
+        "Hari tanpa tugas",
+        "Lihat keadaan Home saat tidak ada pekerjaan yang perlu dikejar.",
     ),
-    "focus_completed": _skenario_alur(
-        "Focus selesai — progres task diperbarui",
-        "Outcome Selesai harus menandai langkah persis lalu menjalankan decide() lagi.",
-        "focus_completed",
-        [{"title": "Latihan Kalkulus", "important": True, "difficulty": 1,
-          "estimated_minutes": 20, "steps": ["Kerjakan soal nomor 1", "Cek jawaban"]}],
+    "baru": (
+        "KALEM belum cukup data",
+        "KALEM tetap membantu tanpa berpura-pura sudah mengenali pola pengguna.",
     ),
-    "focus_incomplete": _skenario_alur(
-        "Focus belum selesai — task tetap terbuka",
-        "Outcome Belum selesai dicatat tanpa menghilangkan progres yang belum selesai.",
-        "focus_incomplete",
-        [{"title": "Baca jurnal", "important": True, "difficulty": 2,
-          "estimated_minutes": 30, "steps": ["Baca abstrak", "Catat temuan"]}],
+    "deadline_stack": (
+        "Deadline dekat",
+        "Beberapa pekerjaan bersaing saat waktu fokus hanya sekitar 30 menit.",
     ),
-    "focus_blocked": _skenario_alur(
-        "Focus terhambat — langkah berikutnya diperkecil",
-        "Outcome Terhambat memicu keputusan ulang yang lebih ringan pada task yang sama.",
-        "focus_blocked",
-        [{"title": "Tulis laporan", "important": True, "difficulty": 3,
-          "estimated_minutes": 90, "steps": ["Buka data laporan", "Tulis pembahasan"]}],
+    "low_energy": (
+        "Energi rendah",
+        "Kurang tidur membuat energi turun, tetapi kondisinya bukan kewalahan.",
     ),
-    "recurring_identity": _skenario_alur(
-        "Tugas berulang — occurrence tetap terpisah",
-        "Menyelesaikan occurrence hari ini tidak boleh menyelesaikan occurrence berikutnya.",
-        "recurring_identity",
-        [{"title": "Review harian", "important": True, "difficulty": 1,
-          "estimated_minutes": 15, "repeat": "daily", "steps": ["Buka catatan hari ini"]}],
+    "overwhelmed": (
+        "Sedang kewalahan",
+        "Pekerjaan menumpuk dan KALEM perlu mengecilkan langkah berikutnya.",
     ),
-    "duplicate_title": _skenario_alur(
-        "Judul kembar — update berdasarkan ID",
-        "Dua task berjudul sama harus tetap memiliki outcome dan metadata yang terpisah.",
-        "duplicate_title",
-        [
-            {"title": "Tugas kembar", "important": True, "difficulty": 3,
-             "estimated_minutes": 45, "kategori": "Rumah", "steps": ["Langkah decoy"]},
-            {"title": "Tugas kembar", "important": True, "difficulty": 1,
-             "estimated_minutes": 10, "kategori": "Kuliah", "steps": ["Langkah yang benar"]},
-        ],
+    "productive_streak": (
+        "Sedang produktif",
+        "Mood dan energi stabil sehingga sesi normal tetap masuk akal.",
     ),
-    "no_task": _skenario_alur(
-        "Tidak ada task — tetap ada satu arah",
-        "Pipeline tanpa task harus memberi aksi tenang yang jujur, bukan task rekaan.",
-        "no_task",
-        [],
-        available_minutes=None,
-    ),
-    "ignored_recommendation": _skenario_alur(
-        "Rekomendasi belum diambil",
-        "Recommendation yang baru terlihat tidak boleh otomatis dianggap acted atau gagal.",
-        "ignored_recommendation",
-        [{"title": "Rapikan catatan", "important": True, "difficulty": 1,
-          "estimated_minutes": 10, "steps": ["Buka catatan"]}],
-    ),
-    "reset_not_improved": _skenario_alur(
-        "Reset belum membantu — jangan paksa produktif",
-        "Sesudah user bilang belum membaik, keputusan berikutnya harus memberi ruang istirahat.",
-        "reset_not_improved",
-        [{"title": "Kerjakan laporan besar", "important": True, "difficulty": 3,
-          "estimated_minutes": 90, "steps": ["Buka laporan"]}],
+    "learning_from_history": (
+        "KALEM mengenali pola",
+        "Histori yang cukup membuka insight dan rekomendasi yang lebih personal.",
     ),
 }
 
@@ -686,7 +625,7 @@ DEMO_OBJECTIVES: dict[str, dict] = {
     "deadline_stack": {
         "demo_title": "Tiga Deadline, Waktu Cuma 30 Menit",
         "story": (
-            "Besok ada quiz. Malam ini ada tugas yang harus dikumpulkan. "
+            "Ada beberapa deadline hari ini dan satu pekerjaan besar untuk besok. "
             "User hanya punya sekitar 30 menit untuk fokus."
         ),
         "tests": ["deadline_priority", "capacity_awareness", "duration_estimation"],
@@ -821,8 +760,8 @@ DEMO_OBJECTIVES: dict[str, dict] = {
     "chaotic_workload": {
         "demo_title": "Semua Terasa Mendesak",
         "story": (
-            "Ada tugas kuliah, email dosen, pekerjaan organisasi, "
-            "dan satu task personal. User bingung mulai dari mana."
+            "Ada dokumen, email, pekerjaan tim, dan satu urusan personal. "
+            "User bingung mulai dari mana."
         ),
         "tests": ["mixed_categories", "priority_selection", "duration_estimation"],
         "expected": {
@@ -959,19 +898,7 @@ DEMO_OBJECTIVES: dict[str, dict] = {
     },
 }
 
-
-def _tugas_kelas_hari_ini() -> list[dict]:
-    wd = date.today().weekday()
-    return [
-        {
-            "title": f"Kelas: {matkul} ({mulai}-{selesai})",
-            "important": True,
-            "difficulty": 1,
-            "steps": [f"Siap-siap & masuk kelas jam {mulai}"],
-            "deadline_time": mulai,
-        }
-        for mulai, selesai, matkul in JADWAL_KULIAH.get(wd, [])
-    ]
+DEMO_OBJECTIVES = {key: DEMO_OBJECTIVES[key] for key in AUTO_FEEL_KEYS}
 
 
 def apply_scenario(key: str) -> str:
@@ -1035,8 +962,6 @@ def apply_scenario(key: str) -> str:
     storage.save_state(state)
 
     scenario_tasks = list(scenario.get("tasks") or [])
-    if scenario.get("include_classes", True):
-        scenario_tasks += _tugas_kelas_hari_ini()
     for task in scenario_tasks:
         deadline_time = task.get("deadline_time")
         if deadline_time is None:
@@ -1222,8 +1147,6 @@ def apply_scenario_overlay(key: str) -> str:
     )
 
     scenario_tasks = list(scenario.get("tasks") or [])
-    if scenario.get("include_classes", True):
-        scenario_tasks += _tugas_kelas_hari_ini()
     for task in scenario_tasks:
         deadline_time = task.get("deadline_time")
         if deadline_time is None:
@@ -1297,12 +1220,12 @@ def list_scenarios() -> list[tuple[str, str, str, str, str]]:
     return [
         (
             key,
-            scenario.get("label", key),
-            scenario.get("description", ""),
-            DEMO_OBJECTIVES.get(key, {}).get("demo_title", scenario.get("label", key)),
-            DEMO_OBJECTIVES.get(key, {}).get("wow", ""),
+            AUTO_FEEL_PRESENTATION[key][0],
+            AUTO_FEEL_PRESENTATION[key][1],
+            AUTO_FEEL_PRESENTATION[key][0],
+            "",
         )
-        for key, scenario in SCENARIOS.items()
+        for key in AUTO_FEEL_KEYS
     ]
 
 

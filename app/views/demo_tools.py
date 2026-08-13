@@ -98,40 +98,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 color=theme.MUTED,
             )
         ]
-        for key, label, description, demo_title, wow in demo_scenarios.list_scenarios():
-            objective = demo_scenarios.DEMO_OBJECTIVES.get(key, {})
+        for key, _label, description, demo_title, _wow in demo_scenarios.list_scenarios():
             content: list[ft.Control] = [
                 ft.Text(
                     demo_title,
                     size=13,
                     weight=ft.FontWeight.BOLD,
                     color=theme.ON_BACKGROUND,
-                )
+                ),
+                ft.Text(
+                    description,
+                    size=11,
+                    color=theme.MUTED,
+                ),
             ]
-            if objective.get("story"):
-                content.append(
-                    ft.Text(objective["story"], size=11.5, color=theme.ON_BACKGROUND)
-                )
-            if objective.get("tests"):
-                content.append(
-                    ft.Text(
-                        "Yang diuji: " + ", ".join(objective["tests"]),
-                        size=10.5,
-                        color=theme.MUTED,
-                    )
-                )
-            if wow:
-                content.append(
-                    ft.Text(
-                        f"Demo point: {wow}",
-                        size=10.5,
-                        color=theme.PRIMARY,
-                        italic=True,
-                    )
-                )
-            content.append(
-                ft.Text(f"{label} — {description}", size=9.5, color=theme.MUTED)
-            )
             rows.append(
                 ft.Container(
                     content=ft.Column(content, spacing=3),
@@ -146,7 +126,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("Auto Feel — data demo", size=16),
+                title=ft.Text("Pilih kondisi demo", size=16),
                 content=ft.Column(
                     rows,
                     spacing=8,

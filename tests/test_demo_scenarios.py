@@ -132,8 +132,22 @@ def main() -> int:
         storage.BACKUP_FILE = storage.DATA_DIR / "data.json.bak"
         try:
             _test_overlay_tidak_merusak_data_user()
-            assert len(demo_scenarios.SCENARIOS) >= 15, "demo harus mencakup minimal 15 alur inti"
+            assert tuple(demo_scenarios.SCENARIOS) == demo_scenarios.AUTO_FEEL_KEYS
+            assert len(demo_scenarios.SCENARIOS) == 7, "Auto Feel harus tetap ringkas"
             assert set(demo_scenarios.SCENARIOS) == set(demo_scenarios.DEMO_OBJECTIVES), "set skenario/objective harus sama"
+            forbidden = (
+                "kelas", "kuliah", "kombistek", "kalkulus", "matdis",
+                "ddp", "quiz", "dosen", "absen",
+            )
+            for key, scenario in demo_scenarios.SCENARIOS.items():
+                task_copy = [
+                    " ".join([task.get("title", ""), *task.get("steps", [])])
+                    for task in scenario.get("tasks", [])
+                ]
+                flattened = " ".join(task_copy).casefold()
+                assert not any(word in flattened for word in forbidden), (
+                    f"skenario {key} masih memuat tugas akademik/jadwal kelas"
+                )
             results = {key: demo_scenarios.run_demo(key) for key in demo_scenarios.SCENARIOS}
         finally:
             storage.DATA_DIR, storage.DATA_FILE, storage.BACKUP_FILE = original
