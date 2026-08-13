@@ -533,8 +533,10 @@ def tes_fokus_ngunci():
         == ["Tracker", "Home", "Mood"]
         and main_mod.NAV_LABEL_BEHAVIOR
         == ft.NavigationBarLabelBehavior.ONLY_SHOW_SELECTED
-        and main_mod.NAV_BACKGROUND == "#FFFFFF",
-        "navigation putih hanya menampilkan label tab aktif",
+        and main_mod.NAV_BACKGROUND == "#1C1C26"
+        and main_mod.NAV_FOREGROUND == "#DDE0FF"
+        and main_mod.NAV_INDICATOR == "#484863",
+        "navigation gelap menampilkan ikon dan label aktif berwarna cerah",
     )
     app_theme = theme.build_theme()
     ok(

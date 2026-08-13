@@ -105,18 +105,18 @@ def build_theme() -> ft.Theme:
             shape=ft.RoundedRectangleBorder(radius=22),
         ),
         navigation_bar_theme=ft.NavigationBarTheme(
-            bgcolor="#FFFFFF",
-            indicator_color="#DDE0FF",
+            bgcolor="#1C1C26",
+            indicator_color="#484863",
             label_behavior=ft.NavigationBarLabelBehavior.ONLY_SHOW_SELECTED,
             label_text_style={
                 ft.ControlState.SELECTED: ft.TextStyle(
-                    color="#181A35",
+                    color="#DDE0FF",
                     font_family=FONT_AUTH,
                     size=12,
                     weight=ft.FontWeight.W_700,
                 ),
                 ft.ControlState.DEFAULT: ft.TextStyle(
-                    color="#181A35",
+                    color="#DDE0FF",
                     font_family=FONT_AUTH,
                     size=11,
                 ),
