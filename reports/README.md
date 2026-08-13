@@ -1,28 +1,55 @@
-# Experiment Reports
+# Laporan Eksperimen
 
-File di folder ini adalah hasil eksperimen reproducible, bukan klaim bahwa model
-siap produksi. `duration_baseline.*` dibuat oleh:
+Folder ini berisi output eksperimen dan evaluasi yang dapat direproduksi. Keberadaan report tidak berarti model siap production.
 
-```bash
-PYTHONPATH="$PWD" ~/.venvs/focusbuddy/bin/python -m ml.experiments.duration_baseline
+## Kelompok report
+
+### Estimasi durasi
+
+- `duration_baseline.csv` dan `.json`;
+- `duration-clean-v2.csv` dan `.json`;
+- `duration-features-v3.csv` dan `.json`.
+
+Jalankan entry point terkait dari root repository, misalnya:
+
+```powershell
+python -m ml.experiments.duration_baseline
 ```
 
-Phase 7 menghasilkan:
+### Readiness dan personalisasi
 
 - `real_user_data_readiness.json`;
 - `personalization_readiness.json`;
-- `personalization_evaluation.json` hanya jika temporal holdout nyata cukup.
+- `personalization_evaluation.json` hanya jika temporal holdout nyata cukup;
+- `phase5-real-user-retraining.json`.
 
-Report Phase 7 yang ada saat ini berasal dari fixture sintetis untuk validasi
-pipeline. Field `audited_input.scope` membedakannya dari restricted Supabase
-export; angka di report tidak boleh dianggap sebagai query database live.
+Report yang berasal dari fixture sintetis harus ditandai oleh `audited_input.scope`. Angkanya hanya memvalidasi pipeline dan tidak boleh dipresentasikan sebagai hasil query database live atau performa pengguna nyata.
 
-Evaluasi retrieval PECAH TUGAS menghasilkan
-`task_decomposition_retrieval_eval.json` melalui:
+### Retrieval Pecah Tugas
 
-```bash
-PYTHONPATH="$PWD" ~/.venvs/focusbuddy/bin/python tools/evaluate_retrieval.py
+`task_decomposition_retrieval_eval.json` dibuat melalui:
+
+```powershell
+python tools/evaluate_retrieval.py
 ```
 
-Laporan ini mengukur corpus Indonesia terhadap query exact, paraphrase, dan
-negative. Ia adalah benchmark correctness retrieval, bukan artefak training.
+Report mengukur perilaku corpus Indonesia terhadap query exact, paraphrase, dan negative. Ini benchmark correctness retrieval, bukan artefak training.
+
+## Cara membaca report
+
+Periksa minimal:
+
+1. commit dan versi dataset;
+2. scope input: synthetic, restricted export, atau lainnya;
+3. split policy dan kemungkinan leakage;
+4. metric utama serta baseline pembanding;
+5. acceptance gate;
+6. status akhir dan alasan bila `NOT READY`;
+7. pernyataan apakah inference production berubah.
+
+## Aturan penyimpanan
+
+- Report boleh dilacak Git jika hanya berisi agregat aman dan ukurannya wajar.
+- Jangan menyimpan UUID, email, token, teks tugas, cerita, atau data mentah pengguna.
+- Binary model disimpan di artifact store/registry yang sesuai, bukan di folder report.
+- Jangan mengedit angka report secara manual; jalankan ulang pipeline yang membuatnya.

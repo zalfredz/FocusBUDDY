@@ -1,14 +1,45 @@
-# Experimental Model Registry
+# Registry Kandidat Model
 
-Registry ini hanya menyimpan metadata kandidat hasil eksperimen offline. Field
-`production` pada `index.json` sengaja tetap `null`; runtime aplikasi tidak
-membaca kandidat eksperimen ini.
+Registry ini menyimpan indeks dan metadata kandidat hasil eksperimen offline. Ia bukan artifact store production.
 
-Setiap artefak harus mempunyai metadata pendamping yang berisi versi model,
-versi dataset, feature schema, ukuran split, timestamp, seed, hyperparameter,
-metrics, versi framework, dan path artefak.
+## Isi folder
 
-Binary di `ml/registry/artifacts/` diabaikan Git. Artifact production harus
-disimpan di artifact store privat. Promosi dicatat terpisah di
-`models/approved_models.json`; runtime baru menerima file bila statusnya
-`promoted`, path diberikan lewat environment, dan SHA-256 cocok.
+- `index.json`: daftar versi kandidat dan pointer status registry.
+- `metadata/`: metadata JSON untuk setiap eksperimen.
+- `artifacts/`: binary lokal hasil eksperimen; diabaikan Git.
+- `metadata.py`: validasi dan penulisan metadata registry.
+
+Field `production` pada `index.json` sengaja `null`. Runtime aplikasi tidak membaca kandidat experimental dari folder ini.
+
+## Metadata wajib
+
+Setiap kandidat harus mencatat:
+
+- nama dan versi model;
+- status registry;
+- versi/hash dataset;
+- feature schema;
+- ukuran dan kebijakan split;
+- seed dan hyperparameter;
+- metric serta acceptance gate;
+- versi framework/runtime;
+- timestamp;
+- path dan checksum artefak.
+
+## Status
+
+- `experimental`: hasil eksplorasi, belum boleh dipakai runtime.
+- `candidate`: telah memenuhi gate eksperimen dan menunggu review.
+- `promoted`: disetujui secara eksplisit untuk jalur production.
+- `retired`: tidak lagi digunakan.
+
+## Batas production
+
+Artifact production disimpan di artifact store privat. Promosi dicatat terpisah pada [models/approved_models.json](../../models/approved_models.json). Runtime hanya menerima artifact jika:
+
+1. entry berstatus `promoted`;
+2. path diberikan melalui environment yang ditentukan entry;
+3. file tersedia;
+4. SHA-256 sama dengan checksum approval.
+
+Jangan mengganti `production` atau menyalin binary ke runtime sebagai jalan pintas promosi.

@@ -1,136 +1,380 @@
-# Kenalan sama FocusBuddy dan Kalem 🌿
+# Panduan Aplikasi FocusBuddy
 
-Panduan ini buat siapa aja yang penasaran — nggak perlu ngerti teknologi sama sekali. Baca santai aja, kayak lagi diceritain sama teman.
+Panduan ini menjelaskan alur aplikasi FocusBuddy versi saat ini dari sudut pandang pengguna. Nama pendamping di dalam aplikasi adalah KALEM.
 
----
+FocusBuddy bukan alat diagnosis dan bukan pengganti tenaga medis.
 
-## Pernah ngerasa gini nggak?
+## 1. Masuk ke aplikasi
 
-Kamu tahu ada tugas yang harus dikerjain. Kamu bahkan tahu itu penting. Tapi entah kenapa, kamu malah scroll HP, beresin kamar yang sebenernya udah rapi, atau tiba-tiba pengen bersihin folder foto dari 2019 — apa aja, asal bukan tugas itu.
+1. Buka FocusBuddy melalui browser atau aplikasi desktop.
+2. Pilih `Masuk dengan Google`.
+3. Selesaikan login Google dan izinkan browser kembali ke FocusBuddy.
+4. Data akun akan dimuat dari Supabase. Jika koneksi terganggu, aplikasi dapat memakai cache sesi dan mencoba sinkronisasi kembali.
 
-Bukan karena males. Bukan karena nggak peduli. Cuma... otaknya susah banget nemuin tombol "mulai".
+Jika login terus kembali ke halaman awal, periksa koneksi internet dan pastikan alamat callback yang dibuka sama dengan domain FocusBuddy.
 
-Ini yang dialami banyak banget orang, apalagi yang punya kecenderungan ADHD (susah fokus, gampang teralihkan, otaknya kayak punya banyak tab kebuka sekaligus). Masalahnya bukan di ngerjain — begitu udah mulai, biasanya lancar. Masalahnya ada di **titik paling awal**: mulai.
+## 2. Onboarding pertama
 
-FocusBuddy dibikin khusus buat titik itu.
+Onboarding dimulai dengan dua data utama:
 
----
+1. Isi nama pada `Mau dipanggil apa?`, lalu tekan `Selanjutnya`.
+2. Pilih tanggal pada `Tanggal Lahir Kamu?`, lalu tekan `Selanjutnya`.
 
-## Jadi, FocusBuddy itu apa?
+Pertanyaan berikutnya membantu KALEM mengenal ritme pengguna:
 
-Aplikasi kecil di HP kamu yang bantu susun hari, ditemenin karakter namanya **Kalem**.
+- kesibukan saat ini;
+- jam yang biasanya produktif;
+- pola tidur terakhir;
+- obat atau suplemen rutin;
+- hal yang membuat khawatir atau kewalahan.
 
-Bedanya sama aplikasi to-do list biasa: FocusBuddy **nggak nunggu kamu buka app terus bingung sendiri harus ngapain duluan**. Dia yang mulai duluan. Tiap pagi Kalem udah nyusunin, dan tiap kali kamu buka, kamu cuma perlu tahu **satu hal**: apa yang harus dikerjain SEKARANG.
+Pertanyaan personalisasi ini tidak wajib. Tekan `Lewati` untuk lanjut tanpa menjawab. Semua jawaban dapat dilengkapi atau diubah lagi dari Pengaturan.
 
-Bukan daftar 15 tugas yang bikin pusing liatnya. Cuma satu.
+Tanggal lahir disimpan sebagai tanggal kalender. Usia dihitung otomatis saat diperlukan, sehingga tidak menjadi angka yang kedaluwarsa.
 
-### Kenalan sama Kalem
+## 3. Navigasi utama
 
-Kalem itu bulatan lucu berwarna hijau sage, dan wajahnya berubah-ubah — bukan asal animasi, tapi beneran ngikutin gimana kabar kamu belakangan ini.
+Navigation bar mempunyai tiga tab:
 
-| Wajahnya | Artinya |
-|---|---|
-| 😊 Semangat | Lagi on fire, cocok buat ngerjain yang berat |
-| 🙂 Tenang | Biasa aja, santai dulu nggak apa-apa |
-| 😰 Cemas | Kayaknya lagi banyak pikiran |
-| 😴 Lelah | Capek — istirahat juga progress, kok |
-| 😢 Sedih | Lagi nggak enak, dan itu boleh |
+- `Tracker` untuk kalender, tugas, dan riwayat fokus;
+- `Home` untuk saran tugas dan sesi fokus;
+- `Mood` untuk check-in, insight, grafik, cerita, dan favorit.
 
-Yang bikin ini terasa beda: Kalem bisa kelihatan lelah **sebelum kamu bilang apa-apa**, karena dia ingat gimana kabar kamu 2-3 hari terakhir. Rasanya kayak ada yang beneran merhatiin, bukan cuma formulir yang nunggu diisi.
+Hanya tab yang sedang aktif menampilkan tulisan; tab lain hanya menampilkan ikon.
 
----
+Selama sesi fokus berjalan, perpindahan tab ditahan. Pilih `Lanjut fokus` pada popup, lalu pause atau sudahi sesi dari Home jika memang ingin berpindah halaman.
 
-## Coba ikutin satu hari bareng Kalem
+## 4. Insight pagi
 
-**Pagi-pagi**, begitu kamu buka HP, Kalem udah nyapa duluan — bukan nunggu kamu klik apa-apa:
+Insight pagi muncul sekali per hari sebelum Home.
 
-> *"Pagi! Hari ini kemungkinan agak berat sih — soalnya Jumat biasanya emang berat buat kamu, terus tidur semalem juga kayaknya kurang. Aku udah siapin: ambil yang paling ringan aja dulu, fokus 10 menit aja cukup."*
+### Ketika data belum cukup
 
-Kamu tinggal pencet **"Sesuai, mulai"** — dan itu langsung ngatur semuanya buat hari itu: durasi kerja fokus jadi lebih pendek, targetnya jadi lebih santai. Kalau ngerasa Kalem salah nebak ("hari ini aku justru semangat kok!"), tinggal bilang **"Aku ngerasa beda"** — nggak ada yang dikunci, kamu tetep yang pegang kendali.
+KALEM menampilkan progress jumlah catatan yang diperlukan untuk mulai membaca pola. Pilih:
 
-**Siang**, pas buka app lagi, cuma ada **satu kartu**:
+- `Oke, Mulai Aja` untuk lanjut ke Home;
+- `Aku ngerasa beda` untuk mengisi kondisi hari ini sendiri.
 
-> *"Sekarang ini aja: Buka dokumen skripsi"*
-> `[FOKUS 10 menit]`
+### Ketika data sudah cukup
 
-Kamu pencet FOKUS, muncul lingkaran yang perlahan menyusut — kayak lilin yang meleleh pelan-pelan, bukan angka detik yang bikin deg-degan. Kamu bisa pindah ke halaman lain terus balik lagi, timernya tetep jalan, nggak ke-reset.
+KALEM dapat menampilkan salah satu ringkasan:
 
-Kalau tiba-tiba kepala berasa penuh dan pengen kabur dari semuanya, ada tombol **"Lagi kewalahan?"** yang selalu ada, kapan aja. Pencet itu, dan semua daftar tugas langsung disembunyiin. Kamu ditawarin: tarik napas pelan sambil ngikutin lingkaran yang bernapas bareng kamu, atau sebutin 5 hal yang kamu lihat sekarang buat narik pikiran balik ke kenyataan, atau gerak badan 60 detik, atau dengerin musik yang bikin tenang. **Nggak ada satu pun tugas yang nongol di sini** — ini beneran ruang buat istirahat, bukan cuma to-do list yang disamarin.
+- `Kemungkinan biasa aja`;
+- `SEMANGAT!! Hari ini mungkin berat`;
+- `Semangat kamu FULL hari ini`.
 
-**Malam**, kamu check-in gimana rasanya hari ini — pencet satu ekspresi, kasih 1-3 tag cepat ("kuliah", "capek", apa aja), selesai dalam 10 detik kalau lagi males ngetik. Kalau mau cerita lebih, Kalem nawarin nulis diary sebentar. Besoknya, semua ini jadi bahan Kalem buat makin ngerti kamu.
+Di bawahnya ada alasan singkat dari pola yang terbaca serta saran sesi fokus. Prediksi ini hanya refleksi dari catatan pengguna, bukan diagnosis. Jika prediksi tidak sesuai, pilih `Aku ngerasa beda`.
 
----
+## 5. Home
 
-## Fitur-fitur yang bakal sering kamu pakai
+Bagian atas menampilkan `Hai! Nama` tanpa koma. Maskot dan bubble chat mengikuti energi terakhir:
 
-### 🌤️ Sapaan pagi (Morning Brief)
-Kalem yang mulai duluan, bukan kamu yang harus mikir sendiri "hari ini enaknya ngapain ya". Dan dia selalu **jelasin alasannya** — bukan ramalan misterius yang harus dipercaya begitu aja.
+- energi 1–3: `Kamu kelihatan capek. Istirahat juga termasuk progress loh...`;
+- energi 4–6: `Semangat untuk Hari Ini!`.
 
-### 📝 Tulis cepat, rapikan nanti (Quick Capture)
-Lagi ngerjain sesuatu terus tiba-tiba keinget hal lain? Tinggal tulis cepat di satu tombol, nggak perlu langsung dirapiin jadi tugas resmi. Nanti pas sempat, baru dipilih mana yang mau dijadiin tugas beneran.
+### Jika ada tugas hari ini
 
-### 📅 Halaman kerja (Tracker)
-Di sini kamu bisa tambah tugas, lihat mana yang mendesak, dan yang paling seru — kamu bisa minta Kalem **memecah satu tugas jadi langkah-langkah kecil**. Misalnya "Bikin Skripsi Bab 1" dipecah jadi: buka dokumen (3 menit), tulis satu paragraf (15 menit), lanjut dikit lagi (15 menit). Kamu juga bisa milih mau tugas mana aja yang dipecah — nggak harus semua sekaligus.
+KALEM memilih satu tugas yang paling masuk akal untuk dikerjakan sekarang. Card menampilkan nama tugas, asal tugas, progress, dan tombol memulai fokus.
 
-Kalem juga bisa **nebak kira-kira berapa lama** satu tugas bakal makan waktu, cukup dari judulnya aja. Nggak dijamin pas persis (makanya dikasih rentang, misalnya "15-40 menit", bukan angka pasti yang sok tahu) — tapi lumayan banget buat orang yang susah ngebayangin waktu (ini juga hal yang umum dialami orang ADHD, namanya *time blindness*).
+Pilih `Tambah Tugas` jika ingin membuka form tugas dari keadaan Home yang mempunyai tugas.
 
-### 💙 Cek mood & cerita (Mood & Diary)
-Cek-in gampang, dan makin sering kamu isi, makin Kalem ngerti pola kamu — misalnya kalau ternyata tiap hari Senin kamu emang selalu lebih berat, atau kalau lagi kurang tidur biasanya moodnya ikut turun.
+### Jika tidak ada tugas hari ini
 
-### 🌬️ Ruang buat napas (Reset)
-Udah dijelasin di atas — tombol yang selalu ada, kapan pun kamu butuh jeda. Dan Kalem bakal makin pinter nawarin opsi yang **paling beneran nolong kamu**, bukan cuma yang paling sering kamu pencet doang (dua hal itu, ternyata, nggak selalu sama).
+Home menampilkan:
 
-### 💊 Pengingat obat
-Kalau kamu rutin minum obat, tinggal masukin sekali di awal, dan Kalem yang inget-inget: nanya "udah minum belum?", ngingetin kalau stoknya mau abis, dan bantu carikan apotek terdekat. Nama obatnya juga dicek ke **data resmi BPOM** — jadi kalau salah ketik, Kalem bisa kasih tau ("mungkin maksudnya Concerta?").
+```text
+Nggak ada tugas hari ini [Nama],
+Enjoy the Day!
+```
 
-Satu hal yang penting: **FocusBuddy nggak pernah, dan nggak akan pernah, nyaranin dosis obat.** Itu urusan dokter kamu sepenuhnya. Kalem cuma bantu inget dan cari tahu, bukan mutusin.
+Tidak ada tombol tambah tugas pada keadaan kosong. Di bawah teks langsung tersedia `Ada yang Keingat?` dan `Kewalahan? YUK AMBIL JEDA`.
 
----
+## 6. Catatan cepat
 
-## Kok Kalem bisa makin "ngerti" aku?
+Pilih `Ada yang Keingat?` untuk membuka form:
 
-Ini bagian yang sering bikin penasaran, dan jawabannya sebenernya simpel: **makin sering kamu pakai, makin banyak pola yang kebaca.**
+- judul: `Apapun yang kamu mau ingat`;
+- isi dapat berupa tugas, cerita, atau hal lain yang ingin disimpan sementara.
 
-Bayangin kamu punya teman yang tiap hari nemenin kamu. Minggu pertama kenalan, dia belum tahu banyak soal kamu. Tapi habis sebulan bareng, dia mulai hafal — "oh, biasanya hari Senin emang berat buat kamu", atau "kalau tidur kamu kurang dari 5 jam, biasanya paginya susah fokus". Kalem kerjanya mirip gitu, cuma yang "inget" itu bukan manusia, tapi pola-pola dari catatan yang kamu isi sendiri.
+Catatan masuk ke `Catatan Kamu`. Jika masih kosong, halaman menampilkan `Masih kosong nihh`.
 
-Dan Kalem **jujur soal kapan dia belum tahu**. Kalau catatan kamu masih dikit, dia bakal bilang terus terang: *"aku belum cukup data buat nebak, jadi aku pakai setelan tengah dulu ya"* — daripada sok tahu dan ngasal.
+Untuk merapikan catatan menjadi tugas:
 
-Satu lagi yang penting: **semua ini belajar dari catatan kamu sendiri, bukan dari orang lain.** Nggak ada yang "diintip" dari HP orang lain buat nebak kamu. Murni dari apa yang kamu isi sendiri, di HP kamu sendiri.
+1. buka `Catatan Kamu`;
+2. pilih `Jadiin tugas` pada catatan;
+3. periksa nama dan tambahkan konteks bila perlu;
+4. gunakan rekam suara jika tersedia;
+5. atur jam, tandai penting, atau pilih pecah otomatis;
+6. tekan `Jadiin tugas`.
 
----
+## 7. Tracker dan kalender
 
-## Soal privasi — jujur aja
+Tracker membuka kalender mingguan. Header kalender menampilkan nama bulan dan tahun lengkap, misalnya `Agustus 2026`.
 
-- **Mood, cerita diary, obat, dan riwayat fokus disimpan lokal di perangkat ini.** Data-data itu tidak diproses model Kalem.
-- **Pecah Tugas punya jalur lokal dulu:** outline yang kamu tulis dan pola yang pernah cocok dipakai ulang tanpa internet. Kalau keduanya tidak cukup dan penyusunan Kalem tersedia, judul serta deskripsi tugas diproses untuk membuat langkah. Hasilnya lalu disimpan lokal agar tugas serupa tidak perlu diproses lagi.
-- Rekomendasi Kalem bersifat opsional; bila diaktifkan, preferensi yang memang dipakai untuk rekomendasi (misalnya musik/hobi dan level energi) dapat diproses. Jangan isi detail yang tidak ingin kamu gunakan untuk rekomendasi.
-- **"Orang tempat cerita"** yang bisa kamu isi di Favorit itu cuma nama panggilan doang — FocusBuddy nggak nyimpen nomor telepon siapa pun, dan **nggak pernah** ngehubungin siapa pun otomatis atas nama kamu.
-- Kalimat penyemangat yang kamu tulis, itu murni kata-kata kamu sendiri — bukan kutipan orang lain, jadi bebas dipakai seenaknya.
+- Pilih tanggal untuk melihat tugas aktif pada tanggal itu.
+- Pilih `Bulan Ini` untuk membuka kalender bulanan lengkap.
+- Gunakan Harian, Mingguan, atau Bulanan untuk mengubah ringkasan `Sebaran Tugas`.
 
----
+Perubahan filter tidak mengganti daftar tugas aktif; daftar itu tetap mengikuti tanggal yang dipilih agar tidak mencampur terlalu banyak konteks.
 
-## Yang perlu kamu tahu juga (biar nggak salah paham)
+Urutan utama Tracker adalah kalender, filter, tombol `Tambah Tugas` dan `Pecah Tugas`, Sebaran Tugas, daftar tugas, lalu Focus History.
 
-FocusBuddy itu **teman bantu harian, bukan pengganti tenaga medis.**
+## 8. Menambah tugas
 
-- Bukan alat buat diagnosis ADHD. Kalau kamu curiga punya ADHD dan pengen tahu pasti, tetap perlu ketemu psikolog/psikiater.
-- Bukan layanan darurat. Kalau kamu dalam kondisi krisis dan butuh bantuan SEKARANG, di halaman "Lagi kewalahan?" tersedia **Healing119.id — Kemenkes**: hubungi **119 lalu pilih ekstensi 8**, atau buka situs resminya untuk pilihan kontak dan jam layanan terbaru.
-- Ramalan-ramalan Kalem itu tebakan berdasar pola, bukan kepastian. Kalau ngerasa Kalem salah nebak, **kamu yang benar** — bukan aplikasinya.
+Pilih `Tambah Tugas` di Tracker. Form dibagi menjadi tiga bagian agar mudah dibaca.
 
----
+### Nama dan deskripsi
 
-## Gratis apa bayar?
+- Nama tugas wajib diisi.
+- Deskripsi bersifat opsional dan dipakai sebagai konteks: hasil yang diinginkan, batasan, atau informasi pendukung.
+- Deskripsi bukan tempat menuliskan langkah pecahan tugas. KALEM menyusun langkah ketika fitur Pecah Tugas dijalankan.
+- Ikon microphone dapat mengubah suara menjadi teks jika provider transkripsi telah dikonfigurasi.
 
-Semua yang kepakai tiap hari — nambah tugas, cek mood, sesi fokus, tombol jeda, **pengingat obat** — **gratis semua**, nggak ada batasnya. Yang berbayar cuma bagian "ekstra": misalnya Pecah Tugas Kalem yang di versi gratis dibatasi 3x sehari, atau insight pola yang lebih dalam kalau udah pakai berminggu-minggu.
+### Deadline
 
-Alasannya simpel: hal-hal yang penting buat keseharian kamu nggak boleh dikunci di balik bayar-bayar. Itu prinsip yang kami pegang dari awal.
+- Aktifkan `Tanpa deadline` bila tugas tidak mempunyai batas waktu.
+- Jika ada deadline, pilih tanggal dan jam dari kontrol bertema gelap.
+- Tanggal mengikuti pilihan kalender pengguna dan tidak dikurangi atau ditambah satu hari.
 
----
+### Prioritas dan tingkat kesulitan
 
-## Kalau kamu masih ragu buat coba
+- Tandai `Penting` jika dampaknya besar.
+- Pilih seberapa berat tugas untuk mulai: Gampang, Sedang, atau Berat.
+- Pilih pengulangan dari dropdown: Sekali, Harian, Mingguan, atau Bulanan.
 
-Nggak apa-apa. Coba isi 6 pertanyaan singkat di awal (kurang dari semenit, kok — dan kalau lagi males, tinggal skip aja langsung ke Beranda). Nggak ada tekanan buat langsung "produktif". Kalau hari pertama cuma buka app terus tutup lagi, itu juga nggak apa-apa.
+Tekan `Tambah` untuk menyimpan.
 
-Kalem bakal ada di situ, nunggu, tiap kali kamu siap.
+## 9. Pecah Tugas
 
-*"Pelan-pelan juga tetep jalan."*
+Pilih `Pecah Tugas`, centang satu atau beberapa tugas, lalu jalankan proses pecah. Form ini dibuat ringkas dan hanya menampilkan tugas yang dapat diproses.
+
+KALEM memakai nama dan deskripsi sebagai konteks, kemudian menyusun langkah kecil. Jika AI tidak tersedia, aplikasi dapat memakai retrieval atau aturan lokal yang sesuai.
+
+Hasil muncul sebagai card tepat di bawah aksi utama Tracker. Buka card untuk:
+
+- menandai langkah selesai;
+- mulai fokus dari langkah tertentu;
+- mengedit teks langkah;
+- menghapus langkah;
+- menambah langkah baru.
+
+Gunakan nama tugas untuk tujuan utamanya dan deskripsi untuk konteks. Jangan menaruh daftar langkah manual di deskripsi jika ingin hasil pecahan yang bersih.
+
+## 10. Sesi fokus
+
+Mulai sesi dari tugas yang disarankan di Home atau dari langkah tugas.
+
+Layar fokus menampilkan:
+
+- tugas dan asalnya;
+- timer berbentuk lingkaran;
+- progress tugas;
+- pause;
+- ulang sesi;
+- `Sudahi`;
+- `Ada yang Keinget?` di bawah card.
+
+### Mengubah durasi
+
+Pilih `Edit` pada card fokus, lalu isi durasi 1–30 menit. Nilai di luar rentang tersebut tidak dapat disimpan.
+
+### Jika mencoba membuka tab lain
+
+FocusBuddy menampilkan popup bertema gelap bahwa sesi masih aktif. Pilih `Lanjut fokus` untuk kembali. Pause atau sudahi sesi jika ingin keluar dengan sengaja.
+
+Saat timer selesai atau sesi disudahi, outcome disimpan untuk membantu rekomendasi berikutnya.
+
+## 11. Mood
+
+Halaman Mood memakai maskot yang sama dengan Home dan Tracker.
+
+### Check-in pertama hari itu
+
+Check-in harian pertama berjalan dalam dua layar singkat:
+
+1. pilih salah satu maskot: Cemas, Sedih, Lelah, Tenang, atau Semangat;
+2. tekan `Lanjut`;
+3. geser slider tenaga dari 1 sampai 6;
+4. tekan `Lanjut` untuk menyimpan.
+
+Nilai tenaga dipilih dengan menggeser slider, bukan dengan menekan deretan angka.
+
+### Mengubah check-in
+
+Pilih `Ubah check-in`. Form edit menempatkan pilihan maskot, slider tenaga, dan pertanyaan opsional `Istirahat cukup semalam?` dalam satu halaman yang dapat di-scroll dengan lancar. Simpan perubahan untuk memperbarui ringkasan hari itu.
+
+### Susunan halaman Mood
+
+Setelah ringkasan check-in, urutannya adalah:
+
+1. `Yang KALEM paling pelajarin tentang kamu`;
+2. satu card `Rekomendasi personal kamu`;
+3. `Grafik Bulanan`;
+4. `Cerita Kamu`;
+5. akses Favorit melalui ikon hati di kanan atas.
+
+Grafik bulan ini dapat dilihat tanpa membuka bulan lama. Penelusuran bulan sebelumnya mengikuti status fitur Freemium.
+
+## 12. Cerita Kamu
+
+Buka `Cerita Kamu` dari halaman Mood.
+
+1. Ketik cerita pada textbox yang memenuhi lebar card, atau tekan microphone untuk merekam.
+2. Rekaman maksimal diproses menjadi teks oleh provider yang tersedia.
+3. Periksa hasil transkripsi sebelum menyimpan.
+4. Tekan `Kirim ke Kalem`.
+
+Pesan hijau `Tersimpan` menandakan cerita berhasil disimpan. Cerita sebelumnya tampil di bagian bawah halaman.
+
+Jika rekam suara belum dikonfigurasi, pengguna tetap dapat mengetik. Jangan menutup halaman saat audio sedang diproses.
+
+## 13. Favorit Kamu
+
+Favorit membantu KALEM mengenali dukungan yang disukai pengguna, misalnya:
+
+- musik atau genre yang menenangkan;
+- suara alam atau background untuk fokus;
+- tempat yang membantu fokus;
+- comfort food atau minuman favorit;
+- kondisi ruangan yang nyaman;
+- hal lain yang membantu fokus.
+
+Placeholder berwarna lebih redup daripada isi yang sudah disimpan. Tekan `Simpan`; notifikasi hijau menandakan perubahan berhasil tersimpan.
+
+## 14. Kewalahan dan latihan jeda
+
+Tekan `Kewalahan? YUK AMBIL JEDA` dari Home. Alur tidak langsung melompat ke selesai.
+
+### Langkah 1 — Grounding
+
+KALEM mengajak pengguna memperhatikan hal yang dilihat, disentuh, didengar, dicium, dan disyukuri. Angka tidak ditulis pada instruksi agar pengguna tidak merasa dibebani target.
+
+Tekan `Udah` setiap selesai memperhatikan satu kelompok.
+
+### Langkah 2 — Napas 4–7–8
+
+Halaman menampilkan `Yuk Hirup Udara Segar Dulu` dan `Ikutin Lingkarannya Yaaa`. Ikuti lingkaran untuk:
+
+1. tarik napas selama 4 hitungan;
+2. tahan selama 7 hitungan;
+3. buang perlahan selama 8 hitungan.
+
+### Langkah 3 — Selesai dan check-in
+
+Setelah animasi selesai, muncul halaman `Selesai`, lalu `Sekarang rasanya gimana?` dengan teks `Nggak harus langsung pulih kok`.
+
+- `Sedikit lebih baik` membuka halaman bantuan ringan.
+- `Belum bisa` mengulang grounding dan latihan napas sebelum bertanya lagi.
+
+### Pelan-pelan aja
+
+Halaman `Pelan-pelan aja yaaa` menawarkan:
+
+- `Sebut Sekitar` untuk mengulang grounding;
+- `Latihan nafas` untuk mengulang latihan 4–7–8;
+- Into The Light, Halodoc, dan Riliv;
+- HEALING119.ID dari KEMENKES melalui nomor 119.
+
+FocusBuddy bukan layanan krisis. Bila ada bahaya langsung, hubungi layanan darurat setempat atau orang tepercaya di sekitar.
+
+## 15. Pengingat Obat
+
+Buka Pengaturan lalu pilih `Pengingat Obat`.
+
+1. Isi nama obat.
+2. Pilih hasil BPOM yang cocok jika tersedia. Obat tetap dapat disimpan saat tidak ditemukan, karena ejaan, merek, atau data dapat berbeda.
+3. Isi sisa pil dan jumlah pil per hari sesuai resep dokter.
+4. Tekan `Simpan`.
+
+KALEM menampilkan perkiraan stok: `Pil kamu sisa [jumlah] nihh. KALEM bakal ingetin kalau stok obat kamu ga cukup buat 3 hari kedepan`.
+
+Fitur ini hanya pengingat stok. FocusBuddy tidak menentukan obat, dosis, jadwal medis, atau perubahan terapi.
+
+## 16. Pengaturan
+
+Halaman Pengaturan memuat:
+
+- profil;
+- Pengingat Obat;
+- Favorit Kamu;
+- ringkasan yang sudah KALEM pelajari;
+- privasi dan data;
+- akun dan cloud;
+- Langganan KALEM.
+
+### Profil
+
+Profil utama hanya menampilkan nama. Pengantar KALEM mengingatkan pengguna untuk melengkapi personalisasi. Pilih ikon pengaturan profil untuk mengubah:
+
+- Ulang Tahun Kamu;
+- Kesibukan saat ini;
+- Jam Produktif Kamu;
+- Gimana tidur akhir-akhir ini?;
+- Hal yang buat kamu khawatir.
+
+### Keluar dan hapus data
+
+- `Keluar dari akun` mengakhiri sesi FocusBuddy pada perangkat tersebut.
+- `Hapus semua data` menghapus state aplikasi setelah konfirmasi.
+
+Keduanya adalah tindakan berbeda. Keluar tidak sama dengan menghapus seluruh data.
+
+## 17. Langganan KALEM
+
+Halaman langganan memakai istilah `KALEM Freemium`. Tombol upgrade menampilkan harga demo `IDR 29.000/Bulan`.
+
+Checkout hanya simulasi presentasi:
+
+- kartu demo: `0000 0000 0000 0000`, lalu isi slot MM/YY dan CVC demo;
+- GoPay demo: `081234567890`;
+- centang persetujuan bahwa pembayaran tidak diproses sungguhan.
+
+Jangan memasukkan data pembayaran asli. Tidak ada transaksi, OTP, atau penagihan nyata.
+
+## 18. Data, privasi, dan keamanan
+
+- Data dipisahkan berdasarkan akun Google yang login.
+- Supabase RLS membatasi row agar hanya dapat diakses pemiliknya.
+- Cache runtime juga dipisahkan per pengguna dan per sesi browser.
+- API key dan secret tidak boleh dimasukkan ke form aplikasi atau dibagikan ke pengguna lain.
+- Cerita, mood, tugas, dan outcome fokus dapat dipakai KALEM untuk personalisasi di dalam produk.
+
+## 19. Pemecahan masalah singkat
+
+### Halaman hanya menampilkan database belum dikonfigurasi
+
+Administrator belum memasang `SUPABASE_URL` atau `SUPABASE_PUBLISHABLE_KEY`.
+
+### Login Google gagal atau berputar
+
+Periksa koneksi, coba refresh, dan pastikan domain/callback telah didaftarkan di Google serta Supabase.
+
+### Microphone tidak bekerja
+
+Izinkan akses microphone pada browser atau sistem operasi. Fitur transkripsi juga memerlukan Gemini atau OpenAI yang sudah dikonfigurasi.
+
+### Tanggal bergeser satu hari
+
+Pastikan aplikasi sudah memakai versi terbaru. Pilihan tanggal diproses sebagai tanggal kalender lokal, bukan timestamp UTC. Laporkan halaman, tanggal yang dipilih, dan tanggal yang tampil jika masalah masih terjadi.
+
+### KALEM tidak menghasilkan pecahan AI
+
+Periksa provider dan koneksi. Aplikasi dapat memakai retrieval atau fallback lokal, tetapi hasil generatif penuh memerlukan API key yang valid.
+
+### Data tidak muncul setelah login ulang
+
+Pastikan akun Google yang dipakai sama. Tunggu sinkronisasi, lalu refresh. Jangan memakai dua akun pada tab yang sama saat melakukan pengujian.
+
+## 20. Ringkasan alur harian
+
+```text
+Login
+  -> Insight pagi
+  -> Check-in mood/energi bila diperlukan
+  -> Home memilih satu hal
+  -> Fokus 1–30 menit
+  -> Outcome tersimpan
+  -> Tracker, Mood, Cerita, dan Favorit memperkaya pola KALEM
+```
+
+Tujuan FocusBuddy bukan membuat semua hal selesai sekaligus. Tujuannya membantu pengguna menemukan langkah berikutnya yang cukup kecil untuk dimulai.
