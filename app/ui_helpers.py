@@ -179,6 +179,37 @@ def choice_chip(label: str, active: bool, on_click) -> ft.Container:
     )
 
 
+def compact_difficulty_selector(value: str = "2") -> ft.RadioGroup:
+    """Pilihan tingkat kesulitan yang ringkas untuk form tugas di layar HP."""
+    choices = []
+    for option_value, label in (("1", "Gampang"), ("2", "Sedang"), ("3", "Berat")):
+        choices.append(
+            ft.Container(
+                content=ft.Radio(
+                    value=option_value,
+                    label=label,
+                    label_style=ft.TextStyle(color=theme.ON_BACKGROUND, size=10.5),
+                    visual_density=ft.VisualDensity.COMPACT,
+                ),
+                width=88,
+                height=34,
+                bgcolor="#343446",
+                border_radius=9,
+                padding=ft.Padding.symmetric(vertical=0, horizontal=1),
+                alignment=ft.Alignment.CENTER_LEFT,
+            )
+        )
+    return ft.RadioGroup(
+        value=value,
+        content=ft.Row(
+            choices,
+            spacing=5,
+            tight=True,
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
+    )
+
+
 def nav_link_card(icon: str, icon_color: str, title_text: str, subtitle_text: str, on_click) -> ft.Container:
     return ft.Container(
         content=ft.Row(

@@ -1,6 +1,7 @@
 """Regresi UI untuk check-in harian dua halaman."""
 from __future__ import annotations
 
+from datetime import timedelta
 from types import SimpleNamespace
 
 import flet as ft
@@ -247,10 +248,38 @@ def test_task_add_page_saves_and_returns_home(monkeypatch, tmp_path) -> None:
     routes: list[str] = []
     root = task_add.build(page, routes.append)
     fields = [control for control in walk(root) if isinstance(control, ft.TextField)]
-    title = next(field for field in fields if field.hint_text == "Nama Tugas")
-    description = next(field for field in fields if field.hint_text == "Deskripsi Tugas")
+    title = next(field for field in fields if field.label == "Nama tugas")
+    description = next(
+        field for field in fields if field.label == "Deskripsi (opsional)"
+    )
     title.value = "Siapkan alat tulis"
     description.value = "Pensil dan kalkulator"
+
+    repeat = next(
+        control
+        for control in walk(root)
+        if isinstance(control, ft.Dropdown) and control.label == "Tugas berulang"
+    )
+    repeat.value = "daily"
+    repeat.on_select(SimpleNamespace(control=repeat))
+    difficulty = next(
+        control for control in walk(root) if isinstance(control, ft.RadioGroup)
+    )
+    difficulty.value = "3"
+    important = next(
+        control
+        for control in walk(root)
+        if isinstance(control, ft.Checkbox)
+        and control.label == "Penting (berdampak besar)"
+    )
+    important.value = False
+
+    repeat_end_button = button(root, "Pilih tanggal akhir")
+    assert repeat_end_button is not None
+    repeat_end_button.on_click(SimpleNamespace(control=repeat_end_button))
+    repeat_end_picker = page.dialogs[-1]
+    repeat_end_picker.value = clock.today() + timedelta(days=10)
+    repeat_end_picker.on_change(SimpleNamespace(control=repeat_end_picker))
 
     save = button(root, "Tambah")
     assert save is not None
@@ -261,7 +290,20 @@ def test_task_add_page_saves_and_returns_home(monkeypatch, tmp_path) -> None:
     assert len(tasks) == 1
     assert tasks[0]["title"] == "Siapkan alat tulis"
     assert tasks[0]["description"] == "Pensil dan kalkulator"
-    assert tasks[0]["deadline_time"] == "07:00"
+    assert tasks[0]["deadline_time"] == ""
+    assert tasks[0]["repeat"] == "daily"
+    assert tasks[0]["repeat_end_date"] == (
+        clock.today() + timedelta(days=10)
+    ).isoformat()
+    assert tasks[0]["difficulty_est"] == 3
+    assert tasks[0]["important"] is False
+    assert texts(root).count("Seberat apa buat dimulai?") == 1
+    difficulty_cards = [
+        control
+        for control in walk(difficulty)
+        if isinstance(control, ft.Container) and control.height == 34
+    ]
+    assert len(difficulty_cards) == 3
     assert root.bgcolor == "#141416"
     assert main_module.ROUTES["task_add"] is task_add.build
     assert "task_add" in main_module.FULLSCREEN_ROUTES

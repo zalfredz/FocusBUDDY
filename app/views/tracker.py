@@ -1108,47 +1108,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             value=True,
             label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
         )
-        difficulty = ft.RadioGroup(
-            value="2",
-            content=ft.Row(
-                [
-                    ft.Container(
-                        content=ft.Radio(
-                            value="1",
-                            label="Gampang",
-                            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
-                        ),
-                        bgcolor="#343446",
-                        border_radius=10,
-                        padding=ft.Padding.symmetric(vertical=3, horizontal=5),
-                        expand=True,
-                    ),
-                    ft.Container(
-                        content=ft.Radio(
-                            value="2",
-                            label="Sedang",
-                            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
-                        ),
-                        bgcolor="#343446",
-                        border_radius=10,
-                        padding=ft.Padding.symmetric(vertical=3, horizontal=5),
-                        expand=True,
-                    ),
-                    ft.Container(
-                        content=ft.Radio(
-                            value="3",
-                            label="Berat",
-                            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
-                        ),
-                        bgcolor="#343446",
-                        border_radius=10,
-                        padding=ft.Padding.symmetric(vertical=3, horizontal=5),
-                        expand=True,
-                    ),
-                ],
-                spacing=7,
-            ),
-        )
+        difficulty = ui_helpers.compact_difficulty_selector()
         repeat_group = ft.Dropdown(
             value="none",
             label="Tugas berulang",

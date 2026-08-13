@@ -252,6 +252,23 @@ def scenario_deadline_and_no_deadline() -> None:
         and not any("Diisi -> Pecah Tugas" in value for value in dialog_text),
         "difficulty tetap tersedia dan teks bantuan yang tidak perlu sudah dihapus",
     )
+    difficulty = next(
+        (
+            control
+            for control in walk(dialog)
+            if isinstance(control, ft.RadioGroup)
+        ),
+        None,
+    )
+    difficulty_cards = [
+        control
+        for control in walk(difficulty)
+        if isinstance(control, ft.Container) and control.height == 34
+    ]
+    check(
+        difficulty is not None and len(difficulty_cards) == 3,
+        "pilihan Gampang, Sedang, dan Berat memakai ukuran ringkas",
+    )
     repeat_dropdown = next(
         (
             control
