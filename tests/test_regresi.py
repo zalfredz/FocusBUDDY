@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1090,7 +1090,7 @@ def tes_onboarding_entry_dan_status_custom():
         return
 
     name.value = "Raka"
-    lanjut = cari_tombol_berteks(root, "Lanjutkan")
+    lanjut = cari_tombol_berteks(root, "Selanjutnya")
     if lanjut is None:
         ok(False, "tombol lanjut entry ditemukan")
         return
@@ -1109,18 +1109,18 @@ def tes_onboarding_entry_dan_status_custom():
     ok(isinstance(picker, ft.DatePicker), "tanggal lahir membuka DatePicker native")
     if not isinstance(picker, ft.DatePicker):
         return
-    picker.value = date(2004, 8, 13)
-    picker.on_change(None)
+    picker.value = datetime(2004, 1, 28, 17, tzinfo=timezone.utc)
+    picker.on_change(SimpleNamespace(data="2004-01-29"))
 
     nav = cari_kontrol(
         root,
         lambda c: isinstance(c, ft.Row)
-        and len(c.controls) == 2
-        and punya_teks(c.controls[0], "Kembali")
-        and punya_teks(c.controls[1], "Lanjutkan"),
+        and len(c.controls) == 1
+        and punya_teks(c.controls[0], "Selanjutnya"),
     )
-    ok(nav is not None, "navigasi menempatkan Kembali di kiri dan Lanjutkan di kanan")
-    lanjut = cari_tombol_berteks(root, "Lanjutkan")
+    ok(nav is not None and not punya_teks(root, "Kembali"),
+       "onboarding hanya menampilkan tombol Selanjutnya selebar area konten")
+    lanjut = cari_tombol_berteks(root, "Selanjutnya")
     if lanjut is None:
         ok(False, "tombol lanjut tanggal lahir ditemukan")
         return
@@ -1134,6 +1134,16 @@ def tes_onboarding_entry_dan_status_custom():
     if pekerjaan is None:
         ok(False, "pekerjaan menggunakan dropdown")
         return
+    ok(
+        pekerjaan.fill_color == onboarding.INPUT_BG
+        and pekerjaan.bgcolor == onboarding.INPUT_BG
+        and pekerjaan.color == onboarding.TEXT_PRIMARY
+        and all(
+            getattr(option.content, "color", None) == onboarding.TEXT_PRIMARY
+            for option in pekerjaan.options
+        ),
+        "field, menu, dan seluruh teks opsi dropdown memakai tema gelap kontras",
+    )
     pekerjaan.value = "lainnya"
     pekerjaan.on_select(SimpleNamespace(control=pekerjaan))
     status = cari_kontrol(
@@ -1152,10 +1162,10 @@ def tes_onboarding_entry_dan_status_custom():
         return
     simpan_status.on_click(None)
 
-    def lanjut_dan_pilih(hint: str, value: str, label: str) -> bool:
-        lanjut = cari_tombol_berteks(root, "Lanjutkan")
+    def lewati_dan_pilih(hint: str, value: str, label: str) -> bool:
+        lanjut = cari_tombol_berteks(root, "Lewati")
         if lanjut is None:
-            ok(False, f"tombol lanjut menuju {label} ditemukan")
+            ok(False, f"tombol lewati menuju {label} ditemukan")
             return False
         lanjut.on_click(None)
         control = cari_kontrol(
@@ -1169,28 +1179,28 @@ def tes_onboarding_entry_dan_status_custom():
         control.on_select(SimpleNamespace(control=control))
         return True
 
-    if not lanjut_dan_pilih("Pilih waktu produktif", "pagi", "waktu produktif"):
+    if not lewati_dan_pilih("Pilih waktu produktif", "pagi", "waktu produktif"):
         return
-    if not lanjut_dan_pilih("Pilih pola tidur", "cukup", "pola tidur"):
+    if not lewati_dan_pilih("Pilih pola tidur", "cukup", "pola tidur"):
         return
-    if not lanjut_dan_pilih(
+    if not lewati_dan_pilih(
         "Pilih kondisi obat atau suplemen", "tidak", "obat atau suplemen"
     ):
         return
-    if not lanjut_dan_pilih(
+    if not lewati_dan_pilih(
         "Pilih pemicu yang paling sering", "deadline", "pemicu overwhelm"
     ):
         return
 
-    selesai = cari_tombol_berteks(root, "Selesai")
+    selesai = cari_tombol_berteks(root, "Lewati")
     if selesai is None:
-        ok(False, "tombol selesai onboarding ditemukan")
+        ok(False, "tombol lewati terakhir onboarding ditemukan")
         return
     selesai.on_click(None)
 
     profile = storage.get_profile()
     ok(profile["name"] == "Raka"
-       and profile["birth_date"] == "2004-08-13"
+       and profile["birth_date"] == "2004-01-29"
        and profile["age_range"] == "18-24"
        and profile["status"] == ["Content creator"]
        and profile["productive_time"] == "pagi"
@@ -1226,6 +1236,63 @@ def tes_viewport_phone_global():
        "layar HP yang lebih kecil tetap muat tanpa horizontal overflow")
 
 
+def tes_tema_date_picker_gelap():
+    from app import theme
+
+    bagian("Tema kalender mengikuti permukaan gelap aplikasi")
+    date_theme = theme.build_theme().date_picker_theme
+    ok(
+        date_theme is not None
+        and date_theme.bgcolor == "#24242F"
+        and date_theme.header_bgcolor == "#343446"
+        and date_theme.header_foreground_color == theme.ON_BACKGROUND,
+        "dialog tanggal memakai latar gelap dengan header dan teks putih",
+    )
+
+
+def tes_onboarding_opsional_bisa_dilewati():
+    import flet as ft
+    from app.views import onboarding
+
+    bagian("Onboarding: pertanyaan opsional bisa dilewati")
+    storage_baru("onboarding_skip_")
+    tujuan: list[str] = []
+    page = HalamanPalsu()
+    dialogs: list[ft.Control] = []
+    page.show_dialog = dialogs.append
+    root = onboarding.build(page, tujuan.append)
+
+    name = cari_kontrol(
+        root, lambda c: isinstance(c, ft.TextField) and c.label == "Nama panggilan kamu"
+    )
+    if name is None:
+        ok(False, "field nama onboarding ditemukan")
+        return
+    name.value = "Raka"
+    cari_tombol_berteks(root, "Selanjutnya").on_click(None)
+
+    tanggal = cari_kontrol(
+        root,
+        lambda c: getattr(c, "on_click", None) is not None
+        and punya_teks(c, "Pilih tanggal lahir"),
+    )
+    tanggal.on_click(None)
+    picker = dialogs[-1]
+    picker.value = date(2004, 8, 13)
+    picker.on_change(None)
+    cari_tombol_berteks(root, "Selanjutnya").on_click(None)
+
+    lewati = cari_tombol_berteks(root, "Lewati")
+    ok(lewati is not None and not punya_teks(root, "Kembali"),
+       "pertanyaan opsional hanya menyediakan tombol Lewati tanpa Kembali")
+    if lewati is None:
+        return
+    lewati.on_click(None)
+    ok(punya_teks(root, "Kapan biasanya kamu paling enak buat fokus?")
+       and not punya_teks(root, "Pilih atau isi jawaban dulu ya."),
+       "jawaban opsional kosong tidak menghalangi langkah berikutnya")
+
+
 def main() -> int:
     from app import clock
     clock.reset_offset()
@@ -1252,7 +1319,9 @@ def main() -> int:
         tes_fokus_pakai_decision_task_tugas_berulang,
         tes_pecah_tugas_judul_kembar,
         tes_onboarding_entry_dan_status_custom,
+        tes_onboarding_opsional_bisa_dilewati,
         tes_viewport_phone_global,
+        tes_tema_date_picker_gelap,
         tes_langganan_demo,
         tes_alat_demo_terpusat,
         tes_halaman_kebangun,

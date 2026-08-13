@@ -363,7 +363,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     return ft.Column(
         [
-            ui_helpers.page_header("Langganan KALEM", lambda e: navigate("home")),
+            ui_helpers.page_header("Langganan KALEM", lambda e: navigate("settings")),
             ui_helpers.card(
                 ft.Column(
                     [

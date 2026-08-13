@@ -6,10 +6,12 @@ from datetime import date
 import flet as ft
 
 from app import storage
+from app.date_utils import selected_calendar_date, years_before
 
 BACKGROUND = "#141416"
 TEXT_PRIMARY = "#FFFFFF"
 TEXT_FIELD = "#343446"
+INPUT_BG = "#24242F"
 BUTTON_BG = "#DDE0FF"
 BUTTON_TEXT = "#181A35"
 KALEM_GREEN = "#95D899"
@@ -91,7 +93,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     birth_picker = ft.DatePicker(
         value=None,
         first_date=date(today.year - 100, 1, 1),
-        current_date=date(today.year - 20, today.month, min(today.day, 28)),
+        current_date=years_before(today, 20),
         last_date=today,
         help_text="Pilih tanggal lahir",
         cancel_text="Batal",
@@ -168,8 +170,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 font_family=FONT,
                 text_align=ft.TextAlign.JUSTIFY,
             ),
-            ft.Container(height=210),
-            ft.Image(src=progress_image, height=48, fit=ft.BoxFit.CONTAIN),
+            ft.Container(height=135),
+            ft.Image(src=progress_image, height=42, fit=ft.BoxFit.CONTAIN),
         ]
 
     def pill_button(
@@ -223,18 +225,41 @@ def build(page: ft.Page, navigate) -> ft.Control:
         *,
         include_custom: bool = False,
     ) -> ft.Dropdown:
-        choices = [ft.DropdownOption(key=value, text=label) for value, label in options.items()]
+        choices = [
+            ft.DropdownOption(
+                key=value,
+                content=ft.Text(
+                    label,
+                    color=TEXT_PRIMARY,
+                    font_family=FONT,
+                    size=13,
+                ),
+            )
+            for value, label in options.items()
+        ]
         if include_custom:
-            choices.append(ft.DropdownOption(key="lainnya", text="Lainnya"))
+            choices.append(
+                ft.DropdownOption(
+                    key="lainnya",
+                    content=ft.Text(
+                        "Lainnya",
+                        color=TEXT_PRIMARY,
+                        font_family=FONT,
+                        size=13,
+                    ),
+                )
+            )
         return ft.Dropdown(
             value=selected_dropdown_value(key),
             options=choices,
             hint_text=hint,
             text_size=13,
-            color=BUTTON_TEXT,
-            hint_style=ft.TextStyle(color="#66677C", font_family=FONT),
+            color=TEXT_PRIMARY,
+            text_style=ft.TextStyle(color=TEXT_PRIMARY, font_family=FONT, size=13),
+            hint_style=ft.TextStyle(color="#B9B8C8", font_family=FONT),
             filled=True,
-            fill_color=BUTTON_BG,
+            fill_color=INPUT_BG,
+            bgcolor=INPUT_BG,
             border=ft.InputBorder.NONE,
             border_radius=10,
             content_padding=ft.Padding.symmetric(horizontal=14, vertical=8),
@@ -257,10 +282,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render()
 
     def choose_birth_date(e) -> None:
-        selected = birth_picker.value
+        selected = selected_calendar_date(
+            birth_picker.value, getattr(e, "data", None)
+        )
         if selected is None:
             return
-        answers["birth_date"] = selected.isoformat()[:10]
+        answers["birth_date"] = selected.isoformat()
         answers["age_range"] = storage.age_range_from_birth_date(answers["birth_date"])
         step["error"] = ""
         render()
@@ -290,20 +317,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
             return ft.Container(
                 content=ft.Row(
                     [
-                        ft.Icon(ft.Icons.CALENDAR_MONTH, color=BUTTON_TEXT, size=19),
+                        ft.Icon(ft.Icons.CALENDAR_MONTH, color=TEXT_PRIMARY, size=19),
                         ft.Text(
                             _birth_date_label(answers["birth_date"]),
                             size=13,
-                            color=BUTTON_TEXT,
+                            color=TEXT_PRIMARY,
                             font_family=FONT,
                             expand=True,
                         ),
-                        ft.Icon(ft.Icons.ARROW_DROP_DOWN, color=BUTTON_TEXT),
+                        ft.Icon(ft.Icons.ARROW_DROP_DOWN, color=TEXT_PRIMARY),
                     ],
                     spacing=9,
                 ),
                 height=48,
-                bgcolor=BUTTON_BG,
+                bgcolor=INPUT_BG,
                 border_radius=10,
                 padding=ft.Padding.symmetric(horizontal=14),
                 on_click=lambda e: page.show_dialog(birth_picker),
@@ -382,26 +409,30 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                 font_family=FONT,
                                 text_align=ft.TextAlign.JUSTIFY,
                             ),
-                            ft.Container(height=210),
-                            ft.Image(src="Property 1=q1.png", height=48, fit=ft.BoxFit.CONTAIN),
-                            ft.Text(
-                                "Mau dipanggil apa?",
-                                size=20,
-                                color=TEXT_PRIMARY,
-                                font_family=FONT,
-                                text_align=ft.TextAlign.LEFT,
+                            ft.Container(height=135),
+                            ft.Image(src="Property 1=q1.png", height=42, fit=ft.BoxFit.CONTAIN),
+                            ft.Column(
+                                [
+                                    ft.Text(
+                                        "Mau dipanggil apa?",
+                                        size=20,
+                                        color=TEXT_PRIMARY,
+                                        font_family=FONT,
+                                        text_align=ft.TextAlign.LEFT,
+                                    ),
+                                    name_field,
+                                ],
+                                spacing=10,
+                                tight=True,
                             ),
-                            name_field,
                             ft.Row(
                                 [
-                                    ft.Container(expand=True),
                                     pill_button(
-                                        "Lanjutkan",
+                                        "Selanjutnya",
                                         lambda e: next_from_name(),
-                                        expand=False,
-                                        width=160,
                                     ),
-                                ]
+                                ],
+                                spacing=0,
                             ),
                             ft.Text(
                                 "Developed By ATURLAH - FASILKOM UI",
@@ -411,7 +442,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                 text_align=ft.TextAlign.CENTER,
                             ),
                         ],
-                        spacing=18,
+                        spacing=14,
                         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                         tight=True,
                     ),
@@ -444,8 +475,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.Text(step["error"], size=11, color="#FF8A80", font_family=FONT)
             )
 
-        controls: list[ft.Control] = [
-            *intro(f"Property 1=q{min(i + 1, 6)}.png"),
+        question_controls: list[ft.Control] = [
             ft.Text(
                 question,
                 size=20,
@@ -459,37 +489,32 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 padding=18,
                 content=ft.Column(card_controls, spacing=12, tight=True),
             ),
+        ]
+
+        controls: list[ft.Control] = [
+            *intro(f"Property 1=q{min(i + 1, 6)}.png"),
+            ft.Column(
+                question_controls,
+                spacing=10,
+                tight=True,
+            ),
             ft.Row(
                 [
-                    pill_button("Kembali", lambda e: go_back(), outlined=True),
                     pill_button(
-                        "Selesai" if i == len(QUESTIONS) else "Lanjutkan",
+                        "Selanjutnya" if key == "birth_date" else "Lewati",
                         lambda e: advance(),
                     ),
                 ],
-                spacing=8,
+                spacing=0,
             ),
         ]
-
-        if i > 1:
-            controls.append(
-                ft.Row(
-                    [
-                        ft.TextButton(
-                            content=ft.Text("Lewati, langsung ke Beranda", color=BUTTON_BG),
-                            on_click=lambda e: finish(skipped=True),
-                        )
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                )
-            )
 
         body.controls = [
             ft.Container(
                 padding=ft.Padding(left=24, top=48, right=24, bottom=32),
                 content=ft.Column(
                     controls,
-                    spacing=18,
+                    spacing=14,
                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                     tight=True,
                 ),
@@ -510,22 +535,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def advance() -> None:
         key, _ = QUESTIONS[step["index"] - 1]
-        if not has_answer(key):
+        if key == "birth_date" and not has_answer(key):
             step["error"] = "Pilih atau isi jawaban dulu ya."
             render()
             return
         step["error"] = ""
         if step["index"] == len(QUESTIONS):
-            finish()
+            optional_keys = [question_key for question_key, _ in QUESTIONS[1:]]
+            finish(
+                skipped=any(
+                    not has_answer(question_key) for question_key in optional_keys
+                )
+            )
             return
         step["index"] += 1
-        step["custom_open"] = False
-        step["status_custom_open"] = False
-        render()
-
-    def go_back() -> None:
-        step["index"] = max(step["index"] - 1, 0)
-        step["error"] = ""
         step["custom_open"] = False
         step["status_custom_open"] = False
         render()

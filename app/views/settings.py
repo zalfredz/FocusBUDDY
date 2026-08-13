@@ -1,12 +1,13 @@
 """Pengaturan profil dan kontrol data pengguna."""
 from __future__ import annotations
 
+from datetime import date
+
 import flet as ft
 
 from app import storage, theme, ui_helpers
+from app.date_utils import format_date_id, selected_calendar_date, years_before
 from models import fitur as kfitur
-
-AGE_OPTIONS = ["<18", "18-24", "25-34", "35+"]
 
 DEFAULT_NEW_RANGE = [19, 22]
 
@@ -15,7 +16,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     """Halaman utama Pengaturan yang ringkas."""
     profile = storage.get_profile()
     name = (profile.get("name") or "Teman").strip()
-    age = (profile.get("age_range") or "Belum diisi").replace("-", "–")
 
     def confirm_reset(e):
         ui_helpers.show_reset_confirm(page, lambda: (storage.reset_all_data(), navigate("home")))
@@ -42,8 +42,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ),
                 ft.Text("Nama", size=11, color=theme.MUTED),
                 ft.Text(name, size=14, weight=ft.FontWeight.BOLD, color="#95D899"),
-                ft.Text("Usia", size=11, color=theme.MUTED),
-                ft.Text(age, size=14, weight=ft.FontWeight.BOLD, color=theme.ON_BACKGROUND),
+                ft.Text(
+                    f"Hai {name} KALEM disini. KALEM bakal jadi temen kamu yang bisa "
+                    "bantu di segala situasi. Jangan lupa untuk lengkapin personalisasi "
+                    "di settings supaya KALEM makin kenal kamu. "
+                    f"Please Enjoy {name}.",
+                    size=12,
+                    color=theme.MUTED,
+                    text_align=ft.TextAlign.JUSTIFY,
+                ),
             ],
             spacing=5,
         ),
@@ -85,6 +92,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 f"{storage.favorites_filled()}/{len(storage.FAVORITE_FIELDS)} terisi.",
                 open_favorites,
             ),
+            ui_helpers.nav_link_card(
+                ft.Icons.WORKSPACE_PREMIUM,
+                theme.TERTIARY,
+                "Subscription KALEM",
+                "Premium aktif" if storage.is_premium() else "Paket Free",
+                lambda e: navigate("subscription"),
+            ),
             _kartu_model(),
             privacy_card,
             _account_card(page),
@@ -100,7 +114,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
     profile = storage.get_profile()
     state = {
         "name": profile.get("name", ""),
-        "age_range": profile.get("age_range", ""),
+        "birth_date": profile.get("birth_date", ""),
         "status": list(profile.get("status") or []),
         "sleep_condition": profile.get("sleep_condition", ""),
         "overwhelm_triggers": list(profile.get("overwhelm_triggers") or []),
@@ -111,7 +125,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
     }
 
     name_field = ft.TextField(label="Nama panggilan kamu", value=state["name"])
-    age_holder = ft.Container()
+    birth_date_holder = ft.Container()
     status_holder = ft.Container()
     sleep_holder = ft.Container()
     hours_holder = ft.Container()
@@ -134,30 +148,74 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
         on_submit=lambda e: add_custom_trigger(e),
     )
 
+    today = date.today()
+    try:
+        initial_birth_date = date.fromisoformat(state["birth_date"])
+    except (TypeError, ValueError):
+        initial_birth_date = None
+    birth_date_picker = ft.DatePicker(
+        value=initial_birth_date,
+        first_date=date(today.year - 100, 1, 1),
+        current_date=initial_birth_date or years_before(today, 20),
+        last_date=today,
+        help_text="Pilih tanggal lahir",
+        cancel_text="Batal",
+        confirm_text="Pilih",
+    )
 
-    def render_age():
-        age_holder.content = ft.Column(
+
+    def render_birth_date():
+        birth_date_holder.content = ft.Column(
             [
-                ui_helpers.subtitle("Berapa usia kamu sekarang?", 12),
-                ft.Row(
-                    [
-                        ui_helpers.choice_chip(
-                            a, a == state["age_range"], lambda e, v=a: pick_age(v)
-                        )
-                        for a in AGE_OPTIONS
-                    ],
-                    spacing=6,
-                    wrap=True,
-                    run_spacing=6,
+                ui_helpers.subtitle("Ulang Tahun Kamu", 12),
+                ft.Container(
+                    height=48,
+                    bgcolor=theme.BACKGROUND,
+                    border=ft.Border.all(1, theme.BORDER),
+                    border_radius=12,
+                    padding=ft.Padding.symmetric(horizontal=14),
+                    on_click=lambda e: page.show_dialog(birth_date_picker),
+                    ink=True,
+                    content=ft.Row(
+                        [
+                            ft.Icon(
+                                ft.Icons.CALENDAR_MONTH,
+                                size=19,
+                                color=theme.ON_BACKGROUND,
+                            ),
+                            ft.Text(
+                                format_date_id(
+                                    state["birth_date"], "Pilih tanggal lahir"
+                                ),
+                                size=12.5,
+                                color=theme.ON_BACKGROUND,
+                                expand=True,
+                            ),
+                            ft.Icon(
+                                ft.Icons.CHEVRON_RIGHT,
+                                size=18,
+                                color=theme.MUTED,
+                            ),
+                        ],
+                        spacing=10,
+                    ),
                 ),
             ],
             spacing=6,
         )
 
-    def pick_age(value: str):
-        state["age_range"] = value
-        render_age()
+    def choose_birth_date(event) -> None:
+        selected = selected_calendar_date(
+            birth_date_picker.value, getattr(event, "data", None)
+        )
+        if selected is None:
+            return
+        state["birth_date"] = selected.isoformat()
+        birth_date_picker.value = selected
+        render_birth_date()
         page.update()
+
+    birth_date_picker.on_change = choose_birth_date
 
 
     def render_status():
@@ -192,12 +250,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
                 )
             )
         children: list[ft.Control] = [
-            ui_helpers.subtitle("Apa kesibukan kamu saat ini?", 12),
-            ft.Text(
-                "Biar KALEM tahu gambaran ritme hari-harimu. Boleh pilih maksimal 3 ya.",
-                size=11,
-                color=theme.MUTED,
-            ),
+            ui_helpers.subtitle("Kesibukan saat ini", 12),
             ft.Row(chips, spacing=6, wrap=True, run_spacing=6),
         ]
         if state["status_input_open"] and len(state["status"]) < storage.MAX_STATUS:
@@ -256,12 +309,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
         ]
         sleep_holder.content = ft.Column(
             [
-                ui_helpers.subtitle("Pola tidur kamu akhir-akhir ini gimana?", 12),
-                ft.Text(
-                    "Biar KALEM tahu seberapa ramah target hari ini buat energi kamu.",
-                    size=11,
-                    color=theme.MUTED,
-                ),
+                ui_helpers.subtitle("Gimana tidur akhir-akhir ini?", 12),
                 ft.Row(chips, spacing=6, wrap=True, run_spacing=6),
             ],
             spacing=6,
@@ -275,13 +323,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
 
     def render_hours():
         rows: list[ft.Control] = [
-            ui_helpers.subtitle("Kapan biasanya kamu paling enak buat fokus?", 12),
-            ft.Text(
-                "Biar KALEM tahu kapan harus bantu kamu fokus atau nurunin ekspektasi "
-                "pas kamu lagi capek.",
-                size=11,
-                color=theme.MUTED,
-            ),
+            ui_helpers.subtitle("Jam Produktif Kamu", 12),
         ]
 
         if not state["productive_hours"]:
@@ -402,13 +444,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
             )
 
         children: list[ft.Control] = [
-            ui_helpers.subtitle("Hal apa yang paling sering bikin kamu overwhelm?", 12),
-            ft.Text(
-                "Biar KALEM paham pemicunya dan bisa bantu kasih penenang yang tepat "
-                "pas kamu butuh. (Pilih maks. 4)",
-                size=11,
-                color=theme.MUTED,
-            ),
+            ui_helpers.subtitle("Hal yang buat kamu khawatir", 12),
             ft.Row(chips, spacing=6, wrap=True, run_spacing=6),
         ]
 
@@ -468,7 +504,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
         storage.save_profile(
             {
                 "name": state["name"],
-                "age_range": state["age_range"],
+                "birth_date": state["birth_date"],
                 "status": state["status"],
                 "sleep_condition": state["sleep_condition"],
                 "overwhelm_triggers": state["overwhelm_triggers"],
@@ -478,7 +514,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
         )
         navigate("settings")
 
-    render_age()
+    render_birth_date()
     render_status()
     render_sleep()
     render_hours()
@@ -493,7 +529,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
                 ft.Column(
                     [
                         name_field,
-                        age_holder,
+                        birth_date_holder,
                         status_holder,
                         hours_holder,
                         sleep_holder,

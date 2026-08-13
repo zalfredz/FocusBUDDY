@@ -241,7 +241,7 @@ def scenario_focus_ui_has_done_and_is_compact() -> None:
     check(done is not None, "tombol DONE tersedia saat timer masih berjalan")
     visible = texts(root)
     check(all(text in visible for text in (
-        "Hai!, Ari", "Ada yang keinget?", "Kewalahan? Ambil Jeda Dulu",
+        "Hai! Ari", "Ada yang Keingat?", "Kewalahan? YUK AMBIL JEDA",
     )), "saat Focus aktif shell Home tetap tampil seperti biasa")
     check(button(root, "Jeda") is not None and button(root, "Akhiri sesi") is not None,
           "kontrol Jeda, DONE, dan Akhiri sesi terlihat di kartu Focus")
@@ -439,11 +439,17 @@ def scenario_multiple_diary_and_quick_capture() -> None:
     routes: list[str] = []
     page = FakePage()
     root = home.build(page, routes.append)
-    capture = button(root, "Ada yang keinget?")
+    capture = button(root, "Ada yang Keingat?")
     check(capture is not None, "quick capture tersedia di Home normal")
     if capture is not None:
         capture.on_click(SimpleNamespace(control=None))
         dialog = page.dialogs[-1]
+        dialog_text = texts(dialog)
+        check(
+            "Apapun yang kamu mau ingat" in dialog_text
+            and "Kamu boleh tulis apapun, tugas, cerita, atau apapun itu" in dialog_text,
+            "dialog catatan menggunakan copy yang baru",
+        )
         field = next(control for control in walk(dialog) if isinstance(control, ft.TextField))
         save = button(dialog, "Simpan")
         note_text = "Balas email dosen setelah makan siang"
@@ -467,12 +473,19 @@ def scenario_multiple_diary_and_quick_capture() -> None:
         check(open_notes is not None, "Home menampilkan akses untuk membuka note tersimpan")
         if open_notes is not None:
             open_notes.on_click(SimpleNamespace(control=None))
-            check(routes[-1] == "inbox", "note dibuka melalui halaman Yang Keinget")
+            check(routes[-1] == "inbox", "note dibuka melalui halaman Catatan Kamu")
 
         from app.views import inbox
 
         inbox_root = inbox.build(page, routes.append)
-        check(note_text in texts(inbox_root), "halaman note menampilkan isi yang user tulis")
+        inbox_text = texts(inbox_root)
+        check(
+            "Catatan Kamu" in inbox_text
+            and note_text in inbox_text
+            and "Catatan mentah yang belum jadi tugas" not in inbox_text
+            and "Nggak ada kewajiban ngosongin daftar ini" not in inbox_text,
+            "halaman Catatan Kamu hanya menampilkan judul dan isi catatan",
+        )
         convert = button(inbox_root, "Jadiin tugas")
         check(convert is not None, "note menyediakan opsi Jadiin tugas")
         if convert is not None:
@@ -492,6 +505,11 @@ def scenario_multiple_diary_and_quick_capture() -> None:
                 and tasks[0]["title"] == note_text
                 and not storage.get_inbox(),
                 "note baru menjadi task setelah user memilih konversi",
+            )
+            empty_inbox = inbox.build(page, routes.append)
+            check(
+                "Masih kosong nihh" in texts(empty_inbox),
+                "halaman Catatan Kamu menampilkan copy kosong yang baru",
             )
 
 

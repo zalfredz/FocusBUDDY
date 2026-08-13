@@ -6,6 +6,7 @@ from datetime import date, time
 import flet as ft
 
 from app import clock, storage
+from app.date_utils import selected_calendar_date
 from models.prediction_interface import duration_predictions
 
 BACKGROUND = "#141416"
@@ -51,11 +52,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
     time_text = ft.Text("07:00", color=MUTED, size=14, font_family=FONT)
 
     def choose_date(e) -> None:
-        value = date_picker.value
+        value = selected_calendar_date(
+            date_picker.value, getattr(e, "data", None)
+        )
         if value is None:
             return
-        if hasattr(value, "date"):
-            value = value.date()
         selected_date["value"] = value
         date_text.value = value.strftime("%d/%m/%Y")
         page.update()

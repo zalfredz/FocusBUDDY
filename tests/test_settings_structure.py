@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,7 +10,7 @@ import flet as ft
 
 from app import storage
 from app.cloud import FocusBuddyCloud, oauth_code_from_url
-from app.views import favorites, med_setup, settings
+from app.views import favorites, med_setup, settings, subscription
 
 
 FAILURES: list[str] = []
@@ -104,10 +105,13 @@ def scenario_main_settings_is_clean() -> None:
         "PROFIL",
         "Nama",
         "AL",
-        "Usia",
-        "18–24",
+        "Hai AL KALEM disini. KALEM bakal jadi temen kamu yang bisa bantu di segala situasi. "
+        "Jangan lupa untuk lengkapin personalisasi di settings supaya KALEM makin kenal kamu. "
+        "Please Enjoy AL.",
         "Pengingat Obat",
         "Favorit Kamu",
+        "Subscription KALEM",
+        "Paket Free",
         "YANG KALEM PELAJARI",
         "PRIVASI & DATA",
         "AKUN & CLOUD",
@@ -119,6 +123,8 @@ def scenario_main_settings_is_clean() -> None:
         check(value in shown, f"Pengaturan utama menampilkan '{value}'")
 
     hidden = (
+        "Usia",
+        "18–24",
         "Apa kesibukan kamu saat ini?",
         "Kapan biasanya kamu paling enak buat fokus?",
         "Pola tidur kamu akhir-akhir ini gimana?",
@@ -158,15 +164,11 @@ def scenario_profile_detail_edits_existing_fields() -> None:
 
     required_copy = (
         "Pengaturan Profil",
-        "Berapa usia kamu sekarang?",
-        "Apa kesibukan kamu saat ini?",
-        "Biar KALEM tahu gambaran ritme hari-harimu. Boleh pilih maksimal 3 ya.",
-        "Kapan biasanya kamu paling enak buat fokus?",
-        "Biar KALEM tahu kapan harus bantu kamu fokus atau nurunin ekspektasi pas kamu lagi capek.",
-        "Pola tidur kamu akhir-akhir ini gimana?",
-        "Biar KALEM tahu seberapa ramah target hari ini buat energi kamu.",
-        "Hal apa yang paling sering bikin kamu overwhelm?",
-        "Biar KALEM paham pemicunya dan bisa bantu kasih penenang yang tepat pas kamu butuh. (Pilih maks. 4)",
+        "Ulang Tahun Kamu",
+        "Kesibukan saat ini",
+        "Jam Produktif Kamu",
+        "Gimana tidur akhir-akhir ini?",
+        "Hal yang buat kamu khawatir",
     )
     for value in required_copy:
         check(value in shown, f"Profil Detail menampilkan copy '{value}'")
@@ -180,8 +182,17 @@ def scenario_profile_detail_edits_existing_fields() -> None:
     if name is not None:
         name.value = "Alya"
 
+    birthday = clickable(root, "29 Januari 2004")
+    check(birthday is not None, "tanggal lahir existing tampil dan bisa diedit")
+    if birthday is not None:
+        birthday.on_click(None)
+    birthday_picker = page.dialogs[-1] if page.dialogs else None
+    check(isinstance(birthday_picker, ft.DatePicker), "Ulang Tahun memakai DatePicker")
+    if isinstance(birthday_picker, ft.DatePicker):
+        birthday_picker.value = datetime(2001, 1, 28, 17, tzinfo=timezone.utc)
+        birthday_picker.on_change(SimpleNamespace(data="2001-01-29"))
+
     for label in (
-        "25-34",
         "Mahasiswa / pelajar",
         "Kerja kantoran",
         "Sering begadang",
@@ -204,7 +215,10 @@ def scenario_profile_detail_edits_existing_fields() -> None:
 
     profile = storage.get_profile()
     check(profile["name"] == "Alya", "nama tersimpan pada field existing")
-    check(profile["age_range"] == "25-34", "usia tersimpan pada field existing")
+    check(
+        profile["birth_date"] == "2001-01-29" and profile["age_range"] == "25-34",
+        "tanggal lahir tersimpan utuh dan rentang usia dihitung otomatis",
+    )
     check(profile["status"] == ["kerja"], "kesibukan tersimpan pada field existing")
     check(profile["productive_hours"] == [[8, 12]], "jam produktif tetap tersimpan")
     check(profile["sleep_condition"] == "begadang", "pola tidur tetap tersimpan")
@@ -213,8 +227,10 @@ def scenario_profile_detail_edits_existing_fields() -> None:
     check(routes == ["settings"], "Simpan kembali ke Pengaturan")
 
     refreshed = text_values(settings.build(page, routes.append))
-    check("Alya" in refreshed and "25–34" in refreshed,
-          "nama dan usia terbaru muncul di Pengaturan utama")
+    check(
+        "Alya" in refreshed and "Usia" not in refreshed and "25–34" not in refreshed,
+        "Pengaturan utama hanya menampilkan nama tanpa usia",
+    )
 
     routes.clear()
     back = icon_button(root, icon=ft.Icons.ARROW_BACK)
@@ -232,22 +248,56 @@ def scenario_link_cards_and_back_buttons() -> None:
 
     medication = clickable(root, "Pengingat Obat")
     favorite = clickable(root, "Favorit Kamu")
-    check(medication is not None and favorite is not None,
-          "card Pengingat Obat dan Favorit tetap bisa ditekan")
+    subscription = clickable(root, "Subscription KALEM")
+    check(medication is not None and favorite is not None and subscription is not None,
+          "card Pengingat Obat, Favorit, dan Subscription bisa ditekan")
     if medication is not None:
         medication.on_click(None)
     if favorite is not None:
         favorite.on_click(None)
-    check(routes == ["med_setup", "favorites"], "kedua card membuka route existing")
+    if subscription is not None:
+        subscription.on_click(None)
+    check(
+        routes == ["med_setup", "favorites", "subscription"],
+        "semua card membuka route existing",
+    )
 
     for name, builder in (("Pengingat Obat", med_setup.build), ("Favorit Kamu", favorites.build)):
         destinations: list[str] = []
+        if name == "Pengingat Obat":
+            storage.set_medication("CETIRIZINe", 1, 1)
         child = builder(page, destinations.append)
+        child_text = text_values(child)
+        if name == "Pengingat Obat":
+            check(
+                not any("Opsional" in value and "cukup isi sekali" in value for value in child_text),
+                "deskripsi opsional Pengingat Obat dihapus",
+            )
+            check(
+                "Pil kamu sisa 1 nihh. KALEM bakal ingetin kalau stok obat kamu ga cukup "
+                "buat 3 hari kedepan" in child_text,
+                "status stok Pengingat Obat menggunakan copy yang baru",
+            )
+        else:
+            check(
+                "Isi yang memang terasa membantu. Nggak harus semuanya." not in child_text
+                and "Bisa dipakai KALEM saat kamu butuh teman fokus atau menenangkan diri."
+                not in child_text,
+                "deskripsi kecil Favorit Kamu dihapus",
+            )
         back = icon_button(child, icon=ft.Icons.ARROW_BACK)
         check(back is not None, f"{name} punya tombol kembali di kiri atas")
         if back is not None:
             back.on_click(None)
         check(destinations == ["settings"], f"{name} kembali ke Pengaturan")
+
+    destinations = []
+    subscription_root = subscription.build(page, destinations.append)
+    subscription_back = icon_button(subscription_root, icon=ft.Icons.ARROW_BACK)
+    check(subscription_back is not None, "Subscription punya tombol kembali")
+    if subscription_back is not None:
+        subscription_back.on_click(None)
+    check(destinations == ["settings"], "Subscription kembali ke Pengaturan")
 
 
 def scenario_auth_backend_remains_available() -> None:
@@ -265,6 +315,7 @@ def prepare() -> None:
     state["profile"].update(
         {
             "name": "AL",
+            "birth_date": "2004-01-29",
             "age_range": "18-24",
             "status": ["mahasiswa"],
             "productive_hours": [[6, 11]],

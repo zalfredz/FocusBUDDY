@@ -72,32 +72,53 @@ def test_daily_checkin_is_two_full_pages_and_saves(monkeypatch, tmp_path) -> Non
 
     assert root.bgcolor == "#343446"
     first_images = images(root)
-    assert "Property 1=bad_mood.png" in first_images
+    assert buddy.asset_for(buddy.DEFAULT_MOOD) in first_images
     assert {buddy.asset_for(mood) for mood in buddy.MOOD_ORDER} <= first_images
+    assert button(root, "Semangat") is not None
+    mood_cards = [
+        control
+        for control in walk(root)
+        if isinstance(control, ft.Container)
+        and control.width == 50
+        and getattr(control, "on_click", None) is not None
+    ]
+    assert len(mood_cards) == 5
+    assert sum(card.width for card in mood_cards) + (4 * 6) <= (
+        daily_checkin.CONTENT_WIDTH - 16
+    )
 
     sad = button(root, "Sedih")
     assert sad is not None
     sad.on_click(SimpleNamespace(control=sad))
+    main_mascot = next(
+        control
+        for control in walk(root)
+        if isinstance(control, ft.Image) and control.width == 220
+    )
+    assert main_mascot.src == buddy.asset_for("sedih")
 
     lanjut = button(root, "Lanjut")
     assert lanjut is not None
     lanjut.on_click(SimpleNamespace(control=lanjut))
 
-    assert "Property 1=bad_mood (1).png" in images(root)
-    assert button(root, "1") is not None
-    assert button(root, "6") is not None
+    assert "Property 1=bad_mood.png" in images(root)
+    slider = next(control for control in walk(root) if isinstance(control, ft.Slider))
+    assert slider.min == 1
+    assert slider.max == 6
+    assert slider.divisions == 5
+    assert button(root, "1") is None
+    assert button(root, "6") is None
 
     for level, expected_asset in (
-        (1, "Property 1=bad_mood (1).png"),
-        (2, "Property 1=bad_mood (1).png"),
-        (3, "Property 1=med_mood (1).png"),
-        (4, "Property 1=med_mood (1).png"),
-        (5, "Property 1=good_mood (5).png"),
-        (6, "Property 1=good_mood (5).png"),
+        (1, "Property 1=bad_mood.png"),
+        (2, "Property 1=bad_mood.png"),
+        (3, "Property 1=med_mood.png"),
+        (4, "Property 1=med_mood.png"),
+        (5, "Property 1=good_mood.png"),
+        (6, "Property 1=good_mood.png"),
     ):
-        choice = button(root, str(level))
-        assert choice is not None
-        choice.on_click(SimpleNamespace(control=choice))
+        slider.value = level
+        slider.on_change(SimpleNamespace(control=slider))
         assert expected_asset in images(root)
 
     lanjut = button(root, "Lanjut")
@@ -128,16 +149,19 @@ def test_home_uses_checkin_energy_mood_and_has_no_meal_popup(
     root = home.build(page, lambda route: None)
     shown = texts(root)
 
-    assert "Hai!, Ari" in shown
-    assert "Kurang Bertenaga" in shown
-    assert "Nggak ada tugas hari ini Ari, nikmati aja" in shown
-    assert "kalem_cemas.svg" in images(root)
-    assert "Ada yang keinget?" in shown
-    assert "Kewalahan? Ambil Jeda Dulu" in shown
+    assert "Hai! Ari" in shown
+    assert "Kurang Bertenaga" not in shown
+    assert "Sangat Bertenaga" not in shown
+    assert "Kamu kelihatan capek. Istirahat juga termasuk progress loh..." in shown
+    assert "Nggak ada tugas hari ini Ari,\nEnjoy the Day!" in shown
+    assert "kalem_lelah.svg" in images(root)
+    assert "Ada yang Keingat?" in shown
+    assert "Kewalahan? YUK AMBIL JEDA" in shown
+    assert button(root, "Tambah tugas") is None
     assert not page.dialogs
 
     controls = list(walk(root))
-    greeting = next(control for control in controls if getattr(control, "value", None) == "Hai!, Ari")
+    greeting = next(control for control in controls if getattr(control, "value", None) == "Hai! Ari")
     task_copy = next(
         control
         for control in controls
@@ -148,7 +172,7 @@ def test_home_uses_checkin_energy_mood_and_has_no_meal_popup(
         for control in controls
         if isinstance(control, ft.Container)
         and control.bgcolor == "#DDE0FF"
-        and "Ada yang keinget?" in texts(control)
+        and "Ada yang Keingat?" in texts(control)
     )
     reset_gradient = next(
         control.gradient
@@ -161,7 +185,7 @@ def test_home_uses_checkin_energy_mood_and_has_no_meal_popup(
         for control in controls
         if isinstance(control, ft.Image)
         and control.src == "kalem_cemas.svg"
-        and control.width == 60
+        and control.width == 72
     )
 
     assert home.HOME_CONTENT_WIDTH == 320
@@ -171,7 +195,8 @@ def test_home_uses_checkin_energy_mood_and_has_no_meal_popup(
     assert capture.height == 42
     assert reset_gradient.colors == ["#95D899", "#95D899", "#AEEEF8"]
     assert reset_gradient.stops == [0.0, 0.8, 1.0]
-    assert reset_face.left == -10
+    assert reset_face.width == 72
+    assert reset_face.left == -12
 
 
 def test_home_add_task_opens_dedicated_page(monkeypatch, tmp_path) -> None:
@@ -237,12 +262,12 @@ def test_task_add_page_saves_and_returns_home(monkeypatch, tmp_path) -> None:
     assert "task_add" in main_module.FULLSCREEN_ROUTES
 
 
-def test_home_energy_copy_matches_all_ranges() -> None:
-    assert [home._energy_label(level) for level in range(1, 7)] == [
-        "Kurang Bertenaga",
-        "Kurang Bertenaga",
-        "Bertenaga",
-        "Bertenaga",
-        "Sangat Bertenaga",
-        "Sangat Bertenaga",
+def test_home_companion_matches_two_energy_ranges() -> None:
+    assert [home._home_companion(level) for level in range(1, 7)] == [
+        ("lelah", "Kamu kelihatan capek. Istirahat juga termasuk progress loh..."),
+        ("lelah", "Kamu kelihatan capek. Istirahat juga termasuk progress loh..."),
+        ("lelah", "Kamu kelihatan capek. Istirahat juga termasuk progress loh..."),
+        ("semangat", "Semangat untuk Hari Ini!"),
+        ("semangat", "Semangat untuk Hari Ini!"),
+        ("semangat", "Semangat untuk Hari Ini!"),
     ]

@@ -23,36 +23,9 @@ HINTS = {
     "rasa_aman": "mis. selimut, kamar rapi, ngobrol dengan teman",
 }
 
-USED_FOR = {
-    "musik": "Bisa dipakai KALEM saat kamu butuh teman fokus atau menenangkan diri.",
-    "suara_alam": "Menjadi alternatif background saat musik terasa terlalu ramai.",
-    "snack": "Bisa diingatkan saat energi turun dan kebutuhan dasar mulai terlewat.",
-    "kondisi_ruangan": "Membantu rekomendasi persiapan sebelum mulai Focus.",
-    "tempat_fokus": "Menjadi pilihan tempat ketika kamu perlu mulai mengerjakan tugas.",
-    "fokus_lainnya": "Melengkapi bantuan fokus yang belum tercakup pilihan lain.",
-    "hobi": "Menjadi pilihan aktivitas ringan ketika kamu perlu jeda.",
-    "tempat": "Menjadi saran pindah suasana ketika kamu mulai kewalahan.",
-    "penyemangat": "KALEM bisa mengingatkan kalimat ini saat harimu terasa berat.",
-    "warna": "Menjadi aksen di kartu KALEM milikmu.",
-    "orang": "KALEM hanya mengingatkan kamu untuk menghubunginya; tidak mengirim pesan.",
-    "gerak": "Menjadi saran gerak singkat yang memang kamu sukai.",
-    "overwhelm_lainnya": "Melengkapi penenang personal yang belum tercakup pilihan lain.",
-    "preferensi_kerja": "Membantu KALEM menyarankan suasana kerja yang lebih cocok.",
-    "preferensi_lainnya": "Melengkapi pilihan cara kerja yang belum ada di atas.",
-    "kembali_fokus": "Menjadi pengingat personal ketika perhatianmu mulai lepas.",
-    "rasa_aman": "Menjadi pilihan penenang personal ketika kamu kewalahan.",
-    "jam_capek": "KALEM menurunkan ekspektasi otomatis pada jam ini.",
-}
-
-PRIVACY_NOTE = {
-    "orang": "Cukup nama panggilan. KALEM tidak menyimpan kontak atau menghubungi siapa pun.",
-    "penyemangat": "Tulis dengan kalimat kamu sendiri, bukan kutipan panjang milik orang lain.",
-}
-
 GROUPS = [
     (
         "A. Hal yang membantu fokus",
-        "Isi yang memang terasa membantu. Nggak harus semuanya.",
         (
             "musik", "suara_alam", "tempat_fokus", "snack",
             "kondisi_ruangan", "fokus_lainnya",
@@ -60,17 +33,14 @@ GROUPS = [
     ),
     (
         "B. Saat sedang overwhelmed",
-        "Hal sederhana yang biasanya membuat keadaan sedikit lebih ringan.",
         ("tempat", "hobi", "gerak", "penyemangat", "overwhelm_lainnya"),
     ),
     (
         "C. Preferensi mengerjakan tugas",
-        "Waktu fokus terbaik tetap mengikuti Profil agar datanya tidak ganda.",
         ("preferensi_kerja", "preferensi_lainnya", "jam_capek", "warna"),
     ),
     (
         "D. Personal support",
-        "Dukungan yang terasa aman dan nyata buat kamu.",
         ("orang", "kembali_fokus", "rasa_aman"),
     ),
 ]
@@ -162,7 +132,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         pick_holders["warna"].content = _preference_block(
             storage.FAVORITE_FIELDS["warna"],
             ft.Row(swatches, spacing=6, wrap=True, run_spacing=6),
-            USED_FOR["warna"],
         )
 
         hour_chips = [
@@ -176,7 +145,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         pick_holders["jam_capek"].content = _preference_block(
             storage.FAVORITE_FIELDS["jam_capek"],
             ft.Row(hour_chips, spacing=6, wrap=True, run_spacing=6),
-            USED_FOR["jam_capek"],
         )
 
         style_chips = [
@@ -190,7 +158,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         pick_holders["preferensi_kerja"].content = _preference_block(
             storage.FAVORITE_FIELDS["preferensi_kerja"],
             ft.Row(style_chips, spacing=6, wrap=True, run_spacing=6),
-            USED_FOR["preferensi_kerja"],
         )
 
     def field_control(key: str) -> ft.Control:
@@ -202,27 +169,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
             hint_text=HINTS.get(key, ""),
             border_color=theme.BORDER,
             focused_border_color=theme.PRIMARY,
+            text_align=ft.TextAlign.JUSTIFY,
+            expand=True,
             multiline=key in {"penyemangat", "kembali_fokus", "rasa_aman"},
             max_lines=2 if key in {"penyemangat", "kembali_fokus", "rasa_aman"} else 1,
         )
         fields[key] = field
-        children: list[ft.Control] = [
-            field,
-            ft.Text(USED_FOR.get(key, ""), size=11, color=theme.MUTED),
-        ]
-        if key in PRIVACY_NOTE:
-            children.append(
-                ft.Row(
-                    [
-                        ft.Icon(ft.Icons.LOCK_OUTLINE, size=12, color=theme.SECONDARY),
-                        ft.Text(PRIVACY_NOTE[key], size=10.5, color=theme.SECONDARY, expand=True),
-                    ],
-                    spacing=6,
-                    vertical_alignment=ft.CrossAxisAlignment.START,
-                )
-            )
         return ft.Container(
-            content=ft.Column(children, spacing=6),
+            content=ft.Row([field], spacing=0),
             padding=ft.Padding.symmetric(vertical=8, horizontal=14),
         )
 
@@ -243,7 +197,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ui_helpers.card(
             ft.ExpansionTile(
                 title=ft.Text(title, size=13.5, weight=ft.FontWeight.BOLD),
-                subtitle=ft.Text(subtitle, size=10.5, color=theme.MUTED),
                 controls=[field_control(key) for key in keys],
                 controls_padding=ft.Padding.only(bottom=8),
                 tile_padding=ft.Padding.symmetric(vertical=4, horizontal=14),
@@ -256,7 +209,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ),
             padding=0,
         )
-        for index, (title, subtitle, keys) in enumerate(GROUPS)
+        for index, (title, keys) in enumerate(GROUPS)
     ]
 
     return ft.Column(
@@ -290,15 +243,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
     )
 
 
-def _preference_block(label: str, control: ft.Control, explanation: str) -> ft.Control:
+def _preference_block(label: str, control: ft.Control) -> ft.Control:
     return ft.Container(
         content=ft.Column(
             [
                 ft.Text(label, size=12.5, color=theme.ON_BACKGROUND),
                 control,
-                ft.Text(explanation, size=11, color=theme.MUTED),
             ],
             spacing=8,
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         ),
         padding=ft.Padding.symmetric(vertical=8, horizontal=14),
     )

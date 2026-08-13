@@ -31,31 +31,26 @@ BREATHING_STEPS = [
 
 GROUNDING_STEPS = [
     {
-        "count": 5,
         "verb": "lihat",
         "progress": "Property 1=q1 (2).png",
         "sense": "Eye.png",
     },
     {
-        "count": 4,
         "verb": "sentuh",
         "progress": "Property 1=q2 (1).png",
         "sense": "front_hand.png",
     },
     {
-        "count": 3,
         "verb": "dengar",
         "progress": "Property 1=q3 (1).png",
         "sense": "uil_ear.png",
     },
     {
-        "count": 2,
         "verb": "cium",
         "progress": "Property 1=q4 (1).png",
         "sense": "Wind.png",
     },
     {
-        "count": 1,
         "verb": "syukurin",
         "progress": "Property 1=q5 (1).png",
         "sense": "Heart.png",
@@ -148,6 +143,51 @@ def build(page: ft.Page, navigate) -> ft.Control:
             on_click=on_click,
         )
 
+    def recovery_action_card(
+        label: str,
+        duration: str,
+        icon: str,
+        on_click: Callable,
+        *,
+        bgcolor: str,
+    ) -> ft.Control:
+        return ft.Container(
+            width=CONTENT_WIDTH,
+            height=64,
+            bgcolor=bgcolor,
+            border_radius=16,
+            padding=ft.Padding.symmetric(vertical=9, horizontal=12),
+            content=ft.Row(
+                [
+                    ft.Icon(icon, size=28, color="#181A35"),
+                    ft.Column(
+                        [
+                            ft.Text(
+                                label,
+                                size=16,
+                                weight=ft.FontWeight.W_800,
+                                color="#181A35",
+                                font_family=FONT,
+                            ),
+                            ft.Text(
+                                duration,
+                                size=10.5,
+                                color="#3F4056",
+                                font_family=FONT,
+                            ),
+                        ],
+                        spacing=0,
+                        expand=True,
+                    ),
+                    ft.Icon(ft.Icons.CHEVRON_RIGHT, size=22, color="#181A35"),
+                ],
+                spacing=12,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            on_click=on_click,
+            ink=True,
+        )
+
     def hotline_rows() -> list[ft.Control]:
         rows: list[ft.Control] = []
         for hotline in CRISIS_HOTLINES:
@@ -165,7 +205,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                         color="#181A35",
                                     ),
                                     ft.Text(
-                                        f"{hotline['name']} · {hotline['desc']}",
+                                        hotline["name"],
                                         size=10.5,
                                         color="#181A35",
                                     ),
@@ -178,7 +218,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         spacing=10,
                     ),
                     padding=ft.Padding.symmetric(vertical=11, horizontal=13),
-                    bgcolor=PRIMARY,
+                    bgcolor=SOFT_TEXT,
                     border_radius=16,
                     url=hotline["tel"],
                     ink=True,
@@ -191,7 +231,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ft.Container(
                 content=ft.Row(
                     [
-                        ft.Icon(ft.Icons.SUPPORT_AGENT, color=SECONDARY, size=20),
+                        ft.Icon(ft.Icons.CALL_OUTLINED, color=SOFT_TEXT, size=28),
                         ft.Column(
                             [
                                 ft.Text(
@@ -205,13 +245,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
                             spacing=1,
                             expand=True,
                         ),
-                        ft.Icon(ft.Icons.OPEN_IN_NEW, color=SOFT_TEXT, size=16),
+                        ft.Icon(ft.Icons.ARROW_OUTWARD, color=SOFT_TEXT, size=18),
                     ],
                     spacing=10,
                 ),
                 padding=ft.Padding.symmetric(vertical=10, horizontal=12),
-                bgcolor=BACKGROUND,
-                border=ft.Border.all(1, "#484863"),
+                bgcolor=PANEL,
                 border_radius=14,
                 url=partner["url"],
                 ink=True,
@@ -219,18 +258,25 @@ def build(page: ft.Page, navigate) -> ft.Control:
             for partner in TELEHEALTH_PARTNERS
         ]
         heading: list[ft.Control] = [
-            ui_helpers.section_header("Ngobrol dengan profesional"),
+            ft.Text(
+                "Butuh Ngobrol Sama Profesional?",
+                size=16,
+                weight=ft.FontWeight.W_800,
+                color=TEXT,
+                font_family=FONT,
+            ),
             ft.Text(
                 distress.reason
                 if prominent
-                else "Kalau terasa terlalu berat, kamu nggak harus menghadapinya sendiri.",
-                size=11.5,
+                else "Kalau rasanya kebanyakan buat dihadapin sendiri, ini beberapa "
+                "layanan yang bisa dihubungi.",
+                size=12,
                 color=SOFT_TEXT,
             ),
         ]
         return ft.Container(
             width=CONTENT_WIDTH,
-            bgcolor=PANEL,
+            bgcolor="#181820",
             border=ft.Border.all(1, "#484863"),
             border_radius=20,
             padding=16,
@@ -256,7 +302,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                     on_click=lambda event: navigate("home"),
                                 ),
                                 ft.Text(
-                                    "Pelan-pelan aja.",
+                                    "Pelan-pelan aja yaaa",
                                     size=26,
                                     weight=ft.FontWeight.W_900,
                                     color=TEXT,
@@ -267,20 +313,25 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ),
                         buddy.face("tenang", 105),
                         ft.Text(
-                            "Kalau masih butuh waktu, pilih bantuan yang terasa paling ringan.",
+                            "Jangan ragu untuk take your time, KALEM akan bantu sebisanya",
                             width=CONTENT_WIDTH,
                             size=12.5,
                             color=SOFT_TEXT,
                             text_align=ft.TextAlign.CENTER,
                         ),
-                        action_button(
-                            "Balik ke sini",
+                        recovery_action_card(
+                            "Sebut Sekitar",
+                            "5 Menit",
+                            ft.Icons.VISIBILITY_OUTLINED,
                             lambda event: show_grounding(next_stage="light"),
+                            bgcolor="#A8EDC3",
                         ),
-                        action_button(
-                            "Latihan napas 4-7-8",
+                        recovery_action_card(
+                            "Latihan nafas",
+                            "3 Menit",
+                            ft.Icons.AIR,
                             lambda event: show_breathing(next_stage="light"),
-                            outlined=True,
+                            bgcolor=SOFT_TEXT,
                         ),
                         professional_card(prominent=False),
                         ui_helpers.disclaimer(
@@ -323,7 +374,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                             text_align=ft.TextAlign.CENTER,
                         ),
                         ft.Text(
-                            "Nggak harus langsung pulih. Jawaban jujur kamu yang menentukan langkah berikutnya.",
+                            "Nggak harus langsung pulih kok",
                             width=CONTENT_WIDTH,
                             size=12.5,
                             color=SOFT_TEXT,
@@ -380,7 +431,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             text_align=ft.TextAlign.CENTER,
         )
         cycle_text = ft.Text(
-            "Ikuti lingkarannya. Kamu cukup melakukan satu putaran.",
+            "Ikutin Lingkarannya Yaaa",
             width=CONTENT_WIDTH,
             size=12,
             color=SOFT_TEXT,
@@ -407,7 +458,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 return
             phase_text.value = "Selesai 🤍"
             counter_text.value = ""
-            cycle_text.value = "Satu sesi selesai. Kamu sudah melakukan yang kamu bisa."
             circle.animate_scale = ft.Animation(900, ft.AnimationCurve.EASE_OUT)
             circle.scale = 0.8
             page.update()
@@ -417,6 +467,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
             log_stage(STAGE_BREATHING_DONE)
             if next_stage == "light":
                 show_light_menu()
+            elif next_stage == "completion":
+                show_completion()
             else:
                 show_outcome()
 
@@ -426,10 +478,19 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         controls: list[ft.Control] = [
             ft.Text(
-                "Latihan napas 4-7-8",
-                size=15,
-                color=SOFT_TEXT,
-                weight=ft.FontWeight.W_700,
+                "Yuk Tarik Nafas Dulu...",
+                width=CONTENT_WIDTH,
+                size=31,
+                color=TEXT,
+                weight=ft.FontWeight.W_900,
+                font_family=FONT,
+            ),
+            ft.Text(
+                "Semua daftar tugas lagi disembunyiin. Sekarang nggak ada yang harus "
+                "dikejar dulu.",
+                width=CONTENT_WIDTH,
+                size=14,
+                color=TEXT,
                 font_family=FONT,
             ),
             phase_text,
@@ -476,7 +537,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         async def continue_after_pause() -> None:
             await asyncio.sleep(3)
             if mounted["active"] and mounted["screen"] == screen_token:
-                show_breathing(next_stage="outcome")
+                show_outcome()
 
         page.run_task(continue_after_pause)
 
@@ -488,7 +549,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             if next_stage == "light":
                 show_light_menu()
             else:
-                show_completion()
+                show_breathing(next_stage="completion")
 
         def render() -> None:
             index = position["index"]
@@ -531,7 +592,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                 fit=ft.BoxFit.CONTAIN,
                             ),
                             ft.Text(
-                                f"Sebutkan {step['count']} hal dalam hati, pelan-pelan aja.",
+                                "Sebutkan hal-hal itu dalam hati, pelan-pelan aja.",
                                 width=CONTENT_WIDTH,
                                 size=15,
                                 color=SOFT_TEXT,

@@ -49,6 +49,29 @@ def build_theme() -> ft.Theme:
             error=DANGER,
         ),
         font_family=FONT_BODY,
+        date_picker_theme=ft.DatePickerTheme(
+            bgcolor="#24242F",
+            header_bgcolor="#343446",
+            header_foreground_color=ON_BACKGROUND,
+            divider_color=BORDER,
+            weekday_text_style=ft.TextStyle(
+                color=MUTED,
+                font_family=FONT_AUTH,
+            ),
+            day_foreground_color={
+                ft.ControlState.DISABLED: "#6F6E7D",
+                ft.ControlState.SELECTED: "#181A35",
+                ft.ControlState.DEFAULT: ON_BACKGROUND,
+            },
+            year_foreground_color={
+                ft.ControlState.DISABLED: "#6F6E7D",
+                ft.ControlState.SELECTED: "#181A35",
+                ft.ControlState.DEFAULT: ON_BACKGROUND,
+            },
+            cancel_button_style=ft.ButtonStyle(color=PRIMARY),
+            confirm_button_style=ft.ButtonStyle(color=PRIMARY),
+            shape=ft.RoundedRectangleBorder(radius=24),
+        ),
         navigation_bar_theme=ft.NavigationBarTheme(
             bgcolor="#484863",
             indicator_color="#DDE0FF",

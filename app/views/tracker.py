@@ -7,6 +7,7 @@ from datetime import date, datetime, time, timedelta
 import flet as ft
 
 from app import clock, focus_session, storage, theme, ui_helpers
+from app.date_utils import selected_calendar_date
 from app.core import kalem_engine
 from app.voice_diary import VoiceDiary
 from models import fitur as kfitur
@@ -995,10 +996,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
         def choose_task_date(ev) -> None:
-            picked_date = task_date_picker.value
+            picked_date = selected_calendar_date(
+                task_date_picker.value, getattr(ev, "data", None)
+            )
             if picked_date is None:
                 return
-            task_date_state["value"] = picked_date.isoformat()[:10]
+            task_date_state["value"] = picked_date.isoformat()
             task_date_label.value = _date_label(task_date_state["value"])
             repeat_end_picker.first_date = date.fromisoformat(task_date_state["value"])
             if (
@@ -1153,10 +1156,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
             page.update()
 
         def choose_repeat_end(ev):
-            picked_date = repeat_end_picker.value
+            picked_date = selected_calendar_date(
+                repeat_end_picker.value, getattr(ev, "data", None)
+            )
             if picked_date is None:
                 return
-            repeat_end_state["value"] = picked_date.isoformat()[:10]
+            repeat_end_state["value"] = picked_date.isoformat()
             repeat_end_label.value = f"Berakhir {repeat_end_state['value']}"
             repeat_end_clear.visible = True
             repeat_end_error.visible = False

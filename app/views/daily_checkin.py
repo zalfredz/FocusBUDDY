@@ -31,12 +31,12 @@ def _energy_from_score(score: int) -> int:
     return {1: 1, 2: 2, 3: 3, 4: 5, 5: 6}.get(score, 3)
 
 
-def _energy_slider_asset(level: int) -> str:
+def _energy_illustration_asset(level: int) -> str:
     if level <= 2:
-        return "Property 1=bad_mood (1).png"
+        return "Property 1=bad_mood.png"
     if level <= 4:
-        return "Property 1=med_mood (1).png"
-    return "Property 1=good_mood (5).png"
+        return "Property 1=med_mood.png"
+    return "Property 1=good_mood.png"
 
 
 def _energy_color(level: int) -> str:
@@ -60,6 +60,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
     )
+    energy_controls: dict[str, ft.Control] = {}
 
     def heading(prefix: str, emphasis: str) -> ft.Control:
         return ft.Text(
@@ -89,11 +90,19 @@ def build(page: ft.Page, navigate) -> ft.Control:
             font_family=FONT,
         )
 
-    def illustration() -> ft.Control:
+    def mood_illustration() -> ft.Control:
         return ft.Image(
-            src="Property 1=bad_mood.png",
-            width=245,
-            height=270,
+            src=buddy.asset_for(str(state["mood"])),
+            width=220,
+            height=235,
+            fit=ft.BoxFit.CONTAIN,
+        )
+
+    def energy_illustration(level: int) -> ft.Control:
+        return ft.Image(
+            src=_energy_illustration_asset(level),
+            width=215,
+            height=235,
             fit=ft.BoxFit.CONTAIN,
         )
 
@@ -120,9 +129,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def mood_card(mood: str) -> ft.Control:
         active = state["mood"] == mood
         return ft.Container(
-            width=62,
-            height=74,
-            padding=ft.Padding.symmetric(vertical=7, horizontal=4),
+            width=50,
+            height=66,
+            padding=ft.Padding.symmetric(vertical=6, horizontal=2),
             bgcolor=OPTION_ACTIVE if active else OPTION_BG,
             border=ft.Border.all(2, ACCENT if active else OPTION_BG),
             border_radius=9,
@@ -131,19 +140,19 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 [
                     ft.Image(
                         src=buddy.asset_for(mood),
-                        width=38,
-                        height=38,
+                        width=32,
+                        height=32,
                         fit=ft.BoxFit.CONTAIN,
                     ),
                     ft.Text(
                         buddy.MOOD_LABELS[mood],
-                        size=9.5,
+                        size=8.5,
                         color=TEXT_PRIMARY,
                         font_family=FONT,
                         text_align=ft.TextAlign.CENTER,
                     ),
                 ],
-                spacing=3,
+                spacing=2,
                 tight=True,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
@@ -161,31 +170,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render()
 
     def pick_energy(e) -> None:
-        state["energy"] = int(e.control.data)
-        render()
-
-    def energy_button(level: int) -> ft.Control:
-        active = state["energy"] == level
-        category_color = _energy_color(level)
-        return ft.Container(
-            content=ft.Text(
-                str(level),
-                size=14,
-                color=BUTTON_TEXT if active else TEXT_PRIMARY,
-                font_family=FONT,
-                weight=ft.FontWeight.W_700,
-                text_align=ft.TextAlign.CENTER,
-            ),
-            data=level,
-            height=44,
-            expand=True,
-            alignment=ft.Alignment.CENTER,
-            bgcolor=category_color if active else OPTION_BG,
-            border=ft.Border.all(2, category_color if active else "#5B5B7A"),
-            border_radius=10,
-            on_click=pick_energy,
-            ink=True,
-        )
+        level = max(1, min(6, int(round(float(e.control.value or 1)))))
+        state["energy"] = level
+        e.control.value = level
+        e.control.active_color = _energy_color(level)
+        e.control.thumb_color = _energy_color(level)
+        label = energy_controls.get("label")
+        image = energy_controls.get("image")
+        if isinstance(label, ft.Text):
+            label.value = ENERGY_LABELS[level]
+        if isinstance(image, ft.Image):
+            image.src = _energy_illustration_asset(level)
+        page.update()
 
     def finish(e) -> None:
         mood = str(state["mood"])
@@ -204,25 +200,51 @@ def build(page: ft.Page, navigate) -> ft.Control:
         if state["step"] == 0:
             controls: list[ft.Control] = [
                 heading("Mood kamu\nsekarang", "gimana?"),
-                illustration(),
+                mood_illustration(),
                 ft.Container(
                     width=CONTENT_WIDTH,
-                    padding=ft.Padding.symmetric(vertical=12, horizontal=10),
+                    padding=ft.Padding.symmetric(vertical=10, horizontal=8),
                     bgcolor="#59484863",
                     border_radius=14,
                     content=ft.Row(
                         [mood_card(mood) for mood in buddy.MOOD_ORDER],
-                        spacing=8,
-                        scroll=ft.ScrollMode.AUTO,
+                        spacing=6,
+                        alignment=ft.MainAxisAlignment.CENTER,
                     ),
                 ),
                 continue_button(go_to_energy),
             ]
         else:
             energy = int(state["energy"])
+            energy_label = ft.Text(
+                ENERGY_LABELS[energy],
+                size=14,
+                color=TEXT_PRIMARY,
+                font_family=FONT,
+                weight=ft.FontWeight.W_700,
+                text_align=ft.TextAlign.CENTER,
+            )
+            energy_image = energy_illustration(energy)
+            energy_slider = ft.Slider(
+                min=1,
+                max=6,
+                divisions=5,
+                value=energy,
+                label="{value}",
+                round=0,
+                active_color=_energy_color(energy),
+                inactive_color="#65657D",
+                thumb_color=_energy_color(energy),
+                on_change=pick_energy,
+            )
+            energy_controls.update(
+                label=energy_label,
+                image=energy_image,
+                slider=energy_slider,
+            )
             controls = [
                 heading("Tenaga kamu\nsekarang", "gimana?"),
-                illustration(),
+                energy_image,
                 ft.Container(
                     width=CONTENT_WIDTH,
                     padding=ft.Padding(left=14, top=16, right=14, bottom=12),
@@ -230,24 +252,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     border_radius=14,
                     content=ft.Column(
                         [
-                            ft.Text(
-                                ENERGY_LABELS[energy],
-                                size=14,
-                                color=TEXT_PRIMARY,
-                                font_family=FONT,
-                                weight=ft.FontWeight.W_700,
-                                text_align=ft.TextAlign.CENTER,
-                            ),
-                            ft.Image(
-                                src=_energy_slider_asset(energy),
-                                width=CONTENT_WIDTH - 28,
-                                height=64,
-                                fit=ft.BoxFit.FILL,
-                            ),
-                            ft.Row(
-                                [energy_button(level) for level in range(1, 7)],
-                                spacing=6,
-                            ),
+                            energy_label,
+                            energy_slider,
                         ],
                         spacing=10,
                         tight=True,

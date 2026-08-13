@@ -82,8 +82,11 @@ def click(root, label: str) -> None:
 
 
 def finish_grounding(root) -> None:
-    for count in (5, 4, 3, 2, 1):
-        check(str(count) in texts(root), f"grounding menampilkan tahap {count}")
+    for step in range(5):
+        check(
+            "Sebutkan hal-hal itu dalam hati, pelan-pelan aja." in texts(root),
+            f"grounding tahap {step + 1} tidak meminta jumlah benda",
+        )
         click(root, "Udah")
 
 
@@ -122,33 +125,44 @@ def scenario_retry_loop() -> None:
     routes: list[str] = []
     root = reset.build(page, routes.append)
     initial = texts(root)
-    check("Balik ke sini dulu." in initial, "OVERWHELM langsung membuka grounding")
+    check(
+        "Sebutkan hal-hal itu dalam hati, pelan-pelan aja." in initial,
+        "OVERWHELM langsung membuka grounding tanpa angka",
+    )
     check("Gerak 60 detik" not in initial, "Gerak 60 detik tidak muncul")
     check("Dengerin musik nenangin" not in initial,
           "Dengerin musik nenangin tidak muncul")
 
     finish_grounding(root)
-    completion = texts(root)
-    check("Frame 2.png" in [getattr(control, "src", None) for control in walk(root)],
-          "grounding menampilkan layar selesai sebelum latihan napas")
-    finish_completion_transition(page)
     breathing = texts(root)
-    check("Latihan napas 4-7-8" in breathing,
+    check("Yuk Tarik Nafas Dulu..." in breathing,
           "grounding langsung berlanjut ke napas tanpa menu pilihan")
+    check(
+        "Semua daftar tugas lagi disembunyiin. Sekarang nggak ada yang harus dikejar dulu."
+        in breathing,
+        "latihan napas menenangkan user dari daftar tugas",
+    )
+    check("Ikutin Lingkarannya Yaaa" in breathing,
+          "halaman napas memakai instruksi lingkaran baru")
     finish_latest_breathing(page)
+    check("Frame 2.png" in [getattr(control, "src", None) for control in walk(root)],
+          "layar selesai baru muncul setelah latihan napas")
+    finish_completion_transition(page)
     outcome = texts(root)
-    check("Sekarang rasanya gimana?" in outcome, "satu sesi napas langsung ke check-in")
-    check("Latihan napas 4-7-8" not in outcome,
+    check("Sekarang rasanya gimana?" in outcome, "layar selesai berlanjut ke check-in")
+    check("Nggak harus langsung pulih kok" in outcome,
+          "check-in memakai copy pemulihan yang ringkas")
+    check("Yuk Tarik Nafas Dulu..." not in outcome,
           "check-in tidak meminta user memilih napas berkali-kali")
 
     click(root, "Belum bisa")
-    check("Balik ke sini dulu." in texts(root),
+    check("Sebutkan hal-hal itu dalam hati, pelan-pelan aja." in texts(root),
           "Belum bisa tetap di recovery dan mengulang grounding")
     check(not routes, "Belum bisa tidak kembali ke Home")
 
     finish_grounding(root)
-    finish_completion_transition(page)
     finish_latest_breathing(page)
+    finish_completion_transition(page)
     check("Sekarang rasanya gimana?" in texts(root),
           "loop kedua kembali meminta outcome user")
 
@@ -176,14 +190,18 @@ def scenario_improved_and_light_menu() -> None:
     routes: list[str] = []
     root = reset.build(page, routes.append)
     finish_grounding(root)
-    finish_completion_transition(page)
     finish_latest_breathing(page)
+    finish_completion_transition(page)
     click(root, "Sedikit lebih baik")
 
     light = texts(root)
-    for label in ("Balik ke sini", "Latihan napas 4-7-8"):
+    check("Pelan-pelan aja yaaa" in light,
+          "recovery ringan memakai judul baru")
+    check("Jangan ragu untuk take your time, KALEM akan bantu sebisanya" in light,
+          "recovery ringan memakai pendampingan baru")
+    for label in ("Sebut Sekitar", "5 Menit", "Latihan nafas", "3 Menit"):
         check(label in light, f"recovery ringan menyediakan '{label}'")
-    check("NGOBROL DENGAN PROFESIONAL" in light,
+    check("Butuh Ngobrol Sama Profesional?" in light,
           "bantuan profesional langsung tampil sebagai card")
     check(button(root, "Ngobrol dengan profesional") is None,
           "bantuan profesional bukan tombol ketiga")
@@ -204,6 +222,8 @@ def scenario_improved_and_light_menu() -> None:
 
     check(any(partner["name"] in light for partner in TELEHEALTH_PARTNERS),
           "card profesional memakai partner yang sudah ada")
+    check("119" in light and "HEALING119.ID dari KEMENKES" in light,
+          "hotline memakai nomor dan deskripsi baru tanpa ekstensi")
     urls = {
         getattr(control, "url", None)
         for control in walk(root)

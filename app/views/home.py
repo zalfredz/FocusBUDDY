@@ -98,12 +98,13 @@ def _checkin_required() -> bool:
     )
 
 
-def _energy_label(level: int) -> str:
-    if level <= 2:
-        return "Kurang Bertenaga"
-    if level <= 4:
-        return "Bertenaga"
-    return "Sangat Bertenaga"
+def _home_companion(level: int) -> tuple[str, str]:
+    if level <= 3:
+        return (
+            "lelah",
+            "Kamu kelihatan capek. Istirahat juga termasuk progress loh...",
+        )
+    return "semangat", "Semangat untuk Hari Ini!"
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
@@ -133,9 +134,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
         if interruption_active
         else kalem_engine.decide(profile, day)
     )
+    has_tasks = any(not storage.task_is_done(task) for task in day.tasks_today)
+    hide_empty_add_action = not has_tasks and decision.action_kind == "add_task"
 
     decision_record_id = None
-    if not session_active and not interruption_active:
+    if not session_active and not interruption_active and not hide_empty_add_action:
         from models import fitur as kfitur
 
         decision_record_id = storage.record_decision_shown(
@@ -202,34 +205,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
     display_name = storage.display_name()
     today_log = storage.today_mood() or {}
     energy_level = int(today_log.get("energy") or storage.today_energy() or 3)
-    selected_mood = str(today_log.get("mood") or decision.mood or buddy.DEFAULT_MOOD)
-    has_tasks = any(not storage.task_is_done(task) for task in day.tasks_today)
+    companion_mood, companion_message = _home_companion(energy_level)
 
     greeting = ft.Container(
         width=HOME_CONTENT_WIDTH,
-        height=112,
+        height=82,
         content=ft.Stack(
             [
-                ft.Column(
-                    [
-                        ft.Text(
-                            f"Hai!, {display_name}",
-                            color=HOME_TEXT,
-                            size=35,
-                            weight=ft.FontWeight.W_900,
-                            font_family=HOME_FONT,
-                            style=ft.TextStyle(letter_spacing=1.1),
-                        ),
-                        ft.Text(
-                            _energy_label(energy_level),
-                            size=19,
-                            color="#DDE0FF",
-                            weight=ft.FontWeight.W_800,
-                            font_family=HOME_FONT,
-                            style=ft.TextStyle(letter_spacing=0.8),
-                        ),
-                    ],
-                    spacing=4,
+                ft.Text(
+                    f"Hai! {display_name}",
+                    color=HOME_TEXT,
+                    size=35,
+                    weight=ft.FontWeight.W_900,
+                    font_family=HOME_FONT,
+                    style=ft.TextStyle(letter_spacing=1.1),
                     left=0,
                     top=34,
                 ),
@@ -267,8 +256,42 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     kalem_block = ft.Container(
         width=HOME_CONTENT_WIDTH,
+        height=170,
         alignment=ft.Alignment.CENTER,
-        content=buddy.face(selected_mood, 165),
+        content=ft.Row(
+            [
+                ft.Image(
+                    src=buddy.asset_for(companion_mood),
+                    width=138,
+                    height=150,
+                    fit=ft.BoxFit.CONTAIN,
+                ),
+                ft.Container(
+                    width=174,
+                    height=88,
+                    alignment=ft.Alignment.CENTER,
+                    padding=ft.Padding.symmetric(vertical=12, horizontal=12),
+                    bgcolor="#1D2B24",
+                    border=ft.Border.all(1, "#95D899"),
+                    border_radius=12,
+                    shadow=ft.BoxShadow(
+                        blur_radius=16,
+                        spread_radius=1,
+                        color="#4095D899",
+                    ),
+                    content=ft.Text(
+                        companion_message,
+                        size=11,
+                        color=HOME_TEXT,
+                        font_family=HOME_FONT,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                ),
+            ],
+            spacing=4,
+            alignment=ft.MainAxisAlignment.CENTER,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
     )
 
     task_heading = ft.Container(
@@ -277,7 +300,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             (
                 "Ayo, Sekarang kerjain ini dulu"
                 if has_tasks
-                else f"Nggak ada tugas hari ini {display_name}, nikmati aja"
+                else f"Nggak ada tugas hari ini {display_name},\nEnjoy the Day!"
             ),
             size=21,
             color=HOME_TEXT,
@@ -481,7 +504,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             dark=decision.action_kind == "add_task",
         )
     )
-    if decision.action_kind != "add_task":
+    if decision.action_kind != "add_task" and has_tasks:
         card_children.append(
             home_action_button(
                 "+ Tambah Tugas",
@@ -808,7 +831,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def open_capture(e):
         note_field = ft.TextField(
-            hint_text="Apa aja yang keinget. Nggak usah rapi.",
+            hint_text="Tulis apa pun di sini...",
             multiline=True,
             min_lines=3,
             max_lines=6,
@@ -845,7 +868,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 content_padding=ft.Padding(left=24, top=4, right=24, bottom=10),
                 actions_padding=ft.Padding(left=24, top=8, right=24, bottom=22),
                 title=ft.Text(
-                    "Buang dari kepala\ndulu",
+                    "Apapun yang kamu mau ingat",
                     size=28,
                     color="#DDE0FF",
                     font_family=HOME_FONT,
@@ -855,7 +878,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 content=ft.Column(
                     [
                         ft.Text(
-                            "Simpen mentah dulu di sini. Nanti bisa dirapikan jadi tugas.",
+                            "Kamu boleh tulis apapun, tugas, cerita, atau apapun itu",
                             size=13,
                             color="#DDE0FF",
                             font_family=HOME_FONT,
@@ -908,7 +931,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ft.Icon(ft.Icons.EDIT_OUTLINED, color="#181A35", size=17),
         ft.Container(
             content=ft.Text(
-                "Ada yang keinget?",
+                "Ada yang Keingat?",
                 size=12,
                 color="#181A35",
                 font_family=HOME_FONT,
@@ -956,7 +979,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     width=HOME_CONTENT_WIDTH,
                     height=42,
                     content=ft.Text(
-                        "Kewalahan? Ambil Jeda Dulu",
+                        "Kewalahan? YUK AMBIL JEDA",
                         size=12.5,
                         color="#17153A",
                         font_family=HOME_FONT,
@@ -971,16 +994,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         stops=[0.0, 0.8, 1.0],
                     ),
                     border_radius=18,
-                    padding=ft.Padding(left=28, top=4, right=8, bottom=4),
+                    padding=ft.Padding(left=46, top=4, right=8, bottom=4),
                     on_click=lambda e: navigate("reset"),
                     ink=True,
                 ),
                 ft.Image(
                     src="kalem_cemas.svg",
-                    left=-10,
-                    top=-9,
-                    width=60,
-                    height=60,
+                    left=-12,
+                    top=-15,
+                    width=72,
+                    height=72,
                     fit=ft.BoxFit.CONTAIN,
                 ),
             ],
@@ -996,7 +1019,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
         greeting,
         kalem_block,
         task_heading,
-        focus_card if session_active else action_card,
+        *(
+            [focus_card]
+            if session_active
+            else ([] if hide_empty_add_action else [action_card])
+        ),
         capture_row,
         sos_row,
     ]
@@ -1016,7 +1043,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     alignment=ft.Alignment.CENTER,
                     padding=ft.Padding(left=4, top=2, right=4, bottom=0),
                     content=ft.Text(
-                        "FocusBuddy bukan alat diagnosis ADHD dan bukan pengganti tenaga medis.",
+                        "FocusBuddy bukan alat diagnosis dan bukan pengganti tenaga medis",
                         size=11.5,
                         color="#DDE0FF",
                         font_family=HOME_FONT,

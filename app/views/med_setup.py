@@ -139,8 +139,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         children: list[ft.Control] = [
             ui_helpers.banner(message, color, "med"),
             ft.Text(
-                f"Tersisa {current.pills_remaining:g} pil. KALEM bakal kasih tahu otomatis "
-                f"{REMINDER_THRESHOLD_DAYS} hari sebelum stok habis.",
+                f"Pil kamu sisa {current.pills_remaining:g} nihh. KALEM bakal ingetin "
+                f"kalau stok obat kamu ga cukup buat {REMINDER_THRESHOLD_DAYS} hari kedepan",
                 size=12,
                 color=theme.MUTED,
             ),
@@ -317,9 +317,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 "Pengingat Obat",
                 on_back=lambda e: navigate(back_route),
                 leading=ui_helpers.med_icon(26, theme.TERTIARY),
-            ),
-            ui_helpers.subtitle(
-                "Opsional — cukup isi sekali, nanti KALEM yang bantu hitung sisa stoknya."
             ),
             kalem_note,
             ui_helpers.card(

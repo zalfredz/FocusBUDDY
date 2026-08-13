@@ -196,7 +196,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         if not notes:
             notes_column.controls = [
                 ui_helpers.empty_state(
-                    "Belum ada catatan. Tulis apa pun yang keinget dari Beranda.",
+                    "Masih kosong nihh",
                     ft.Icons.EDIT_NOTE,
                 )
             ]
@@ -237,15 +237,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     render_notes()
 
     body.controls = [
-        ui_helpers.page_header("Yang Keinget", on_back=lambda e: navigate("home")),
-        ui_helpers.subtitle(
-            "Catatan mentah yang belum jadi tugas. Nggak usah rapi -- "
-            "nanti KALEM yang bantu mecahin jadi langkah kecil."
-        ),
+        ui_helpers.page_header("Catatan Kamu", on_back=lambda e: navigate("home")),
         notes_column,
-        ui_helpers.disclaimer(
-            "Nggak ada kewajiban ngosongin daftar ini. Kalau ada yang udah "
-            "nggak relevan, hapus aja."
-        ),
     ]
     return body

@@ -9,13 +9,13 @@ from app import clock
 
 OPTIONS = {
     "napas": {
-        "label": "Latihan napas 4-7-8",
-        "desc": "Dipandu lingkaran yang ikut napas kamu, sekitar semenit",
+        "label": "Latihan nafas",
+        "desc": "3 Menit",
         "icon": "AIR",
     },
     "grounding": {
-        "label": "Balik ke sini: 5-4-3-2-1",
-        "desc": "Nyebutin apa yang keliatan, kedengeran, kerasa — narik kamu keluar dari spiral",
+        "label": "Sebut Sekitar",
+        "desc": "5 Menit",
         "icon": "VISIBILITY",
     },
     "musik": {
@@ -108,9 +108,9 @@ def detect_distress(
 
 CRISIS_HOTLINES = [
     {
-        "name": "Healing119.id — Kemenkes",
-        "desc": "Hubungi 119, lalu pilih ekstensi 8",
-        "number": "119 ext. 8",
+        "name": "HEALING119.ID dari KEMENKES",
+        "desc": "",
+        "number": "119",
         "tel": "tel:119",
         "web": "https://healing119.id",
     },
