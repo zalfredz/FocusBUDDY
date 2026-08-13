@@ -163,10 +163,24 @@ def scenario_rest_outcome_duration_and_logging() -> None:
     if end_session is not None:
         end_session.on_click(None)
     outcome_dialog = page.dialogs[-1] if page.dialogs else None
-    rest = clickable(outcome_dialog, "Butuh istirahat")
-    check(rest is not None, "Butuh istirahat tersedia sebagai outcome Focus")
-    if rest is not None:
-        rest.on_click(None)
+    outcome_dropdown = next(
+        (
+            control
+            for control in walk(outcome_dialog)
+            if isinstance(control, ft.Dropdown)
+        ),
+        None,
+    )
+    finish_outcome = clickable(outcome_dialog, "Selesaikan")
+    check(
+        outcome_dropdown is not None
+        and any(option.text == "Butuh istirahat" for option in outcome_dropdown.options)
+        and finish_outcome is not None,
+        "Butuh istirahat tersedia di dropdown outcome Focus",
+    )
+    if outcome_dropdown is not None and finish_outcome is not None:
+        outcome_dropdown.value = "rest"
+        finish_outcome.on_click(None)
 
     stored_task = next(item for item in storage.get_tasks() if item["id"] == task["id"])
     focus_record = storage.get_focus_records()[0]

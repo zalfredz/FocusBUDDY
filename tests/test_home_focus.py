@@ -52,6 +52,8 @@ def walk(control):
         yield from walk(child)
     for action in getattr(control, "actions", []) or []:
         yield from walk(action)
+    yield from walk(getattr(control, "title", None))
+    yield from walk(getattr(control, "subtitle", None))
     yield from walk(getattr(control, "content", None))
 
 
@@ -72,6 +74,19 @@ def texts(root) -> list[str]:
         for control in walk(root)
         if isinstance(getattr(control, "value", None), str)
     ]
+
+
+def choose_focus_outcome(dialog, outcome: str) -> ft.Control | None:
+    dropdown = next(
+        (control for control in walk(dialog) if isinstance(control, ft.Dropdown)),
+        None,
+    )
+    finish = button(dialog, "Selesaikan")
+    check(dropdown is not None and finish is not None,
+          "dialog hasil fokus menyediakan dropdown dan tombol Selesaikan")
+    if dropdown is not None:
+        dropdown.value = outcome
+    return finish
 
 
 def make_task(
@@ -277,7 +292,7 @@ def scenario_focus_ui_has_done_and_is_compact() -> None:
         state.ends_at = None
         state.paused_left = 5 * 60
         finish.on_click(SimpleNamespace(control=None))
-        complete = button(page.dialogs[-1], "Sudah selesai")
+        complete = choose_focus_outcome(page.dialogs[-1], "completed")
         complete.on_click(SimpleNamespace(control=None))
         updated = next(item for item in storage.get_tasks() if item["id"] == task["id"])
         check(updated["steps"][0]["done"] and routes[-1] == "home",
@@ -316,7 +331,7 @@ def scenario_done_continues_next_step_same_task() -> None:
     if first_finish is None:
         return
     first_finish.on_click(SimpleNamespace(control=None))
-    first_done = button(first_page.dialogs[-1], "Sudah selesai")
+    first_done = choose_focus_outcome(first_page.dialogs[-1], "completed")
     first_done.on_click(SimpleNamespace(control=None))
 
     stored_parent = next(item for item in storage.get_tasks() if item["id"] == parent["id"])
@@ -348,7 +363,7 @@ def scenario_done_continues_next_step_same_task() -> None:
     check(second_finish is not None, "Sudahi tersedia untuk step kedua")
     if second_finish is not None:
         second_finish.on_click(SimpleNamespace(control=None))
-        second_done = button(second_page.dialogs[-1], "Sudah selesai")
+        second_done = choose_focus_outcome(second_page.dialogs[-1], "completed")
         second_done.on_click(SimpleNamespace(control=None))
     stored_parent = next(item for item in storage.get_tasks() if item["id"] == parent["id"])
     check(storage.task_is_done(stored_parent) and not focus_session.is_active(),
@@ -398,7 +413,7 @@ def scenario_done_continues_recurring_occurrence() -> None:
     if finish is None:
         return
     finish.on_click(SimpleNamespace(control=None))
-    done = button(page.dialogs[-1], "Sudah selesai")
+    done = choose_focus_outcome(page.dialogs[-1], "completed")
     done.on_click(SimpleNamespace(control=None))
     continued = focus_session.snapshot()
     check(
@@ -436,10 +451,19 @@ def scenario_timer_finished_offers_outcomes() -> None:
     check(show_outcomes is not None, "timer habis menyediakan akses ke hasil sesi")
     if show_outcomes is not None:
         show_outcomes.on_click(SimpleNamespace(control=None))
-    visible = texts(page.dialogs[-1] if page.dialogs else None)
-    check(all(label in visible for label in (
-        "Sudah selesai", "Masih butuh waktu", "Terhambat", "Lanjut nanti",
-    )), "timer habis menampilkan pilihan outcome yang eksplisit")
+    dialog = page.dialogs[-1] if page.dialogs else None
+    dropdown = next(
+        (control for control in walk(dialog) if isinstance(control, ft.Dropdown)),
+        None,
+    )
+    labels = [option.text for option in dropdown.options] if dropdown else []
+    check(
+        dropdown is not None
+        and labels == list(home.FOCUS_OUTCOME_OPTIONS.values())
+        and "Gimana Hasil Fokusnya?" in texts(dialog)
+        and "Kenapa kamu sudahi?" in texts(dialog),
+        "timer habis menampilkan dropdown outcome dengan copy baru",
+    )
     stored = next(item for item in storage.get_tasks() if item["id"] == task["id"])
     check(not stored["steps"][0]["done"],
           "membuka layar outcome setelah timer habis tidak menyelesaikan task")

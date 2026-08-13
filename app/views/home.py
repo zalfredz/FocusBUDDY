@@ -37,6 +37,14 @@ FOCUS_ACCENT = "#DDE0FF"
 FOCUS_ACCENT_TEXT = "#181A35"
 FOCUS_TRACK = "#141416"
 
+FOCUS_OUTCOME_OPTIONS = {
+    "completed": "Sudah selesai",
+    "incomplete": "Masih butuh waktu",
+    "blocked": "Terhambat",
+    "rest": "Butuh istirahat",
+    "later": "Lanjut nanti",
+}
+
 
 def deadline_cue(task: dict, now: datetime | None = None) -> tuple[str, str]:
     """Buat penanda deadline pasif tanpa mengubah keputusan atau membuka modal."""
@@ -655,51 +663,132 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
-    def outcome_buttons(*, close_dialog: bool = False) -> list[ft.Control]:
-        def resolve(outcome: str):
-            def handler(e) -> None:
-                if close_dialog:
-                    page.pop_dialog()
-                save_outcome(outcome)
-
-            return handler
-
-        def blocked(e) -> None:
-            if close_dialog:
-                page.pop_dialog()
-            ask_blocker(e)
-
-        return [
-            ui_helpers.primary_button(
-                "Sudah selesai", resolve("completed"), icon=ft.Icons.CHECK
-            ),
-            ft.OutlinedButton(
-                content=ft.Text("Masih butuh waktu"),
-                on_click=resolve("incomplete"),
-            ),
-            ft.OutlinedButton(content=ft.Text("Terhambat"), on_click=blocked),
-            ft.OutlinedButton(
-                content=ft.Text("Butuh istirahat"),
-                icon=ft.Icons.BEDTIME_OUTLINED,
-                on_click=resolve("rest"),
-            ),
-            ft.TextButton(
-                content=ft.Text("Lanjut nanti"),
-                on_click=resolve("later"),
-            ),
-        ]
-
     def finish_session(e):
+        outcome_dropdown = ft.Dropdown(
+            width=320,
+            height=58,
+            options=[
+                ft.DropdownOption(
+                    key=value,
+                    text=label,
+                    style=ft.ButtonStyle(color=HOME_TEXT),
+                )
+                for value, label in FOCUS_OUTCOME_OPTIONS.items()
+            ],
+            hint_text="Pilih satu",
+            text_size=16,
+            color=HOME_TEXT,
+            text_style=ft.TextStyle(
+                color=HOME_TEXT,
+                size=16,
+                font_family=HOME_FONT,
+                weight=ft.FontWeight.W_600,
+            ),
+            hint_style=ft.TextStyle(
+                color="#9292A9",
+                size=16,
+                font_family=HOME_FONT,
+                weight=ft.FontWeight.W_600,
+            ),
+            filled=True,
+            fill_color="#343446",
+            bgcolor="#343446",
+            border=ft.InputBorder.NONE,
+            border_radius=18,
+            content_padding=ft.Padding.symmetric(horizontal=18, vertical=10),
+            dense=True,
+            enable_search=False,
+        )
+        selection_error = ft.Text(
+            "Pilih salah satu dulu ya.",
+            size=11.5,
+            color="#FF8A80",
+            font_family=HOME_FONT,
+            visible=False,
+        )
+
+        def submit_outcome(event) -> None:
+            outcome = outcome_dropdown.value or ""
+            if outcome not in FOCUS_OUTCOME_OPTIONS:
+                selection_error.visible = True
+                page.update()
+                return
+            page.pop_dialog()
+            if outcome == "blocked":
+                ask_blocker(event)
+                return
+            save_outcome(outcome)
+
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("Gimana hasil fokusnya?", size=16),
-                content=ft.Column(outcome_buttons(close_dialog=True), spacing=8, tight=True),
-                actions=[
-                    ft.TextButton(
-                        content=ft.Text("Kembali"), on_click=lambda ev: page.pop_dialog()
-                    )
-                ],
+                bgcolor="#1C1C26",
+                shape=ft.RoundedRectangleBorder(radius=24),
+                title_padding=ft.Padding(left=24, top=28, right=24, bottom=18),
+                content_padding=ft.Padding(left=24, top=0, right=24, bottom=28),
+                title=ft.Text(
+                    "Gimana Hasil Fokusnya?",
+                    size=34,
+                    color=HOME_TEXT,
+                    font_family=HOME_FONT,
+                    weight=ft.FontWeight.W_900,
+                    style=ft.TextStyle(letter_spacing=0.4, height=1.12),
+                ),
+                content=ft.Column(
+                    [
+                        ft.Text(
+                            "Kenapa kamu sudahi?",
+                            size=17,
+                            color=HOME_TEXT,
+                            font_family=HOME_FONT,
+                            weight=ft.FontWeight.W_700,
+                        ),
+                        outcome_dropdown,
+                        selection_error,
+                        ft.Row(
+                            [
+                                ft.OutlinedButton(
+                                    width=150,
+                                    height=48,
+                                    content=ft.Text(
+                                        "Kembali",
+                                        size=15,
+                                        color=FOCUS_ACCENT,
+                                        font_family=HOME_FONT,
+                                        weight=ft.FontWeight.W_700,
+                                    ),
+                                    style=ft.ButtonStyle(
+                                        side=ft.BorderSide(1.5, FOCUS_ACCENT),
+                                        shape=ft.RoundedRectangleBorder(radius=22),
+                                    ),
+                                    on_click=lambda ev: page.pop_dialog(),
+                                ),
+                                ft.Button(
+                                    width=150,
+                                    height=48,
+                                    content=ft.Text(
+                                        "Selesaikan",
+                                        size=15,
+                                        color=FOCUS_ACCENT_TEXT,
+                                        font_family=HOME_FONT,
+                                        weight=ft.FontWeight.W_800,
+                                    ),
+                                    style=ft.ButtonStyle(
+                                        bgcolor=FOCUS_ACCENT,
+                                        shape=ft.RoundedRectangleBorder(radius=22),
+                                    ),
+                                    on_click=submit_outcome,
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.CENTER,
+                            spacing=12,
+                        ),
+                    ],
+                    width=320,
+                    spacing=14,
+                    tight=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                ),
             )
         )
 
