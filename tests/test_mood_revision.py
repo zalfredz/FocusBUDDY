@@ -4,6 +4,7 @@ from __future__ import annotations
 import tempfile
 from datetime import date, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import flet as ft
 
@@ -85,6 +86,24 @@ def text_field(root, label: str):
     )
 
 
+def energy_slider(root):
+    return next(
+        (
+            control
+            for control in walk(root)
+            if isinstance(control, ft.Slider)
+            and control.min == 1
+            and control.max == 6
+        ),
+        None,
+    )
+
+
+def set_slider(slider, value: int) -> None:
+    slider.value = value
+    slider.on_change(SimpleNamespace(control=slider))
+
+
 def prepare() -> None:
     state = storage.reset_all_data()
     state["profile"].update(
@@ -125,15 +144,30 @@ def scenario_checkin_upsert_and_recompute() -> None:
     root = mood.build(page, routes.append)
     check("Simpan check-in" in texts(root), "form awal memakai tombol Simpan check-in")
     check("Sudah check-in" not in texts(root), "status selesai belum muncul sebelum simpan")
+    initial_text = texts(root)
+    order_labels = [
+        "Yang KALEM paling pelajarin tentang kamu",
+        "Grafik Bulanan",
+        "Cerita Kamu",
+        "Tambah favoritmu di sini",
+    ]
+    check(
+        all(label in initial_text for label in order_labels)
+        and [initial_text.index(label) for label in order_labels]
+        == sorted(initial_text.index(label) for label in order_labels),
+        "Mood mengurutkan insight + rekomendasi, grafik, Cerita, lalu Favorit",
+    )
+    check("Istirahat cukup semalam?" in initial_text,
+          "form Check-in menampilkan pertanyaan istirahat di layar yang sama")
     check(not any("paling ngaruh hari ini" in value.lower() for value in texts(root)),
           "pertanyaan faktor yang paling berpengaruh tidak tampil di Check-in")
 
-    energy_one = clickable(root, "1")
+    energy_one = energy_slider(root)
     save = clickable(root, "Simpan check-in")
     check(energy_one is not None and save is not None,
-          "energi dan tombol simpan tersedia")
+          "slider energi 1–6 dan tombol simpan tersedia di form yang sama")
     if energy_one is not None:
-        energy_one.on_click(None)
+        set_slider(energy_one, 1)
     if save is not None:
         save.on_click(None)
 
@@ -146,18 +180,22 @@ def scenario_checkin_upsert_and_recompute() -> None:
           "hanya ada satu record mood untuk hari ini")
     check("Sudah check-in" in texts(root) and "Ubah check-in" in texts(root),
           "sesudah simpan UI berubah menjadi status check-in dan akses edit")
+    check("Kamu kelihatan capek. Istirahat juga termasuk progress loh..." in texts(root),
+          "energi 1–3 memakai maskot dan pesan lelah yang sama dengan Home/Tracker")
+    check(not routes and not page.dialogs,
+          "selesai Check-in tetap di ringkasan Mood tanpa pindah halaman atau popup")
     check(any("Beban kerja yang disaranin" in value for value in texts(root)),
           "hasil kapasitas kerja langsung dihitung dari check-in")
 
     edit = clickable(root, "Ubah check-in")
     if edit is not None:
         edit.on_click(None)
-    energy_five = clickable(root, "5")
+    energy_five = energy_slider(root)
     update = clickable(root, "Simpan perubahan")
     check(energy_five is not None and update is not None,
           "mode edit memuat ulang input Check-in hari ini")
     if energy_five is not None:
-        energy_five.on_click(None)
+        set_slider(energy_five, 5)
     if update is not None:
         update.on_click(None)
 
@@ -165,6 +203,8 @@ def scenario_checkin_upsert_and_recompute() -> None:
     old = next((log for log in storage.get_mood_logs() if log.get("date") == yesterday), {})
     check(updated.get("energy") == 5 and storage.today_energy() == 5,
           "edit menyinkronkan mood log dan energi aktif KALEM")
+    check("Semangat untuk Hari Ini!" in texts(root),
+          "energi 4–6 memakai maskot dan pesan semangat yang sama dengan Home/Tracker")
     check(updated.get("quick_tags") == [],
           "edit tidak membuat quick tag baru dari Check-in")
     check(sum(log.get("date") == clock.today().isoformat()
@@ -201,6 +241,11 @@ def scenario_diary_does_not_fake_checkin() -> None:
     )
     save = clickable(root, "Kirim ke KALEM")
     check(field is not None and save is not None, "form Diary bisa diisi dan disimpan")
+    shown = texts(root)
+    check("Cerita yuk" in shown and "Cerita Sebelumnya" in shown,
+          "halaman Cerita memakai susunan judul dan riwayat yang baru")
+    check(field is not None and field.suffix is not None,
+          "rekam suara tetap tersedia langsung di kolom Cerita")
     if field is not None:
         field.value = "Hari ini capek karena deadline dan butuh istirahat."
     if save is not None:

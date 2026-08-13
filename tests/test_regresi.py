@@ -522,11 +522,19 @@ def tes_komponen_baru():
 
 def tes_fokus_ngunci():
     bagian("Mode fokus ngunci seluruh navigation utama")
+    import flet as ft
     import app.main as main_mod
     from app import focus_session
 
     ok([route for route, _, _ in main_mod.NAV_ROUTES] == ["tracker", "home", "mood"],
-       "navigasi bawah berurutan Tracker — Beranda — Mood")
+       "navigasi bawah berurutan Tracker — Home — Mood")
+    ok(
+        [label for _, label, _ in main_mod.NAV_ROUTES]
+        == ["Tracker", "Home", "Mood"]
+        and main_mod.NAV_LABEL_BEHAVIOR
+        == ft.NavigationBarLabelBehavior.ONLY_SHOW_SELECTED,
+        "hanya tab aktif menampilkan label dengan penamaan sesuai desain",
+    )
 
     ok("reset" not in main_mod.FOKUS_BOLEH,
        "OVERWHELM tidak dibuka di tengah sesi; user mengakhiri sesi dulu")

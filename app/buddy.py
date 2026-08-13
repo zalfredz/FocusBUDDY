@@ -27,6 +27,11 @@ MOOD_ORDER = ["cemas", "sedih", "lelah", "tenang", "semangat"]
 
 DEFAULT_MOOD = "tenang"
 
+TIRED_COMPANION_MESSAGE = (
+    "Kamu kelihatan capek. Istirahat juga termasuk progress loh..."
+)
+ENERGETIC_COMPANION_MESSAGE = "Semangat untuk Hari Ini!"
+
 GREETINGS = {
     "semangat": "Energi kamu lagi bagus. Yuk pakai buat satu hal yang penting.",
     "tenang": "Hari ini nggak harus produktif banget. Pelan-pelan aja.",
@@ -46,6 +51,13 @@ def score_for(mood: str) -> int:
 
 def greeting_for(mood: str) -> str:
     return GREETINGS.get(mood, GREETINGS[DEFAULT_MOOD])
+
+
+def companion_for_energy(level: int) -> tuple[str, str]:
+    """Satu sumber visual dan pesan maskot untuk Home, Tracker, dan Mood."""
+    if int(level) <= 3:
+        return "lelah", TIRED_COMPANION_MESSAGE
+    return "semangat", ENERGETIC_COMPANION_MESSAGE
 
 
 def face(mood: str = DEFAULT_MOOD, size: int = 90) -> ft.Image:

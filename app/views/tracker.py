@@ -1900,16 +1900,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
     calendar_card = ui_helpers.card(
         ft.Column([calendar_nav, calendar_grid], spacing=8), padding=14
     )
-    tracker_tired = state["energy"] <= 3
+    tracker_mood, tracker_message = buddy.companion_for_energy(state["energy"])
     tracker_companion = ft.Row(
         [
-            buddy.face("lelah" if tracker_tired else "semangat", 96),
+            buddy.face(tracker_mood, 96),
             ft.Container(
-                content=buddy.speech_bubble(
-                    "Kamu kelihatan capek. Istirahat juga termasuk progress loh..."
-                    if tracker_tired
-                    else "Semangat untuk Hari Ini!"
-                ),
+                content=buddy.speech_bubble(tracker_message),
                 expand=True,
             ),
         ],

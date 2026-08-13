@@ -3,34 +3,26 @@ from __future__ import annotations
 
 import flet as ft
 
-from app import buddy, clock, storage, theme, ui_helpers
-from app.core.mood_model import extract_keywords, extract_tags, recurring_tag_prompt
+from app import buddy, storage, theme, ui_helpers
+from app.core.mood_model import extract_keywords, extract_tags
 from app.voice_diary import VoiceDiary
-
-PROMPTS = [
-    "Apa satu hal yang paling nempel di kepala kamu hari ini?",
-    "Ada yang bikin kamu lega hari ini?",
-    "Hal apa yang paling nguras energi kamu hari ini?",
-    "Kalau boleh ngulang satu bagian hari ini, bagian mana?",
-]
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
     today_log = storage.today_mood()
     mood = today_log["mood"] if today_log else buddy.DEFAULT_MOOD
 
-    prompt = recurring_tag_prompt(storage.get_mood_logs()) or PROMPTS[
-        clock.today().toordinal() % len(PROMPTS)
-    ]
-
     story_field = ft.TextField(
         value="",
-        hint_text="Tulis sebisanya. Nggak harus rapi, nggak harus panjang.",
+        hint_text="Tulis sebisanya. Nggak harus rapi dan panjang.",
         multiline=True,
-        min_lines=5,
-        max_lines=10,
+        min_lines=6,
+        max_lines=9,
+        bgcolor=theme.SURFACE,
         border_color=theme.BORDER,
         focused_border_color=theme.PRIMARY,
+        color=theme.ON_BACKGROUND,
+        hint_style=ft.TextStyle(color=theme.MUTED, size=12),
     )
     saved_note = ft.Text("", size=12, color=theme.PRIMARY)
     entries_column = ft.Column(spacing=10)
@@ -42,6 +34,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         save_button.disabled = busy
 
     voice = VoiceDiary(page, story_field, set_voice_busy)
+    voice_status = voice.embed_in_field()
+    story_field.on_change = lambda e: voice.sync_with_text()
     setattr(page, "_focusbuddy_view_cleanup", voice.cleanup)
 
     def render_entries() -> None:
@@ -129,30 +123,27 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     return ft.Column(
         [
-            ui_helpers.page_header("Cerita Kamu", on_back=lambda e: navigate("mood")),
-            ui_helpers.card(
-                ft.Column(
-                    [
-                        ft.Row(
-                            [
-                                buddy.face(mood, 64),
-                                ft.Container(
-                                    content=buddy.speech_bubble(prompt),
-                                    expand=True,
-                                ),
-                            ],
-                            spacing=12,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        story_field,
-                        voice.control(),
-                        ft.Row([save_button], spacing=0),
-                        saved_note,
-                    ],
-                    spacing=12,
-                )
+            ui_helpers.page_header("Cerita yuk", on_back=lambda e: navigate("mood")),
+            ft.Column(
+                [
+                    story_field,
+                    voice_status,
+                    ft.Row(
+                        [
+                            buddy.face(mood, 52),
+                            ft.Container(
+                                content=save_button,
+                                expand=True,
+                            ),
+                        ],
+                        spacing=0,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    saved_note,
+                ],
+                spacing=6,
             ),
-            ui_helpers.section_header("Cerita sebelumnya"),
+            ui_helpers.title("Cerita Sebelumnya", 15),
             entries_column,
             ui_helpers.disclaimer(
                 "Teks cerita tersimpan di ruang akun kamu. Kalau pakai suara, rekaman "

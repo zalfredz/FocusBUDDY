@@ -35,9 +35,11 @@ PHONE_VIEW_WIDTH = 430
 
 NAV_ROUTES = [
     ("tracker", "Tracker", ft.Icons.CALENDAR_MONTH),
-    ("home", "Beranda", ft.Icons.HOME_ROUNDED),
-    ("mood", "Mood", ft.Icons.FAVORITE_ROUNDED),
+    ("home", "Home", ft.Icons.HOME_OUTLINED),
+    ("mood", "Mood", ft.Icons.FAVORITE_BORDER),
 ]
+NAV_LABEL_BEHAVIOR = ft.NavigationBarLabelBehavior.ONLY_SHOW_SELECTED
+NAV_BACKGROUND = "#1C1C26"
 
 ROUTES = {
     "home": home.build,
@@ -572,9 +574,11 @@ async def main(page: ft.Page) -> None:
         nav_bar = ft.NavigationBar(
             height=64,
             selected_index=0,
-            bgcolor="#484863",
+            bgcolor=NAV_BACKGROUND,
             indicator_color="#DDE0FF",
             indicator_shape=ft.RoundedRectangleBorder(radius=24),
+            label_behavior=NAV_LABEL_BEHAVIOR,
+            label_padding=ft.Padding.symmetric(horizontal=6, vertical=2),
             on_change=lambda e: navigate(NAV_ROUTES[e.control.selected_index][0]),
             destinations=[
                 ft.NavigationBarDestination(
@@ -588,7 +592,8 @@ async def main(page: ft.Page) -> None:
 
         nav_shell = ft.Container(
             content=nav_bar,
-            bgcolor="#484863",
+            bgcolor=NAV_BACKGROUND,
+            border=ft.Border.all(1, "#484863"),
             border_radius=100,
             clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
             margin=ft.Padding(left=16, top=3, right=16, bottom=8),

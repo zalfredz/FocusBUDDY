@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import flet as ft
 
-from app import buddy, clock, storage, theme, ui_helpers
+from app import buddy, storage, theme, ui_helpers
 from app.core import recommendations
 from app.core.energy_predictor import (
     predict_workload,
@@ -19,15 +19,7 @@ from app.views import mood_chart
 
 SCORE_COLORS = {5: theme.PRIMARY, 4: theme.PRIMARY, 3: theme.WARN, 2: theme.WARN, 1: theme.DANGER}
 
-CARE_MAKAN = ("ate_today", "Udah makan hari ini?", ft.Icons.RESTAURANT)
 CARE_ISTIRAHAT = ("rested_enough", "Istirahat cukup semalam?", ft.Icons.BEDTIME)
-CARE_QUESTIONS = [CARE_MAKAN, CARE_ISTIRAHAT]
-
-
-def _care_hari_ini() -> list[tuple]:
-    if storage.waktunya_tanya_makan():
-        return [CARE_MAKAN, CARE_ISTIRAHAT]
-    return [CARE_ISTIRAHAT]
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
@@ -54,7 +46,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         "editing": today_log is None,
     }
 
-    kalem_face = buddy.face(state["mood"], 130)
     kalem_words = ft.Text(
         buddy.greeting_for(state["mood"]), size=13, color=theme.ON_BACKGROUND, text_align=ft.TextAlign.CENTER
     )
@@ -66,7 +57,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def pick_mood(mood: str):
         state["mood"] = mood
-        kalem_face.src = buddy.asset_for(mood)
         kalem_words.value = buddy.greeting_for(mood)
         if not state["energy_touched"]:
             state["energy"] = _energy_from_score(buddy.score_for(mood))
@@ -75,44 +65,82 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.update()
 
     def render_picker():
-        picker_holder.content = buddy.mood_picker(state["mood"], pick_mood)
+        choices: list[ft.Control] = []
+        for mood_name in buddy.MOOD_ORDER:
+            active = mood_name == state["mood"]
+            choices.append(
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            buddy.face(mood_name, 32),
+                            ft.Text(
+                                buddy.MOOD_LABELS[mood_name],
+                                size=8.5,
+                                color="#181A35" if active else theme.ON_BACKGROUND,
+                                text_align=ft.TextAlign.CENTER,
+                                no_wrap=True,
+                            ),
+                        ],
+                        spacing=3,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    height=64,
+                    expand=True,
+                    padding=ft.Padding.symmetric(vertical=6, horizontal=2),
+                    bgcolor=theme.PRIMARY if active else theme.BACKGROUND,
+                    border=ft.Border.all(1, theme.PRIMARY if active else theme.BORDER),
+                    border_radius=12,
+                    alignment=ft.Alignment.CENTER,
+                    on_click=lambda e, m=mood_name: pick_mood(m),
+                    ink=True,
+                )
+            )
+        picker_holder.content = ft.Row(choices, spacing=5)
 
 
-    def pick_energy(level: int):
-        state["energy"] = level
+    def pick_energy(e):
+        state["energy"] = int(round(float(e.control.value)))
         state["energy_touched"] = True
         render_energy()
         page.update()
 
     def render_energy():
-        chips: list[ft.Control] = []
-        for level in range(1, 7):
-            active = level == state["energy"]
-            chips.append(
-                ft.Container(
-                    content=ft.Text(
-                        str(level),
-                        size=14,
-                        weight=ft.FontWeight.BOLD,
-                        color="#FFFFFF" if active else theme.ON_BACKGROUND,
-                        text_align=ft.TextAlign.CENTER,
-                    ),
-                    height=40,
-                    expand=True,
-                    bgcolor=theme.PRIMARY if active else theme.SURFACE,
-                    border=ft.Border.all(1, theme.PRIMARY if active else theme.BORDER),
-                    border_radius=12,
-                    alignment=ft.Alignment.CENTER,
-                    on_click=lambda e, lv=level: pick_energy(lv),
-                    ink=True,
-                )
-            )
+        level = int(state["energy"])
         energy_holder.content = ft.Column(
             [
-                ui_helpers.subtitle("Tenaga kamu sekarang gimana? (1-6)"),
-                ft.Row(chips, spacing=6),
+                ft.Row(
+                    [
+                        ui_helpers.subtitle("Tenaga kamu sekarang gimana?"),
+                        ft.Text(
+                            f"{level}/6",
+                            size=12,
+                            weight=ft.FontWeight.BOLD,
+                            color=theme.PRIMARY,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
+                ft.Slider(
+                    min=1,
+                    max=6,
+                    divisions=5,
+                    value=level,
+                    label="{value}",
+                    round=0,
+                    active_color=theme.PRIMARY,
+                    inactive_color=theme.BORDER,
+                    thumb_color=theme.PRIMARY,
+                    on_change=pick_energy,
+                ),
+                ft.Row(
+                    [
+                        ft.Text("Tidak Bertenaga", size=9.5, color=theme.MUTED),
+                        ft.Text("Sangat Bertenaga", size=9.5, color=theme.MUTED),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
             ],
-            spacing=8,
+            spacing=2,
         )
 
 
@@ -124,7 +152,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def render_care():
         rows: list[ft.Control] = []
-        for key, question, icon in _care_hari_ini():
+        for key, question, icon in [CARE_ISTIRAHAT]:
             value = state["care"][key]
             if value is True:
                 label, bg, border, fg = "Udah", theme.PRIMARY, theme.PRIMARY, "#FFFFFF"
@@ -154,13 +182,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     padding=ft.Padding.symmetric(vertical=4, horizontal=2),
                 )
             )
-        judul = (
-            "Udah makan & istirahat cukup? (opsional, boleh dilewat)"
-            if storage.waktunya_tanya_makan()
-            else "Istirahat cukup semalam? (opsional, boleh dilewat)"
-        )
         care_holder.content = ft.Column(
-            [ui_helpers.subtitle(judul, 12), *rows],
+            [ui_helpers.subtitle("Istirahat cukup semalam? (opsional)", 12), *rows],
             spacing=4,
         )
 
@@ -213,7 +236,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             "ate_today": current.get("ate_today"),
             "rested_enough": current.get("rested_enough"),
         }
-        kalem_face.src = buddy.asset_for(state["mood"])
         kalem_words.value = buddy.greeting_for(state["mood"])
         render_picker()
         render_energy()
@@ -233,8 +255,21 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def render_checkin():
         if state["has_checkin"] and not state["editing"]:
+            companion_mood, companion_message = buddy.companion_for_energy(
+                int(state["energy"])
+            )
             summary: list[ft.Control] = [
-                kalem_face,
+                ft.Row(
+                    [
+                        buddy.face(companion_mood, 96),
+                        ft.Container(
+                            content=buddy.speech_bubble(companion_message),
+                            expand=True,
+                        ),
+                    ],
+                    spacing=8,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
                 ft.Text(
                     f"{buddy.MOOD_LABELS.get(state['mood'], state['mood'].title())} "
                     f"· Energi {state['energy']}/6",
@@ -285,7 +320,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         checkin_holder.content = ui_helpers.card(
             ft.Column(
                 [
-                    kalem_face,
                     kalem_words,
                     ft.Divider(color=theme.BORDER, height=1),
                     ui_helpers.subtitle("Hari ini kamu ngerasa gimana?"),
@@ -300,7 +334,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
     def save_checkin(e):
-        was_existing = bool(state["has_checkin"])
         mood = state["mood"]
         score = buddy.score_for(mood)
         energy = int(state["energy"])
@@ -326,65 +359,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         rec_state["index"] = 0
         render_rec()
         page.update()
-        if storage.ready_for_morning_brief():
-            navigate("home")
-            return
-        if not was_existing:
-            offer_diary(mood)
-
-    def offer_diary(mood: str):
-        today_entry = storage.today_mood()
-        has_story = any(
-            entry.get("date") == clock.today().isoformat()
-            and (entry.get("diary") or "").strip()
-            for entry in storage.diary_entries()
-        )
-        if has_story or (today_entry and (today_entry.get("diary") or "").strip()):
-            return
-
-        def go(ev):
-            page.pop_dialog()
-            navigate("diary")
-
-        page.show_dialog(
-            ft.AlertDialog(
-                modal=True,
-                title=ft.Text("Mau cerita dikit?", size=16),
-                content=ft.Column(
-                    [
-                        ft.Row(
-                            [
-                                buddy.face(mood, 56),
-                                ft.Text(
-                                    "Kamu udah nandain gimana rasanya. Kalau mau, "
-                                    "cerita bentar soal APA yang bikin gitu — "
-                                    "itu yang bantu aku ngerti pola kamu.",
-                                    size=12.5,
-                                    color=theme.ON_BACKGROUND,
-                                    expand=True,
-                                ),
-                            ],
-                            spacing=10,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        ft.Text(
-                            "Dua kalimat juga cukup. Boleh dilewat kok.",
-                            size=11,
-                            color=theme.MUTED,
-                        ),
-                    ],
-                    spacing=10,
-                    tight=True,
-                ),
-                actions=[
-                    ft.TextButton(
-                        content=ft.Text("Nanti aja", color=theme.MUTED),
-                        on_click=lambda ev: page.pop_dialog(),
-                    ),
-                    ui_helpers.primary_button("Cerita", go, icon=ft.Icons.MENU_BOOK),
-                ],
-            )
-        )
 
     render_picker()
     render_energy()
@@ -397,24 +371,40 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def render_rec():
         if rec_state["cards"] is None:
-            rec_holder.content = ui_helpers.card(
-                ft.Row(
+            rec_holder.content = ft.Container(
+                content=ft.Column(
                     [
-                        ft.Icon(ft.Icons.AUTO_AWESOME, color=theme.TERTIARY, size=20),
-                        ft.Text(
-                            "KALEM punya rekomendasi personal buat kamu",
-                            size=12.5,
-                            color=theme.ON_BACKGROUND,
-                            expand=True,
+                        ft.Row(
+                            [
+                                buddy.face("semangat", 58),
+                                ft.Text(
+                                    "Rekomendasi personal\nkamu",
+                                    size=13,
+                                    color="#181A35",
+                                    weight=ft.FontWeight.BOLD,
+                                    expand=True,
+                                ),
+                            ],
+                            spacing=8,
                         ),
-                        ft.TextButton(
-                            content=ft.Text("Lihat", size=12, weight=ft.FontWeight.BOLD),
+                        ft.ElevatedButton(
+                            content=ft.Text("Lihat", weight=ft.FontWeight.BOLD),
+                            bgcolor="#6FAD91",
+                            color="#181A35",
+                            elevation=0,
                             on_click=fetch_rec,
                         ),
                     ],
-                    spacing=10,
+                    spacing=4,
+                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                 ),
-                padding=14,
+                gradient=ft.LinearGradient(
+                    begin=ft.Alignment.CENTER_LEFT,
+                    end=ft.Alignment.CENTER_RIGHT,
+                    colors=[theme.PRIMARY, theme.SECONDARY],
+                ),
+                border_radius=16,
+                padding=ft.Padding.symmetric(vertical=10, horizontal=14),
             )
             return
 
@@ -451,16 +441,21 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     alignment=ft.MainAxisAlignment.END,
                 )
             )
-        rec_holder.content = ui_helpers.card(ft.Column(children, spacing=8), padding=16)
+        rec_holder.content = ft.Container(
+            content=ft.Column(children, spacing=8),
+            bgcolor=theme.BACKGROUND,
+            border=ft.Border.all(1, theme.BORDER),
+            border_radius=14,
+            padding=14,
+        )
 
     def fetch_rec(e):
         if not storage.can_see_reco_card():
-            rec_holder.content = ui_helpers.card(
-                ui_helpers.upgrade_hint(
+            rec_holder.content = ft.Container(
+                content=ui_helpers.upgrade_hint(
                     "Jatah kartu rekomendasi minggu ini udah kepakai. "
                     "Freemium bisa terus-terusan, dan makin personal seiring data."
                 ),
-                padding=14,
             )
             page.update()
             return
@@ -501,8 +496,24 @@ def build(page: ft.Page, navigate) -> ft.Control:
             diary_entries=storage.diary_entries(),
         )
         children: list[ft.Control] = [
-            ui_helpers.premium_header(
-                "Yang KALEM pelajari tentang kamu", not storage.is_premium()
+            ft.Row(
+                [
+                    ft.Text(
+                        "Yang KALEM paling pelajarin tentang kamu",
+                        size=16,
+                        weight=ft.FontWeight.BOLD,
+                        color=theme.ON_BACKGROUND,
+                        font_family=theme.FONT_DISPLAY,
+                        expand=True,
+                    ),
+                    *(
+                        [ui_helpers.premium_badge()]
+                        if not storage.is_premium()
+                        else []
+                    ),
+                ],
+                spacing=8,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             ft.Text(insight.headline, size=13, weight=ft.FontWeight.BOLD,
                     color=theme.ON_BACKGROUND),
@@ -552,7 +563,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def render_history():
         logs = storage.get_mood_logs()
         children: list[ft.Control] = [
-            ui_helpers.section_header("Grafik bulanan"),
+            ui_helpers.title("Grafik Bulanan", 16),
             mood_chart.month_nav(
                 history_state["year"], history_state["month"], shift_month(-1), shift_month(1)
             ),
@@ -604,28 +615,25 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     render_history()
 
-    terisi = storage.favorites_filled()
-    total_favorit = len(storage.FAVORITE_FIELDS)
-    header_row = ft.Row(
-        [
-            ft.Container(content=ui_helpers.title("Mood", 22), expand=True),
-            ft.IconButton(
-                icon=ft.Icons.FAVORITE_BORDER,
-                icon_color=theme.TERTIARY,
-                icon_size=20,
-                tooltip=f"Favorit kamu — {terisi}/{total_favorit} terisi · "
-                        "bikin saran KALEM lebih personal",
-                on_click=open_favorites,
-            ),
-        ],
-        spacing=0,
+    learning_card = ui_helpers.card(
+        ft.Column(
+            [
+                insight_holder,
+                ft.Divider(color=theme.BORDER, height=1),
+                rec_holder,
+            ],
+            spacing=12,
+        ),
+        padding=16,
     )
 
     return ft.Column(
         [
-            header_row,
+            ui_helpers.title("Mood", 22),
             checkin_holder,
             result_holder,
+            learning_card,
+            ui_helpers.card(history_holder),
             ui_helpers.nav_link_card(
                 ft.Icons.MENU_BOOK,
                 theme.PRIMARY,
@@ -633,12 +641,25 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 "Tulis cerita hari ini, atau baca lagi yang udah pernah kamu tulis.",
                 lambda e: navigate("diary"),
             ),
-            ui_helpers.card(insight_holder),
-            ui_helpers.card(history_holder),
-            rec_holder,
-            ui_helpers.disclaimer(
-                "Pola di atas dipelajari dari catatan kamu sendiri, bukan diagnosis. "
-                "Makin sering diisi, makin akurat -- dan tetap bukan penilaian klinis."
+            ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.Icons.FAVORITE_BORDER, color="#181A35", size=22),
+                        ft.Text(
+                            "Tambah favoritmu di sini",
+                            color="#181A35",
+                            weight=ft.FontWeight.BOLD,
+                            expand=True,
+                            text_align=ft.TextAlign.CENTER,
+                        ),
+                    ],
+                    spacing=8,
+                ),
+                bgcolor="#DDE0FF",
+                border_radius=18,
+                padding=ft.Padding.symmetric(vertical=10, horizontal=16),
+                on_click=open_favorites,
+                ink=True,
             ),
         ],
         spacing=14,

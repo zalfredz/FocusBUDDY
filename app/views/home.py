@@ -85,12 +85,7 @@ def _checkin_required() -> bool:
 
 
 def _home_companion(level: int) -> tuple[str, str]:
-    if level <= 3:
-        return (
-            "lelah",
-            "Kamu kelihatan capek. Istirahat juga termasuk progress loh...",
-        )
-    return "semangat", "Semangat untuk Hari Ini!"
+    return buddy.companion_for_energy(level)
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
