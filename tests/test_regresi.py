@@ -894,14 +894,20 @@ def tes_regresi_data_dan_tugas_berulang():
 def tes_voice_diary():
     bagian("Diary suara: audio sementara, transkrip bisa direview")
     import io
+    import math
+    import struct
     import wave
+    from types import SimpleNamespace
 
     import flet as ft
 
     from app.core import speech_to_text as stt
     from app.views import diary
 
-    pcm = b"\x00\x00" * stt.SAMPLE_RATE
+    pcm = b"".join(
+        struct.pack("<h", int(2400 * math.sin(2 * math.pi * 220 * i / stt.SAMPLE_RATE)))
+        for i in range(stt.SAMPLE_RATE)
+    )
     wav_bytes = stt.pcm16_to_wav(pcm)
     with wave.open(io.BytesIO(wav_bytes), "rb") as audio:
         ok(audio.getnchannels() == 1 and audio.getframerate() == 16_000,
@@ -936,6 +942,23 @@ def tes_voice_diary():
     short_text, short_error = stt.transcribe_pcm16(b"\x00\x00" * 100)
     ok(not short_text and short_error == stt.PESAN_TERLALU_PENDEK,
        "rekaman terlalu pendek ditolak sebelum memanggil provider")
+
+    silent_text, silent_error = stt.transcribe_pcm16(b"\x00\x00" * stt.SAMPLE_RATE)
+    ok(not silent_text and silent_error == stt.PESAN_TIDAK_TERDENGAR,
+       "rekaman panjang tetapi sunyi ditolak sebelum memanggil provider")
+    ok(not stt._clean_transcript("<noise>") and not stt._clean_transcript("[silence]"),
+       "marker noise atau silence dari provider tidak masuk ke textbox")
+
+    from app.voice_diary import VoiceDiary
+
+    stream_probe = VoiceDiary.__new__(VoiceDiary)
+    stream_probe.active = True
+    stream_probe.recording = False
+    stream_probe.stopping = True
+    stream_probe.chunks = bytearray()
+    stream_probe._on_audio_chunk(SimpleNamespace(chunk=b"\x01\x02"))
+    ok(stream_probe.chunks == b"\x01\x02",
+       "chunk terakhir tetap diterima ketika stop recording sedang berjalan")
 
     storage_baru("voice_diary_")
     page = HalamanPalsu()

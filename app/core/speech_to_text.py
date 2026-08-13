@@ -3,8 +3,12 @@ from __future__ import annotations
 
 import io
 import logging
+import math
 import os
+import re
+import sys
 import wave
+from array import array
 from typing import Optional
 
 from app.core import ai_client
@@ -22,9 +26,30 @@ OPENAI_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"
 
 PESAN_BELUM_TERSEDIA = "Cerita suara KALEM belum dikonfigurasi. Kamu tetap bisa mengetik."
 PESAN_TERLALU_PENDEK = "Suaranya belum cukup terdengar. Coba cerita sedikit lebih lama."
+PESAN_TIDAK_TERDENGAR = (
+    "KALEM belum mendengar ucapan yang cukup jelas. Coba dekatkan mikrofon dan ulangi."
+)
 PESAN_GAGAL = "KALEM belum berhasil mengubah suara jadi tulisan. Coba lagi atau ketik manual."
 PESAN_JARINGAN = "Koneksi terputus saat memproses suara. Coba lagi ketika internet lebih stabil."
 PESAN_KUOTA = "Cerita suara sedang ramai dipakai. Coba lagi sebentar lagi."
+
+# Ambang ini hanya menolak buffer yang praktis sunyi. Audio pelan tetap diteruskan
+# ke provider agar validasi lokal tidak terlalu agresif pada mikrofon ponsel.
+MIN_SIGNAL_RMS = 25.0
+MIN_SIGNAL_PEAK = 160
+
+_NON_SPEECH_MARKERS = {
+    "noise",
+    "silence",
+    "inaudible",
+    "unintelligible",
+    "no audio",
+    "no speech",
+    "audio kosong",
+    "tidak ada suara",
+    "tidak terdengar",
+    "suara tidak terdengar",
+}
 
 
 def _env(name: str) -> str:
@@ -62,14 +87,62 @@ def pcm16_to_wav(pcm: bytes) -> bytes:
     return output.getvalue()
 
 
+def pcm16_signal_metrics(pcm: bytes) -> tuple[float, int]:
+    """Kembalikan RMS tanpa DC offset dan peak dari PCM16 little-endian."""
+    usable = pcm[: len(pcm) - (len(pcm) % SAMPLE_WIDTH)]
+    if not usable:
+        return 0.0, 0
+
+    samples = array("h")
+    samples.frombytes(usable)
+    if sys.byteorder != "little":
+        samples.byteswap()
+
+    total = 0
+    squared_total = 0
+    peak = 0
+    for sample in samples:
+        total += sample
+        squared_total += sample * sample
+        peak = max(peak, abs(sample))
+
+    count = len(samples)
+    mean = total / count
+    variance = max(0.0, (squared_total / count) - (mean * mean))
+    return math.sqrt(variance), peak
+
+
+def _is_non_speech_transcript(text: str) -> bool:
+    normalized = (text or "").strip().lower()
+    if not normalized:
+        return True
+
+    # Provider biasanya menandai rekaman kosong sebagai <noise>, [silence],
+    # atau variasi marker sejenis. Kurung dan tanda baca tidak boleh membuatnya
+    # lolos sebagai catatan pengguna.
+    without_wrappers = re.sub(r"[<>{}\[\]()]", " ", normalized)
+    without_punctuation = re.sub(r"[^\w\s]", " ", without_wrappers)
+    compact = " ".join(without_punctuation.split())
+    if not compact:
+        return True
+    if compact in _NON_SPEECH_MARKERS:
+        return True
+
+    tokens = compact.split()
+    return bool(tokens) and all(
+        token in {"noise", "silence", "inaudible"} for token in tokens
+    )
+
+
 def _clean_transcript(text: str) -> str:
     cleaned = (text or "").strip()
     prefixes = ("transkrip:", "transkripsi:")
     lowered = cleaned.lower()
     for prefix in prefixes:
         if lowered.startswith(prefix):
-            return cleaned[len(prefix):].strip()
-    return cleaned
+            cleaned = cleaned[len(prefix):].strip()
+            break
+    return "" if _is_non_speech_transcript(cleaned) else cleaned
 
 
 def _explain_error(exc: Exception, provider: str) -> str:
@@ -121,8 +194,13 @@ def _transcribe_gemini(wav_bytes: bytes) -> tuple[str, str]:
     except Exception as exc:
         return "", _explain_error(exc, "gemini")
 
-    text = _clean_transcript(getattr(response, "text", "") or "")
-    return (text, "") if text else ("", PESAN_GAGAL)
+    raw_text = getattr(response, "text", "") or ""
+    text = _clean_transcript(raw_text)
+    if text:
+        return text, ""
+    if _is_non_speech_transcript(raw_text):
+        return "", PESAN_TIDAK_TERDENGAR
+    return "", PESAN_GAGAL
 
 
 def _transcribe_openai(wav_bytes: bytes) -> tuple[str, str]:
@@ -148,13 +226,28 @@ def _transcribe_openai(wav_bytes: bytes) -> tuple[str, str]:
     except Exception as exc:
         return "", _explain_error(exc, "openai")
 
-    text = _clean_transcript(getattr(response, "text", "") or "")
-    return (text, "") if text else ("", PESAN_GAGAL)
+    raw_text = getattr(response, "text", "") or ""
+    text = _clean_transcript(raw_text)
+    if text:
+        return text, ""
+    if _is_non_speech_transcript(raw_text):
+        return "", PESAN_TIDAK_TERDENGAR
+    return "", PESAN_GAGAL
 
 
 def transcribe_pcm16(pcm: bytes) -> tuple[str, str]:
     if len(pcm) < MIN_PCM_BYTES:
         return "", PESAN_TERLALU_PENDEK
+
+    rms, peak = pcm16_signal_metrics(pcm)
+    if rms < MIN_SIGNAL_RMS or peak < MIN_SIGNAL_PEAK:
+        _log.info(
+            "rekaman suara ditolak karena sinyal terlalu rendah (bytes=%s, rms=%.1f, peak=%s)",
+            len(pcm),
+            rms,
+            peak,
+        )
+        return "", PESAN_TIDAK_TERDENGAR
 
     provider = _speech_provider()
     if provider is None:
@@ -162,5 +255,10 @@ def transcribe_pcm16(pcm: bytes) -> tuple[str, str]:
 
     wav_bytes = pcm16_to_wav(pcm[:MAX_PCM_BYTES])
     if provider == "gemini":
-        return _transcribe_gemini(wav_bytes)
-    return _transcribe_openai(wav_bytes)
+        transcript, error = _transcribe_gemini(wav_bytes)
+    else:
+        transcript, error = _transcribe_openai(wav_bytes)
+
+    if not transcript and not error:
+        return "", PESAN_TIDAK_TERDENGAR
+    return transcript, error

@@ -40,9 +40,12 @@ class VoiceDiary:
                 encoder=far.AudioEncoder.PCM16BITS,
                 sample_rate=speech_to_text.SAMPLE_RATE,
                 channels=speech_to_text.CHANNELS,
-                suppress_noise=True,
-                cancel_echo=True,
-                auto_gain=True,
+                # Ambil sinyal mikrofon apa adanya. Efek ini tidak tersedia secara
+                # konsisten di semua perangkat dan dapat mengecilkan suara yang
+                # sebenarnya masih jelas untuk transkripsi.
+                suppress_noise=False,
+                cancel_echo=False,
+                auto_gain=False,
             ),
             on_stream=self._on_audio_chunk,
         )
@@ -64,7 +67,10 @@ class VoiceDiary:
         self.page.update()
 
     def _on_audio_chunk(self, event: far.AudioRecorderStreamEvent) -> None:
-        if not self.active or not self.recording:
+        # Beberapa browser baru mengirim chunk terakhir ketika stop_recording()
+        # sedang berjalan. Tetap terima chunk tersebut sampai proses stop benar-
+        # benar selesai agar akhir (atau seluruh rekaman pendek) tidak terpotong.
+        if not self.active or not (self.recording or self.stopping):
             return
         remaining = speech_to_text.MAX_PCM_BYTES - len(self.chunks)
         if remaining > 0:
@@ -325,6 +331,10 @@ class VoiceDiary:
             if self.active:
                 self.page.update()
             return
+
+        # Beri event stream yang sudah berada dalam antrean satu kesempatan untuk
+        # sampai ke Python sebelum buffer dibekukan untuk transkripsi.
+        await asyncio.sleep(0.05)
 
         pcm = bytes(self.chunks)
         self.chunks.clear()
