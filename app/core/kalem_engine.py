@@ -572,13 +572,13 @@ def build_morning_brief(
         reasons.append(f"obat kamu belum keabsen {int(f['obat_kelewat'])} hari terakhir")
 
     if saran.label == "rendah" or saran.burnout:
-        forecast = "Hari ini kemungkinan bakal berat."
+        forecast = "SEMANGAT!! Hari ini mungkin berat"
         mood = "lelah"
     elif saran.label == "tinggi":
-        forecast = "Hari ini kemungkinan lagi enak-enaknya."
+        forecast = "Semangat kamu FULL hari ini"
         mood = "semangat"
     else:
-        forecast = "Hari ini kemungkinan biasa aja."
+        forecast = "Kemungkinan biasa aja"
         mood = "tenang"
 
     minutes = focus_minutes_for(energy_level)

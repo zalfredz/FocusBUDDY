@@ -32,12 +32,11 @@ SYSTEM_PROMPT = (
     "pertama tiap tugas harus yang paling ringan (bisa dimulai dalam sekali duduk), "
     "bahasa Indonesia santai, jangan pakai jargon, maksimal 5 langkah per tugas. "
     "Field 'tugas' harus disalin persis dari judul yang dikasih.\n\n"
-    "PENTING soal sumber langkah: beberapa tugas di bawah punya baris "
-    "'Deskripsi'. Kalau ADA, langkah-langkahnya HARUS dipecah dari ISI "
-    "deskripsi itu -- itu konteks nyata soal APA yang mau dikerjain "
-    "(mis. deskripsi 'bikin proposal buat hackathon, cari tim dulu' harus "
-    "jadi langkah kayak 'cari 1-2 orang buat diajak bareng', bukan cuma "
-    "'buka dokumen proposal'). Judul di situ cuma LABEL, bukan sumber isi. "
+    "PENTING: field 'Deskripsi' adalah KONTEKS tugas, bukan daftar langkah "
+    "yang siap disalin. Gunakan isinya untuk memahami hasil yang diinginkan, "
+    "bahan, dan batasan tugas, lalu susun micro-step baru yang konkret. Jangan "
+    "otomatis menyalin kalimat atau baris deskripsi menjadi langkah. "
+    "Judul tetap menjadi label tugas. "
     "Kalau tugas TIDAK punya deskripsi, pecah dari judulnya aja seperti biasa."
 )
 
@@ -82,23 +81,12 @@ def _fmt(dt: datetime) -> str:
     return dt.strftime("%H:%M")
 
 
-def _garis_deskripsi(description: str) -> list[str]:
-    baris = [b.strip(" \t-•*").strip() for b in (description or "").splitlines()]
-    baris = [b for b in baris if b]
-    return baris if len(baris) >= 2 else []
-
-
 def _rule_based_steps(tasks: list[dict], energy_level: int) -> list[tuple[str, str, int]]:
     focus_min, _ = ENERGY_BLOCKS.get(energy_level, ENERGY_BLOCKS[3])
     menit_per_tugas = perkiraan_menit(tasks, energy_level)
     out: list[tuple[str, str, int]] = []
     for task in tasks:
         title = task["title"]
-        baris = _garis_deskripsi(task.get("description", ""))
-        if baris:
-            bagian = _bagi_menit(menit_per_tugas.get(title, 30), len(baris))
-            out.extend((title, langkah, menit) for langkah, menit in zip(baris, bagian))
-            continue
         out.append((title, f"Siapin bahan/alat buat '{title}'", 5))
         out.append((title, f"Kerjain bagian paling awal dari '{title}'", focus_min))
         out.append((title, f"Rapikan & cek hasil '{title}'", max(focus_min // 2, 5)))
@@ -290,10 +278,6 @@ def lay_out(
 
 
 def _langkah_lokal(task: dict) -> tuple[Optional[list[str]], str]:
-    baris = _garis_deskripsi(task.get("description", ""))
-    if baris:
-        return baris, "manual"
-
     from models import model_pecah
 
     hasil = model_pecah.cari(task.get("title", ""), task.get("description", ""))
@@ -410,11 +394,7 @@ def plan_today(
         n_lokal += 1
         if sumber == "retrieval":
             n_retrieval += 1
-        elif sumber == "manual":
-            n_manual += 1
         task_sources[task_plan_key(t)] = sumber
-        if sumber == "manual":
-            storage.add_decompose_record(judul, t.get("description", ""), langkah, "manual")
 
     reason = ""
     n_ai = 0

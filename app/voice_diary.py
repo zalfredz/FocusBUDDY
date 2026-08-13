@@ -18,10 +18,12 @@ class VoiceDiary:
         page: ft.Page,
         story_field: ft.TextField,
         on_busy: Callable[[bool], None],
+        idle_label: str = "",
     ) -> None:
         self.page = page
         self.story_field = story_field
         self.on_busy = on_busy
+        self.idle_label = idle_label
         self.active = True
         self.recording = False
         self.processing = False
@@ -193,6 +195,22 @@ class VoiceDiary:
         )
 
     def _idle_card(self) -> ft.Control:
+        if self.idle_label:
+            return ft.OutlinedButton(
+                content=ft.Text(
+                    self.idle_label,
+                    color=theme.ON_BACKGROUND,
+                    weight=ft.FontWeight.W_600,
+                ),
+                icon=ft.Icons.MIC_NONE,
+                tooltip="Isi pakai suara · maksimal 120 detik",
+                style=ft.ButtonStyle(
+                    color=theme.PRIMARY,
+                    side=ft.BorderSide(1, theme.BORDER),
+                    shape=ft.RoundedRectangleBorder(radius=12),
+                ),
+                on_click=self.start,
+            )
         return ft.Row(
             [
                 ft.IconButton(

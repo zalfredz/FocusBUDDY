@@ -477,22 +477,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             show_light_menu()
 
         controls: list[ft.Control] = [
-            ft.Text(
-                "Yuk Tarik Nafas Dulu...",
-                width=CONTENT_WIDTH,
-                size=31,
-                color=TEXT,
-                weight=ft.FontWeight.W_900,
-                font_family=FONT,
-            ),
-            ft.Text(
-                "Semua daftar tugas lagi disembunyiin. Sekarang nggak ada yang harus "
-                "dikejar dulu.",
-                width=CONTENT_WIDTH,
-                size=14,
-                color=TEXT,
-                font_family=FONT,
-            ),
             phase_text,
             ft.Container(content=circle, height=220, alignment=ft.Alignment.CENTER),
             cycle_text,

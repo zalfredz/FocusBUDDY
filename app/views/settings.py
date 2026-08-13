@@ -57,29 +57,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         padding=16,
     )
 
-    privacy_card = ui_helpers.card(
-        ft.Column(
-            [
-                ui_helpers.section_header("Privasi & Data"),
-                ft.Text(
-                    "Data aplikasi disimpan berdasarkan akun dan aksesnya dipisahkan "
-                    "untuk setiap pengguna. Data tersebut digunakan untuk menjalankan "
-                    "dan mempersonalisasi FocusBuddy serta KALEM.",
-                    size=12,
-                    color=theme.MUTED,
-                ),
-                ft.TextButton(
-                    content=ft.Text("Hapus semua data", color=theme.DANGER),
-                    icon=ft.Icons.DELETE_OUTLINE,
-                    icon_color=theme.DANGER,
-                    on_click=confirm_reset,
-                ),
-            ],
-            spacing=8,
-        ),
-        padding=16,
-    )
-
     return ft.Column(
         [
             ui_helpers.page_header("Pengaturan", on_back=lambda e: navigate("home")),
@@ -96,12 +73,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.Icons.WORKSPACE_PREMIUM,
                 theme.TERTIARY,
                 "Subscription KALEM",
-                "Premium aktif" if storage.is_premium() else "Paket Free",
+                "Freemium aktif" if storage.is_premium() else "Paket Free",
                 lambda e: navigate("subscription"),
             ),
             _kartu_model(),
-            privacy_card,
-            _account_card(page),
+            _account_actions(page, confirm_reset),
         ],
         spacing=14,
         scroll=ft.ScrollMode.AUTO,
@@ -662,49 +638,61 @@ def _med_link_card(page: ft.Page, navigate) -> ft.Container:
     )
 
 
-def _account_card(page: ft.Page) -> ft.Container:
-    user = getattr(page, "_focusbuddy_cloud_user", None)
-    status = getattr(
-        page, "_focusbuddy_cloud_status", "Status sinkronisasi belum tersedia"
-    )
+def _account_actions(page: ft.Page, confirm_reset) -> ft.Control:
     logout = getattr(page, "_focusbuddy_logout", None)
 
-    return ui_helpers.card(
-        ft.Column(
+    def danger_button(label: str, icon: str, on_click, *, visible: bool = True):
+        return ft.Row(
             [
-                ui_helpers.section_header("Akun & Cloud"),
-                ft.Text(
-                    (user.name or user.email) if user else "Belum terhubung",
-                    size=13,
-                    weight=ft.FontWeight.BOLD,
-                    color=theme.ON_BACKGROUND,
-                ),
-                ft.Text(
-                    user.email if user else "",
-                    size=11,
-                    color=theme.MUTED,
-                    visible=bool(user and user.name and user.email),
-                ),
-                ft.Row(
-                    [
-                        ft.Icon(
-                            ft.Icons.CLOUD_DONE_OUTLINED,
-                            size=15,
-                            color=theme.PRIMARY,
-                        ),
-                        ft.Text(status, size=11, color=theme.MUTED, expand=True),
-                    ],
-                    spacing=7,
-                ),
-                ft.TextButton(
-                    content=ft.Text("Keluar dari akun", color=theme.DANGER),
-                    icon=ft.Icons.LOGOUT,
-                    icon_color=theme.DANGER,
-                    on_click=logout,
-                    visible=logout is not None,
-                ),
+                ft.Button(
+                    height=48,
+                    expand=True,
+                    bgcolor="#EA3F46",
+                    color="#FFFFFF",
+                    icon=icon,
+                    icon_color="#FFFFFF",
+                    content=ft.Text(
+                        label,
+                        color="#FFFFFF",
+                        size=14,
+                        weight=ft.FontWeight.W_600,
+                    ),
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=24),
+                    ),
+                    on_click=on_click,
+                )
             ],
-            spacing=7,
-        ),
-        padding=16,
+            spacing=0,
+            visible=visible,
+        )
+
+    return ft.Column(
+        [
+            ft.Text(
+                "Logout",
+                size=18,
+                weight=ft.FontWeight.W_700,
+                color=theme.ON_BACKGROUND,
+            ),
+            danger_button(
+                "Keluar dari akun",
+                ft.Icons.LOGOUT,
+                logout,
+                visible=logout is not None,
+            ),
+            ft.Container(height=8),
+            ft.Text(
+                "Hapus semua data",
+                size=18,
+                weight=ft.FontWeight.W_700,
+                color=theme.ON_BACKGROUND,
+            ),
+            danger_button(
+                "Hapus semua data",
+                ft.Icons.DELETE_OUTLINE,
+                confirm_reset,
+            ),
+        ],
+        spacing=8,
     )

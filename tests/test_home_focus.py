@@ -236,22 +236,28 @@ def scenario_focus_ui_has_done_and_is_compact() -> None:
         task_id=task["id"], step_id="step-ui", step_index=0,
     )
     routes: list[str] = []
-    root = home.build(FakePage(), routes.append)
-    done = button(root, "DONE")
-    check(done is not None, "tombol DONE tersedia saat timer masih berjalan")
+    page = FakePage()
+    root = home.build(page, routes.append)
+    finish = button(root, "Sudahi")
+    check(finish is not None, "tombol Sudahi tersedia saat timer masih berjalan")
     visible = texts(root)
-    check(all(text in visible for text in (
-        "Hai! Ari", "Ada yang Keingat?", "Kewalahan? YUK AMBIL JEDA",
-    )), "saat Focus aktif shell Home tetap tampil seperti biasa")
-    check(button(root, "Jeda") is not None and button(root, "Akhiri sesi") is not None,
-          "kontrol Jeda, DONE, dan Akhiri sesi terlihat di kartu Focus")
-    check(not any(isinstance(control, ft.ProgressBar) for control in walk(root)),
-          "Focus tidak menampilkan progress bar abu-abu yang redundan")
-    if done is not None:
+    check(
+        "Sesi fokus:" in visible and "Ada yang Keingat?" in visible
+        and "Hai! Ari" not in visible and "Kewalahan? YUK AMBIL JEDA" not in visible,
+        "Focus memakai halaman khusus ringkas lalu card catatan",
+    )
+    check(
+        button(root, "Edit") is not None
+        and any(isinstance(control, ft.ProgressBar) for control in walk(root)),
+        "kartu Focus menyediakan edit waktu dan progress ringkas",
+    )
+    if finish is not None:
         state = focus_session._state()
         state.ends_at = None
         state.paused_left = 5 * 60
-        done.on_click(SimpleNamespace(control=None))
+        finish.on_click(SimpleNamespace(control=None))
+        complete = button(page.dialogs[-1], "Sudah selesai")
+        complete.on_click(SimpleNamespace(control=None))
         updated = next(item for item in storage.get_tasks() if item["id"] == task["id"])
         check(updated["steps"][0]["done"] and routes[-1] == "home",
               "smoke Home → Focus → DONE menyimpan Tracker lalu kembali memilih action")
@@ -282,11 +288,14 @@ def scenario_done_continues_next_step_same_task() -> None:
     )
 
     routes: list[str] = []
-    first_root = home.build(FakePage(), routes.append)
-    first_done = button(first_root, "DONE")
-    check(first_done is not None, "DONE tersedia untuk step pertama")
-    if first_done is None:
+    first_page = FakePage()
+    first_root = home.build(first_page, routes.append)
+    first_finish = button(first_root, "Sudahi")
+    check(first_finish is not None, "Sudahi tersedia untuk step pertama")
+    if first_finish is None:
         return
+    first_finish.on_click(SimpleNamespace(control=None))
+    first_done = button(first_page.dialogs[-1], "Sudah selesai")
     first_done.on_click(SimpleNamespace(control=None))
 
     stored_parent = next(item for item in storage.get_tasks() if item["id"] == parent["id"])
@@ -312,10 +321,13 @@ def scenario_done_continues_next_step_same_task() -> None:
         "double-tap dari tombol DONE lama tidak ikut menyelesaikan step baru",
     )
 
-    second_root = home.build(FakePage(), routes.append)
-    second_done = button(second_root, "DONE")
-    check(second_done is not None, "DONE tersedia untuk step kedua")
-    if second_done is not None:
+    second_page = FakePage()
+    second_root = home.build(second_page, routes.append)
+    second_finish = button(second_root, "Sudahi")
+    check(second_finish is not None, "Sudahi tersedia untuk step kedua")
+    if second_finish is not None:
+        second_finish.on_click(SimpleNamespace(control=None))
+        second_done = button(second_page.dialogs[-1], "Sudah selesai")
         second_done.on_click(SimpleNamespace(control=None))
     stored_parent = next(item for item in storage.get_tasks() if item["id"] == parent["id"])
     check(storage.task_is_done(stored_parent) and not focus_session.is_active(),
@@ -358,11 +370,14 @@ def scenario_done_continues_recurring_occurrence() -> None:
         occurrence_date=today,
         step_index=0,
     )
-    root = home.build(FakePage(), lambda route: None)
-    done = button(root, "DONE")
-    check(done is not None, "DONE tersedia pada recurring occurrence")
-    if done is None:
+    page = FakePage()
+    root = home.build(page, lambda route: None)
+    finish = button(root, "Sudahi")
+    check(finish is not None, "Sudahi tersedia pada recurring occurrence")
+    if finish is None:
         return
+    finish.on_click(SimpleNamespace(control=None))
+    done = button(page.dialogs[-1], "Sudah selesai")
     done.on_click(SimpleNamespace(control=None))
     continued = focus_session.snapshot()
     check(
@@ -394,8 +409,13 @@ def scenario_timer_finished_offers_outcomes() -> None:
     )
     state = focus_session._state()
     state.ends_at = datetime.now() - timedelta(seconds=1)
-    root = home.build(FakePage(), lambda route: None)
-    visible = texts(root)
+    page = FakePage()
+    root = home.build(page, lambda route: None)
+    show_outcomes = button(root, "Lihat hasil sesi")
+    check(show_outcomes is not None, "timer habis menyediakan akses ke hasil sesi")
+    if show_outcomes is not None:
+        show_outcomes.on_click(SimpleNamespace(control=None))
+    visible = texts(page.dialogs[-1] if page.dialogs else None)
     check(all(label in visible for label in (
         "Sudah selesai", "Masih butuh waktu", "Terhambat", "Lanjut nanti",
     )), "timer habis menampilkan pilihan outcome yang eksplisit")

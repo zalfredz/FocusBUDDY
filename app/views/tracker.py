@@ -6,7 +6,7 @@ from datetime import date, datetime, time, timedelta
 
 import flet as ft
 
-from app import clock, focus_session, storage, theme, ui_helpers
+from app import buddy, clock, focus_session, storage, theme, ui_helpers
 from app.date_utils import selected_calendar_date
 from app.core import kalem_engine
 from app.voice_diary import VoiceDiary
@@ -20,6 +20,7 @@ MONTH_NAMES = [
     "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ]
 DAY_INITIALS = ["S", "S", "R", "K", "J", "S", "M"]
+DAY_SHORT = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
 DAY_NAMES = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 
 QUADRANT_META = {
@@ -142,12 +143,19 @@ def build(page: ft.Page, navigate) -> ft.Control:
         render_timeline()
         page.update()
 
-    def day_cell(day, in_month: bool) -> ft.Control:
+    def day_cell(day, in_month: bool, weekly: bool = False) -> ft.Control:
         iso = day.isoformat()
         selected = iso == state["selected"]
         is_today = day == today
 
-        if selected:
+        if weekly and is_today:
+            bg, fg = theme.PRIMARY, "#181A35"
+        elif weekly and selected:
+            bg, fg = "#B9BDF2", "#181A35"
+        elif weekly:
+            bg = "#00000000"
+            fg = "#E7657C" if day.weekday() >= 5 else "#181A35"
+        elif selected:
             bg, fg = theme.PRIMARY, "#FFFFFF"
         elif is_today:
             bg, fg = theme.SURFACE, theme.PRIMARY
@@ -179,11 +187,17 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 alignment=ft.MainAxisAlignment.CENTER,
             ),
-            height=42,
+            height=32 if weekly else 42,
             expand=True,
             bgcolor=bg,
-            border=ft.Border.all(1, theme.PRIMARY) if is_today and not selected else None,
-            border_radius=10,
+            border=(
+                ft.Border.all(1.5, "#484863")
+                if weekly and selected and not is_today
+                else ft.Border.all(1, theme.PRIMARY)
+                if is_today and not selected
+                else None
+            ),
+            border_radius=8 if weekly else 10,
             alignment=ft.Alignment.CENTER,
             on_click=(lambda e, d=iso: select_day(d)) if in_month else None,
             ink=in_month,
@@ -225,17 +239,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
             selected = date.fromisoformat(state["selected"])
             start = selected - timedelta(days=selected.weekday())
             week = [start + timedelta(days=i) for i in range(7)]
-            end = week[-1]
-            month_label.value = (
-                f"{start.day} {MONTH_NAMES[start.month - 1][:3]} – "
-                f"{end.day} {MONTH_NAMES[end.month - 1][:3]} {end.year}"
-            )
+            month_label.value = f"{MONTH_NAMES[selected.month - 1]} {selected.year}"
             calendar_grid.controls = [
                 ft.Row(
                     [
                         ft.Container(
-                            content=ft.Text(DAY_INITIALS[i], size=10, color=theme.MUTED,
-                                            text_align=ft.TextAlign.CENTER),
+                            content=ft.Text(
+                                DAY_SHORT[i],
+                                size=10.5,
+                                color="#E7657C" if i >= 5 else theme.ON_BACKGROUND,
+                                weight=ft.FontWeight.W_600,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
                             expand=True,
                             alignment=ft.Alignment.CENTER,
                         )
@@ -243,12 +258,21 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ],
                     spacing=4,
                 ),
-                ft.Row([day_cell(d, True) for d in week], spacing=4),
+                ft.Container(
+                    bgcolor="#DDE0FF",
+                    border_radius=16,
+                    padding=4,
+                    content=ft.Row(
+                        [day_cell(d, True, weekly=True) for d in week],
+                        spacing=2,
+                    ),
+                ),
             ]
             calendar_nav.controls = [
                 ft.Container(content=month_label, expand=True),
                 ft.TextButton(
-                    content=ft.Text("Lihat bulan", size=12, color=theme.PRIMARY),
+                    content=ft.Text("Lebih lengkap", size=11.5, color="#181A35"),
+                    style=ft.ButtonStyle(bgcolor="#DDE0FF"),
                     on_click=lambda e: toggle_month(True),
                 ),
             ]
@@ -345,7 +369,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
     def render_timeline():
-        tasks = kalem_engine.rank_actionable_tasks(tasks_in_filter())
+        tasks = kalem_engine.rank_actionable_tasks(active_tasks())
         if not tasks:
             timeline_column.controls = []
             return
@@ -411,9 +435,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def set_time_filter(value: str):
         state["time_filter"] = value
         render_time_filter()
-        render_day_tasks()
         render_eisenhower()
-        render_timeline()
         page.update()
 
     def render_time_filter():
@@ -443,11 +465,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
             for task in storage.tasks_for(date(year, month, day).isoformat())
         ]
 
+    def active_tasks() -> list[dict]:
+        """Daftar tugas aktif selalu mengikuti satu tanggal yang sedang dipilih."""
+        return storage.tasks_for(state["selected"])
+
     def toggle_step(task_id: str, index: int, value: bool, occurrence_date: str | None = None):
         expanded_tasks.add(
             f"{task_id}::{occurrence_date}" if occurrence_date else task_id
         )
-        before_task = next((t for t in tasks_in_filter() if t["id"] == task_id and
+        before_task = next((t for t in active_tasks() if t["id"] == task_id and
                             t.get("_occurrence_date") == occurrence_date), None)
         sebelum = storage.task_is_done(before_task) if before_task else False
         storage.set_step_done(task_id, index, value, occurrence_date)
@@ -606,6 +632,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         label=step["text"],
                         value=step.get("done", False),
                         expand=True,
+                        label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
                         on_change=lambda e, tid=task["id"], i=i,
                         od=task.get("_occurrence_date"): toggle_step(
                             tid, i, e.control.value, od
@@ -913,14 +940,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
     def render_day_tasks():
-        tasks = tasks_in_filter()
+        tasks = active_tasks()
         if not tasks:
-            empty = {
-                "daily": "Belum ada tugas di tanggal ini.",
-                "weekly": "Belum ada tugas minggu ini.",
-                "monthly": "Belum ada tugas bulan ini.",
-            }[state["time_filter"]]
-            day_tasks_column.controls = [ui_helpers.empty_state(empty, ft.Icons.EVENT_AVAILABLE)]
+            day_tasks_column.controls = [
+                ui_helpers.empty_state(
+                    "Belum ada tugas di tanggal ini.", ft.Icons.EVENT_AVAILABLE
+                )
+            ]
             return
 
         open_tasks = kalem_engine.rank_actionable_tasks(tasks)
@@ -973,19 +999,44 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
     def open_add_task(e):
-        title_field = ft.TextField(label="Nama tugas", hint_text="mis. Bikin Skripsi Bab 1")
+        field_style = {
+            "filled": True,
+            "bgcolor": "#343446",
+            "color": theme.ON_BACKGROUND,
+            "border_color": theme.BORDER,
+            "focused_border_color": theme.PRIMARY,
+            "label_style": ft.TextStyle(color=theme.ON_BACKGROUND),
+            "hint_style": ft.TextStyle(color=theme.MUTED),
+        }
+        picker_button_style = ft.ButtonStyle(
+            bgcolor="#343446",
+            color=theme.ON_BACKGROUND,
+            side=ft.BorderSide(1, theme.BORDER),
+            shape=ft.RoundedRectangleBorder(radius=12),
+        )
+        title_field = ft.TextField(
+            label="Nama tugas",
+            hint_text="Nama tugas",
+            **field_style,
+        )
         description_field = ft.TextField(
             label="Deskripsi (opsional)",
-            hint_text="mis. bikin proposal buat ikut hackathon kampus, "
-                      "temanya bebas, deadline minggu depan",
+            hint_text="Konteks, hasil yang diinginkan, atau batasan tugas",
             multiline=True,
             min_lines=2,
             max_lines=5,
-            helper="Diisi -> Pecah Tugas mecah dari SINI, bukan cuma judul",
+            **field_style,
+        )
+        description_context = ft.Text(
+            "Deskripsi dipakai KALEM sebagai konteks tugas, bukan sebagai daftar "
+            "langkah. Langkah baru akan disusun saat tugas dipecah.",
+            size=10.5,
+            color=theme.MUTED,
         )
         no_deadline = ft.Checkbox(
             label="Tanpa deadline",
             value=False,
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
         )
         task_date_state = {"value": state["selected"]}
         task_date_label = ft.Text(
@@ -1031,8 +1082,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.Row(
                     [
                         ft.OutlinedButton(
-                            content=ft.Text("Pilih tanggal", size=11.5),
+                            content=ft.Text(
+                                "Pilih tanggal",
+                                size=11.5,
+                                color=theme.ON_BACKGROUND,
+                            ),
                             icon=ft.Icons.CALENDAR_TODAY,
+                            style=picker_button_style,
                             on_click=lambda ev: page.show_dialog(task_date_picker),
                         ),
                         task_date_label,
@@ -1042,35 +1098,83 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ],
             spacing=4,
         )
-        important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
+        important_check = ft.Checkbox(
+            label="Penting (berdampak besar)",
+            value=True,
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+        )
         difficulty = ft.RadioGroup(
             value="2",
             content=ft.Row(
                 [
-                    ft.Radio(value="1", label="Gampang"),
-                    ft.Radio(value="2", label="Sedang"),
-                    ft.Radio(value="3", label="Berat"),
+                    ft.Container(
+                        content=ft.Radio(
+                            value="1",
+                            label="Gampang",
+                            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+                        ),
+                        bgcolor="#343446",
+                        border_radius=10,
+                        padding=ft.Padding.symmetric(vertical=3, horizontal=5),
+                        expand=True,
+                    ),
+                    ft.Container(
+                        content=ft.Radio(
+                            value="2",
+                            label="Sedang",
+                            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+                        ),
+                        bgcolor="#343446",
+                        border_radius=10,
+                        padding=ft.Padding.symmetric(vertical=3, horizontal=5),
+                        expand=True,
+                    ),
+                    ft.Container(
+                        content=ft.Radio(
+                            value="3",
+                            label="Berat",
+                            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+                        ),
+                        bgcolor="#343446",
+                        border_radius=10,
+                        padding=ft.Padding.symmetric(vertical=3, horizontal=5),
+                        expand=True,
+                    ),
                 ],
-                spacing=0,
+                spacing=7,
             ),
         )
-        repeat_group = ft.RadioGroup(
+        repeat_group = ft.Dropdown(
             value="none",
-            content=ft.Row(
-                [
-                    ft.Radio(value="none", label="Sekali"),
-                    ft.Radio(value="daily", label="Harian"),
-                    ft.Radio(value="weekly", label="Mingguan"),
-                    ft.Radio(value="monthly", label="Bulanan"),
-                ],
-                spacing=0,
-                wrap=True,
-            ),
+            label="Tugas berulang",
+            options=[
+                ft.DropdownOption(
+                    key=value,
+                    content=ft.Text(label, color=theme.ON_BACKGROUND),
+                )
+                for value, label in (
+                    ("none", "Sekali"),
+                    ("daily", "Harian"),
+                    ("weekly", "Mingguan"),
+                    ("monthly", "Bulanan"),
+                )
+            ],
+            color=theme.ON_BACKGROUND,
+            text_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+            filled=True,
+            fill_color="#343446",
+            bgcolor="#343446",
+            border_color=theme.BORDER,
+            focused_border_color=theme.PRIMARY,
+            border_radius=12,
+            dense=True,
         )
         routine_check = ft.Checkbox(
             label="Jadwal rutin saja (tidak masuk saran KALEM)",
             value=False,
             visible=False,
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
         )
         repeat_end_state = {"value": ""}
         repeat_end_label = ft.Text(
@@ -1120,8 +1224,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         deadline_time_picker.on_change = choose_deadline_time
         deadline_time_button = ft.OutlinedButton(
-            content=ft.Text("Pilih jam", size=11.5),
+            content=ft.Text("Pilih jam", size=11.5, color=theme.ON_BACKGROUND),
             icon=ft.Icons.SCHEDULE,
+            style=picker_button_style,
             on_click=lambda ev: page.show_dialog(deadline_time_picker),
         )
         deadline_time_clear = ft.IconButton(
@@ -1138,11 +1243,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.Row(
                     [deadline_time_button, deadline_time_label, deadline_time_clear],
                     spacing=6,
-                ),
-                ft.Text(
-                    "Untuk tugas berulang, jam ini ikut berlaku di setiap occurrence.",
-                    size=10.5,
-                    color=theme.MUTED,
                 ),
             ],
             spacing=4,
@@ -1191,8 +1291,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.Row(
                     [
                         ft.OutlinedButton(
-                            content=ft.Text("Pilih tanggal akhir", size=11.5),
+                            content=ft.Text(
+                                "Pilih tanggal akhir",
+                                size=11.5,
+                                color=theme.ON_BACKGROUND,
+                            ),
                             icon=ft.Icons.EVENT,
+                            style=picker_button_style,
                             on_click=lambda ev: page.show_dialog(repeat_end_picker),
                         ),
                         repeat_end_label,
@@ -1215,7 +1320,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 clear_repeat_end()
             page.update()
 
-        repeat_group.on_change = change_repeat
+        repeat_group.on_select = change_repeat
 
         picked = {
             "menit": 0,
@@ -1372,42 +1477,92 @@ def build(page: ft.Page, navigate) -> ft.Control:
         def set_voice_busy(busy: bool) -> None:
             submit_button.disabled = busy
 
-        voice = VoiceDiary(page, description_field, set_voice_busy)
-        voice_status = voice.embed_in_field()
-        description_field.on_change = lambda ev: voice.sync_with_text()
+        voice = VoiceDiary(
+            page,
+            description_field,
+            set_voice_busy,
+            idle_label="Isi deskripsi pakai suara",
+        )
+        voice_control = voice.control()
 
         def cancel_add_task(ev) -> None:
             voice.cleanup()
             page.pop_dialog()
 
+        def form_card(title: str, controls: list[ft.Control]) -> ft.Control:
+            return ft.Container(
+                bgcolor="#24242F",
+                border=ft.Border.all(1, theme.BORDER),
+                border_radius=16,
+                padding=14,
+                content=ft.Column(
+                    [
+                        ft.Text(
+                            title,
+                            size=13,
+                            weight=ft.FontWeight.W_800,
+                            color=theme.ON_BACKGROUND,
+                        ),
+                        *controls,
+                    ],
+                    spacing=10,
+                ),
+            )
+
+        details_card = form_card(
+            "Nama + deskripsi",
+            [title_field, description_field, description_context, voice_control],
+        )
+        deadline_card = form_card(
+            "Deadline",
+            [
+                no_deadline,
+                task_date_holder,
+                deadline_time_holder,
+                repeat_group,
+                routine_check,
+                repeat_end_holder,
+            ],
+        )
+        priority_card = form_card(
+            "Penting + tingkat kesulitan",
+            [
+                important_check,
+                ft.Text(
+                    "Seberat apa buat dimulai?",
+                    size=11.5,
+                    color=theme.ON_BACKGROUND,
+                ),
+                difficulty,
+                estimate_holder,
+            ],
+        )
+
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("Tambah tugas", size=16),
+                bgcolor="#1C1C26",
+                title=ft.Text(
+                    "Tambah Tugas",
+                    size=20,
+                    color=theme.ON_BACKGROUND,
+                    weight=ft.FontWeight.W_800,
+                ),
                 content=ft.Column(
                     [
-                        title_field,
-                        description_field,
-                        voice_status,
-                        no_deadline,
-                        task_date_holder,
-                        deadline_time_holder,
-                        ft.Text("Ulangi tugas", size=11, color=theme.MUTED),
-                        repeat_group,
-                        routine_check,
-                        repeat_end_holder,
-                        important_check,
-                        ft.Text("Seberat apa buat dimulai?", size=11, color=theme.MUTED),
-                        difficulty,
-                        ft.Divider(color=theme.BORDER, height=1),
-                        estimate_holder,
+                        details_card,
+                        deadline_card,
+                        priority_card,
                     ],
-                    spacing=8,
+                    spacing=12,
                     tight=True,
                     scroll=ft.ScrollMode.AUTO,
                 ),
                 actions=[
-                    ft.TextButton(content=ft.Text("Batal"), on_click=cancel_add_task),
+                    ft.TextButton(
+                        content=ft.Text("Batal", color=theme.ON_BACKGROUND),
+                        on_click=cancel_add_task,
+                    ),
                     submit_button,
                 ],
             )
@@ -1417,7 +1572,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def open_split_picker(e):
         tasks = [
             task
-            for task in tasks_in_filter()
+            for task in active_tasks()
             if storage.is_recommendable_task(task)
             and not storage.task_is_done(task)
         ]
@@ -1442,6 +1597,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     + (f" · {t['_occurrence_date']}" if t.get("_occurrence_date") else "")
                 ),
                 value=True,
+                label_style=ft.TextStyle(color=theme.ON_BACKGROUND, size=11.5),
             )
             for t in tasks
         }
@@ -1481,34 +1637,58 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("Pecah tugas mana?", size=16),
-                content=ft.Column(
-                    [
-                        ft.Text(
-                            "Cuma tugas yang dicentang yang akan dipecah. Setelah hasilnya "
-                            "muncul, langkah bisa diedit langsung dari card tugas.",
-                            size=11.5,
-                            color=theme.MUTED,
-                        ),
-                        ft.Row(
-                            [
-                                ft.TextButton(content=ft.Text("Pilih semua", size=12),
-                                              on_click=lambda ev: set_all(True)),
-                                ft.TextButton(content=ft.Text("Kosongkan", size=12),
-                                              on_click=lambda ev: set_all(False)),
-                            ],
-                            spacing=4,
-                        ),
-                        *[picker_row(t) for t in tasks],
-                    ],
-                    spacing=6,
-                    tight=True,
-                    scroll=ft.ScrollMode.AUTO,
+                bgcolor="#1C1C26",
+                title=ft.Text(
+                    "Pecah tugas mana?",
+                    size=15,
+                    color=theme.ON_BACKGROUND,
+                    weight=ft.FontWeight.W_700,
+                ),
+                content=ft.Container(
+                    width=320,
+                    height=min(420, 100 + len(tasks) * 46),
+                    content=ft.Column(
+                        [
+                            ft.Text(
+                                "Pilih tugas yang mau dipecah. Hasilnya bisa diedit "
+                                "langsung dari card tugas.",
+                                size=10.5,
+                                color=theme.MUTED,
+                            ),
+                            ft.Row(
+                                [
+                                    ft.TextButton(
+                                        content=ft.Text(
+                                            "Pilih semua", size=11, color=theme.PRIMARY
+                                        ),
+                                        on_click=lambda ev: set_all(True),
+                                    ),
+                                    ft.TextButton(
+                                        content=ft.Text(
+                                            "Kosongkan", size=11, color=theme.PRIMARY
+                                        ),
+                                        on_click=lambda ev: set_all(False),
+                                    ),
+                                ],
+                                spacing=2,
+                            ),
+                            *[picker_row(t) for t in tasks],
+                        ],
+                        spacing=5,
+                        tight=True,
+                        scroll=ft.ScrollMode.AUTO,
+                    ),
                 ),
                 actions=[
-                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()),
+                    ft.TextButton(
+                        content=ft.Text("Batal", color=theme.ON_BACKGROUND),
+                        on_click=lambda ev: page.pop_dialog(),
+                    ),
                     ui_helpers.primary_button("Pecah", submit, icon=ft.Icons.AUTO_AWESOME),
                 ],
+                title_padding=ft.Padding(left=18, top=16, right=18, bottom=6),
+                content_padding=ft.Padding(left=18, top=4, right=18, bottom=4),
+                actions_padding=ft.Padding(left=14, top=4, right=14, bottom=12),
             )
         )
 
@@ -1720,10 +1900,27 @@ def build(page: ft.Page, navigate) -> ft.Control:
     calendar_card = ui_helpers.card(
         ft.Column([calendar_nav, calendar_grid], spacing=8), padding=14
     )
+    tracker_tired = state["energy"] <= 3
+    tracker_companion = ft.Row(
+        [
+            buddy.face("lelah" if tracker_tired else "semangat", 96),
+            ft.Container(
+                content=buddy.speech_bubble(
+                    "Kamu kelihatan capek. Istirahat juga termasuk progress loh..."
+                    if tracker_tired
+                    else "Semangat untuk Hari Ini!"
+                ),
+                expand=True,
+            ),
+        ],
+        spacing=8,
+        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+    )
 
     return ft.Column(
         [
             ui_helpers.page_header("Tracker"),
+            tracker_companion,
             calendar_card,
             filter_holder,
             ft.Row(
@@ -1738,9 +1935,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ],
                 spacing=10,
             ),
+            plan_column,
             next_action_holder,
             timeline_column,
-            plan_column,
             day_tasks_column,
             focus_history_holder,
             eisenhower_column,

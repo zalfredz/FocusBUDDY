@@ -35,6 +35,7 @@ SPACING = 16
 
 def build_theme() -> ft.Theme:
     return ft.Theme(
+        visual_density=ft.VisualDensity.COMFORTABLE,
         color_scheme=ft.ColorScheme(
             primary=PRIMARY,
             on_primary="#181A35",
@@ -68,6 +69,22 @@ def build_theme() -> ft.Theme:
                 ft.ControlState.SELECTED: "#181A35",
                 ft.ControlState.DEFAULT: ON_BACKGROUND,
             },
+            cancel_button_style=ft.ButtonStyle(color=PRIMARY),
+            confirm_button_style=ft.ButtonStyle(color=PRIMARY),
+            shape=ft.RoundedRectangleBorder(radius=24),
+        ),
+        time_picker_theme=ft.TimePickerTheme(
+            bgcolor="#24242F",
+            dial_bgcolor="#343446",
+            dial_hand_color=PRIMARY,
+            dial_text_color=ON_BACKGROUND,
+            hour_minute_color="#343446",
+            hour_minute_text_color=ON_BACKGROUND,
+            entry_mode_icon_color=PRIMARY,
+            help_text_style=ft.TextStyle(
+                color=ON_BACKGROUND,
+                font_family=FONT_AUTH,
+            ),
             cancel_button_style=ft.ButtonStyle(color=PRIMARY),
             confirm_button_style=ft.ButtonStyle(color=PRIMARY),
             shape=ft.RoundedRectangleBorder(radius=24),

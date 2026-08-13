@@ -1,4 +1,4 @@
-"""Halaman langganan dan aktivasi Premium khusus demo."""
+"""Halaman langganan dan aktivasi Freemium khusus demo."""
 from __future__ import annotations
 
 import flet as ft
@@ -29,8 +29,8 @@ _PREMIUM_BENEFITS = (
     ),
 )
 
-_DEMO_CARD_NUMBER = "4242424242424242"
-_DEMO_GOPAY_NUMBER = "081200000000"
+_DEMO_CARD_NUMBER = "0000000000000000"
+_DEMO_GOPAY_NUMBER = "081234567890"
 _DEMO_PRICE = "Rp29.000 / bulan"
 
 
@@ -73,35 +73,77 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def open_demo_checkout(e) -> None:
         payment_state = {"method": "card", "masked": ""}
+        field_style = {
+            "filled": True,
+            "bgcolor": theme.BACKGROUND,
+            "color": theme.ON_BACKGROUND,
+            "border_color": theme.BORDER,
+            "focused_border_color": theme.PRIMARY,
+            "label_style": ft.TextStyle(color=theme.ON_BACKGROUND),
+            "hint_style": ft.TextStyle(color=theme.MUTED),
+        }
         card_field = ft.TextField(
             label="Nomor kartu demo",
-            hint_text="4242 4242 4242 4242",
-            helper="Gunakan nomor dummy di atas. Jangan masukkan kartu asli.",
+            value="0000 0000 0000 0000",
+            helper="Nomor simulasi. Jangan masukkan kartu asli.",
+            helper_style=ft.TextStyle(color=theme.MUTED),
             keyboard_type=ft.KeyboardType.NUMBER,
             max_length=19,
+            autofocus=True,
+            **field_style,
+        )
+        expiry_field = ft.TextField(
+            label="Bulan/Tahun",
+            hint_text="MM/YY",
+            keyboard_type=ft.KeyboardType.NUMBER,
+            max_length=5,
+            expand=True,
+            **field_style,
+        )
+        cvc_field = ft.TextField(
+            label="CVC",
+            hint_text="CVC",
+            keyboard_type=ft.KeyboardType.NUMBER,
+            max_length=3,
             password=True,
             can_reveal_password=False,
-            autofocus=True,
+            expand=True,
+            **field_style,
+        )
+        card_details = ft.Row(
+            [expiry_field, cvc_field],
+            spacing=8,
         )
         gopay_field = ft.TextField(
             label="Nomor GoPay demo",
-            hint_text="0812 0000 0000",
-            helper="Gunakan nomor dummy di atas. Tidak ada OTP yang dikirim.",
+            value="081234567890",
+            helper="Nomor simulasi. Tidak ada OTP yang dikirim.",
+            helper_style=ft.TextStyle(color=theme.MUTED),
             keyboard_type=ft.KeyboardType.PHONE,
             max_length=15,
             visible=False,
+            **field_style,
         )
         consent = ft.Checkbox(
             label="Saya paham ini hanya simulasi dan tidak memproses pembayaran nyata.",
             value=False,
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
         )
         error = ft.Text("", size=10.5, color=theme.DANGER, visible=False)
         method = ft.RadioGroup(
             value="card",
             content=ft.Row(
                 [
-                    ft.Radio(value="card", label="Kartu"),
-                    ft.Radio(value="gopay", label="GoPay"),
+                    ft.Radio(
+                        value="card",
+                        label="Kartu",
+                        label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+                    ),
+                    ft.Radio(
+                        value="gopay",
+                        label="GoPay",
+                        label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+                    ),
                 ],
                 spacing=4,
             ),
@@ -113,6 +155,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         def change_method(ev) -> None:
             payment_state["method"] = method.value or "card"
             card_field.visible = payment_state["method"] == "card"
+            card_details.visible = payment_state["method"] == "card"
             gopay_field.visible = payment_state["method"] == "gopay"
             error.visible = False
             page.update()
@@ -134,13 +177,22 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
             if number != expected:
                 error.value = (
-                    "Gunakan nomor kartu demo 4242 4242 4242 4242."
+                    "Gunakan nomor kartu demo 0000 0000 0000 0000."
                     if selected_method == "card"
-                    else "Gunakan nomor GoPay demo 0812 0000 0000."
+                    else "Gunakan nomor GoPay demo 081234567890."
                 )
                 error.visible = True
                 page.update()
                 return
+            if selected_method == "card":
+                expiry = digits(expiry_field.value or "")
+                cvc = digits(cvc_field.value or "")
+                valid_month = len(expiry) == 4 and 1 <= int(expiry[:2]) <= 12
+                if not valid_month or len(cvc) != 3:
+                    error.value = "Lengkapi Bulan/Tahun (MM/YY) dan CVC demo."
+                    error.visible = True
+                    page.update()
+                    return
             if not consent.value:
                 error.value = "Centang persetujuan simulasi sebelum lanjut."
                 error.visible = True
@@ -148,15 +200,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 return
 
             payment_state["masked"] = (
-                "•••• •••• •••• 4242"
+                "•••• •••• •••• 0000"
                 if selected_method == "card"
-                else "0812 •••• 0000"
+                else "0812 •••• 7890"
             )
             page.pop_dialog()
             page.show_dialog(
                 ft.AlertDialog(
                     modal=True,
-                    title=ft.Text("Konfirmasi pembayaran demo", size=17),
+                    bgcolor=theme.SURFACE,
+                    title=ft.Text(
+                        "Konfirmasi pembayaran demo",
+                        size=17,
+                        color=theme.ON_BACKGROUND,
+                    ),
                     content=ft.Column(
                         [
                             ft.Container(
@@ -178,9 +235,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                 [
                                     ft.Text("Paket", size=11.5, color=theme.MUTED),
                                     ft.Text(
-                                        "KALEM Premium",
+                                        "KALEM Freemium",
                                         size=11.5,
                                         weight=ft.FontWeight.BOLD,
+                                        color=theme.ON_BACKGROUND,
                                     ),
                                 ],
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -192,6 +250,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                         "Kartu" if selected_method == "card" else "GoPay",
                                         size=11.5,
                                         weight=ft.FontWeight.BOLD,
+                                        color=theme.ON_BACKGROUND,
                                     ),
                                 ],
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -203,6 +262,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                         payment_state["masked"],
                                         size=11.5,
                                         weight=ft.FontWeight.BOLD,
+                                        color=theme.ON_BACKGROUND,
                                     ),
                                 ],
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -225,7 +285,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ),
                     actions=[
                         ft.TextButton(
-                            content=ft.Text("Batal"),
+                            content=ft.Text("Batal", color=theme.ON_BACKGROUND),
                             on_click=lambda event: page.pop_dialog(),
                         ),
                         ui_helpers.primary_button(
@@ -240,7 +300,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("Checkout Premium — DEMO", size=17),
+                bgcolor=theme.SURFACE,
+                title=ft.Text(
+                    "Checkout Freemium — DEMO",
+                    size=17,
+                    color=theme.ON_BACKGROUND,
+                ),
                 content=ft.Column(
                     [
                         ui_helpers.banner(
@@ -250,7 +315,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ),
                         ft.Row(
                             [
-                                ft.Text("KALEM Premium", size=13, weight=ft.FontWeight.BOLD),
+                                ft.Text(
+                                    "KALEM Freemium",
+                                    size=13,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=theme.ON_BACKGROUND,
+                                ),
                                 ft.Text(
                                     _DEMO_PRICE,
                                     size=12,
@@ -263,6 +333,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ft.Text("Metode pembayaran demo", size=11, color=theme.MUTED),
                         method,
                         card_field,
+                        card_details,
                         gopay_field,
                         consent,
                         error,
@@ -273,7 +344,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ),
                 actions=[
                     ft.TextButton(
-                        content=ft.Text("Batal"),
+                        content=ft.Text("Batal", color=theme.ON_BACKGROUND),
                         on_click=lambda event: page.pop_dialog(),
                     ),
                     ui_helpers.primary_button(
@@ -285,28 +356,42 @@ def build(page: ft.Page, navigate) -> ft.Control:
             )
         )
 
-    status = ft.Container(
+    package_caption = (
+        "Freemium demo sedang aktif"
+        if premium
+        else "Kamu sedang memakai paket Free"
+    )
+    upgrade_button = ft.Container(
+        height=42,
+        border_radius=22,
+        alignment=ft.Alignment.CENTER,
+        gradient=ft.LinearGradient(
+            begin=ft.Alignment.CENTER_LEFT,
+            end=ft.Alignment.CENTER_RIGHT,
+            colors=["#FFF0B3", "#FFB887"],
+        ),
         content=ft.Row(
             [
                 ft.Icon(
-                    ft.Icons.CHECK_CIRCLE if premium else ft.Icons.LOCK_OPEN_OUTLINED,
-                    color=theme.SUCCESS if premium else theme.MUTED,
+                    ft.Icons.CHECK_CIRCLE_OUTLINE
+                    if premium
+                    else ft.Icons.WORKSPACE_PREMIUM,
                     size=18,
+                    color="#4A321F",
                 ),
                 ft.Text(
-                    "Premium demo sedang aktif" if premium else "Kamu sedang memakai paket Free",
-                    size=12,
+                    "Freemium Demo Aktif" if premium else "Upgrade ke Freemium",
+                    size=14,
                     weight=ft.FontWeight.BOLD,
-                    color=theme.ON_BACKGROUND,
-                    expand=True,
+                    color="#4A321F",
                 ),
             ],
-            spacing=8,
+            spacing=7,
+            tight=True,
+            alignment=ft.MainAxisAlignment.CENTER,
         ),
-        bgcolor=theme.BACKGROUND,
-        border=ft.Border.all(1, theme.SUCCESS if premium else theme.BORDER),
-        border_radius=12,
-        padding=ft.Padding.symmetric(vertical=10, horizontal=12),
+        on_click=deactivate_demo if premium else open_demo_checkout,
+        ink=True,
     )
 
     demo_controls: list[ft.Control] = []
@@ -377,16 +462,17 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                 ft.Column(
                                     [
                                         ft.Text(
-                                            "KALEM Premium",
+                                            "KALEM Freemium",
                                             size=19,
                                             weight=ft.FontWeight.BOLD,
                                             color=theme.ON_BACKGROUND,
                                             font_family=theme.FONT_DISPLAY,
                                         ),
                                         ft.Text(
-                                            "Dukungan yang lebih lengkap untuk membaca ritme harianmu.",
-                                            size=11.5,
-                                            color=theme.MUTED,
+                                            package_caption,
+                                            size=12,
+                                            color=theme.ON_BACKGROUND,
+                                            weight=ft.FontWeight.W_600,
                                         ),
                                     ],
                                     spacing=1,
@@ -395,13 +481,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
                             ],
                             spacing=10,
                         ),
-                        status,
                         ft.Text(
-                            "Langganan publik belum dibuka. Kamu tetap bisa melihat "
-                            "pengalaman Premium melalui mode demo di bawah.",
-                            size=11.5,
-                            color=theme.MUTED,
+                            "IDR 29.000/Bulan",
+                            size=16,
+                            weight=ft.FontWeight.BOLD,
+                            color="#FFD596",
                         ),
+                        upgrade_button,
                     ],
                     spacing=12,
                 )
@@ -409,7 +495,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ui_helpers.card(
                 ft.Column(
                     [
-                        ui_helpers.section_header("Yang terbuka di Premium"),
+                        ui_helpers.section_header("Yang terbuka di Freemium"),
                         *(_benefit(*benefit) for benefit in _PREMIUM_BENEFITS),
                     ],
                     spacing=14,

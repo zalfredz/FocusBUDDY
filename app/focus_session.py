@@ -220,7 +220,7 @@ def update_duration(minutes: int) -> bool:
         new_total = int(minutes) * 60
     except (TypeError, ValueError):
         return False
-    if not 60 <= new_total <= 120 * 60:
+    if not 60 <= new_total <= 30 * 60:
         return False
 
     left = remaining()

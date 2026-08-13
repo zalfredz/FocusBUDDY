@@ -122,13 +122,11 @@ def scenario_rest_outcome_duration_and_logging() -> None:
     with patch("models.model_overwhelm.nilai", return_value=Risiko(0, "tenang", "test")):
         root = home.build(page, routes.append)
     shown = texts(root)
-    check("Estimasi sisa task" in shown and "Durasi sesi" in shown,
-          "Focus memisahkan estimasi task dari durasi sesi")
-    check("~90 menit" in shown and "10 menit" in shown,
-          "kedua angka memakai metadata yang berbeda")
+    check("Sesi fokus:" in shown and "Buka dokumen" in shown,
+          "Focus menampilkan kartu timer ringkas tanpa panel statistik lama")
 
-    edit_duration = clickable(root, "Ubah durasi")
-    check(edit_duration is not None, "Ubah durasi tersedia sebagai kontrol opsional")
+    edit_duration = clickable(root, "Edit")
+    check(edit_duration is not None, "Edit waktu tersedia di bagian atas kartu Focus")
     if edit_duration is not None:
         edit_duration.on_click(None)
     duration_dialog = page.dialogs[-1] if page.dialogs else None
@@ -138,18 +136,30 @@ def scenario_rest_outcome_duration_and_logging() -> None:
         None,
     )
     save_duration = clickable(duration_dialog, "Simpan durasi")
-    check(duration_field is not None and save_duration is not None,
-          "dialog durasi meminta angka lalu menyimpan secara eksplisit")
+    check(
+        duration_field is not None and save_duration is not None
+        and duration_field.helper == "Isi 1 - 30 Menit yaa"
+        and duration_dialog.bgcolor == "#1C1C26",
+        "dialog durasi gelap menjelaskan rentang 1 sampai 30 menit",
+    )
     if duration_field is not None:
         duration_field.value = "18"
     if save_duration is not None:
         save_duration.on_click(None)
     check(focus_session.snapshot()["total_seconds"] == 18 * 60,
           "durasi sesi aktif berubah tanpa membuat sesi baru")
+    one_minute_ok = focus_session.update_duration(1)
+    thirty_minutes_ok = focus_session.update_duration(30)
+    thirty_one_rejected = not focus_session.update_duration(31)
+    check(
+        one_minute_ok and thirty_minutes_ok and thirty_one_rejected
+        and focus_session.snapshot()["total_seconds"] == 30 * 60,
+        "durasi Focus benar-benar menerima 1–30 menit dan menolak 31 menit",
+    )
     check(focus_session.snapshot()["task_estimate_minutes"] == 90,
           "mengubah durasi sesi tidak menimpa estimasi task")
 
-    end_session = clickable(root, "Akhiri sesi")
+    end_session = clickable(root, "Sudahi")
     if end_session is not None:
         end_session.on_click(None)
     outcome_dialog = page.dialogs[-1] if page.dialogs else None

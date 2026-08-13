@@ -495,7 +495,7 @@ async def main(page: ft.Page) -> None:
 
     def build_application() -> None:
         page.clean()
-        content = ft.Container(expand=True, padding=20)
+        content = ft.Container(expand=True, padding=16)
 
         storage.touch_last_open()
 
@@ -562,7 +562,7 @@ async def main(page: ft.Page) -> None:
                 route = "daily_checkin"
 
             builder = ROUTES.get(route, home.build)
-            content.padding = 0 if route in FULLSCREEN_ROUTES else 20
+            content.padding = 0 if route in FULLSCREEN_ROUTES else 16
             content.content = builder(page, navigate)
             if route in NAV_INDEX:
                 nav_bar.selected_index = NAV_INDEX[route]
@@ -570,6 +570,7 @@ async def main(page: ft.Page) -> None:
             page.update()
 
         nav_bar = ft.NavigationBar(
+            height=64,
             selected_index=0,
             bgcolor="#484863",
             indicator_color="#DDE0FF",
@@ -590,7 +591,7 @@ async def main(page: ft.Page) -> None:
             bgcolor="#484863",
             border_radius=100,
             clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-            margin=ft.Padding(left=20, top=4, right=20, bottom=12),
+            margin=ft.Padding(left=16, top=3, right=16, bottom=8),
         )
 
         page.add(

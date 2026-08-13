@@ -358,7 +358,7 @@ def _adherence_card(status) -> ft.Control:
                 [
                     ui_helpers.section_header("Riwayat kepatuhan"),
                     ui_helpers.upgrade_hint(
-                        "Fitur Premium: Lihat persentase rutin, pola hari yang terlewat, "
+                        "Fitur Freemium: Lihat persentase rutin, pola hari yang terlewat, "
                         "dan ringkasan siap pakai untuk tunjukkan ke dokter saat kontrol."
                     ),
                 ],

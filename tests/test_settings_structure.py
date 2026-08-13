@@ -113,12 +113,9 @@ def scenario_main_settings_is_clean() -> None:
         "Subscription KALEM",
         "Paket Free",
         "YANG KALEM PELAJARI",
-        "PRIVASI & DATA",
-        "AKUN & CLOUD",
-        "Akun Rahasia",
-        "rahasia@example.com",
-        "Tersinkron ke database",
+        "Logout",
         "Keluar dari akun",
+        "Hapus semua data",
     ):
         check(value in shown, f"Pengaturan utama menampilkan '{value}'")
 
@@ -137,9 +134,27 @@ def scenario_main_settings_is_clean() -> None:
         not any(isinstance(item, (ft.TextField, ft.RangeSlider)) for item in walk(root)),
         "field detail profil tidak dirender di halaman utama",
     )
+    logout_button = clickable(root, "Keluar dari akun")
+    delete_button = clickable(root, "Hapus semua data")
     check(
-        shown.index("PRIVASI & DATA") < shown.index("AKUN & CLOUD"),
-        "card akun/auth tampil setelah Privasi & Data",
+        logout_button is not None
+        and delete_button is not None
+        and logout_button.bgcolor == "#EA3F46"
+        and delete_button.bgcolor == "#EA3F46",
+        "akun disederhanakan menjadi dua tombol aksi merah",
+    )
+    check(
+        all(
+            value not in shown
+            for value in (
+                "PRIVASI & DATA",
+                "AKUN & CLOUD",
+                "Akun Rahasia",
+                "rahasia@example.com",
+                "Tersinkron ke database",
+            )
+        ),
+        "kartu dan deskripsi akun/cloud lama sudah dihapus",
     )
 
     settings_button = icon_button(root, tooltip="Pengaturan Profil")

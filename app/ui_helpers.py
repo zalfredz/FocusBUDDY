@@ -228,7 +228,7 @@ def premium_badge(size: float = 9) -> ft.Container:
         content=ft.Row(
             [
                 ft.Icon(ft.Icons.WORKSPACE_PREMIUM, size=size + 2, color="#FFFFFF"),
-                ft.Text("PREMIUM", size=size, weight=ft.FontWeight.BOLD, color="#FFFFFF"),
+                ft.Text("FREEMIUM", size=size, weight=ft.FontWeight.BOLD, color="#FFFFFF"),
             ],
             spacing=3,
             tight=True,

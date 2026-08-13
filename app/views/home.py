@@ -27,7 +27,6 @@ _FALLBACK_DAILY_FLOW: dict = {"checkin_snoozed_date": ""}
 
 HOME_BACKGROUND = "#141416"
 HOME_TEXT = "#FFFFFF"
-HOME_PANEL = "#484863"
 HOME_BUTTON = "#DDE0FF"
 HOME_BUTTON_TEXT = "#181A35"
 HOME_FONT = "Plus Jakarta Sans"
@@ -55,19 +54,6 @@ def deadline_cue(task: dict, now: datetime | None = None) -> tuple[str, str]:
     if deadline.date() == (now + timedelta(days=1)).date():
         return f"Deadline besok · {time_label}", theme.WARN
     return f"Deadline {deadline.strftime('%d %b')} · {time_label}", theme.MUTED
-
-
-def _focus_stat(label: str, value: ft.Text) -> ft.Control:
-    return ft.Container(
-        content=ft.Column(
-            [value, ft.Text(label, size=10.5, color=HOME_TEXT)], spacing=1
-        ),
-        expand=True,
-        padding=10,
-        bgcolor="#333344",
-        border_radius=10,
-        alignment=ft.Alignment.CENTER,
-    )
 
 
 def _ticker_state() -> dict:
@@ -209,18 +195,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     greeting = ft.Container(
         width=HOME_CONTENT_WIDTH,
-        height=82,
+        height=74,
         content=ft.Stack(
             [
                 ft.Text(
                     f"Hai! {display_name}",
                     color=HOME_TEXT,
-                    size=35,
+                    size=32,
                     weight=ft.FontWeight.W_900,
                     font_family=HOME_FONT,
                     style=ft.TextStyle(letter_spacing=1.1),
                     left=0,
-                    top=34,
+                    top=30,
                 ),
                 ft.Row(
                     [
@@ -256,21 +242,21 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     kalem_block = ft.Container(
         width=HOME_CONTENT_WIDTH,
-        height=170,
+        height=153,
         alignment=ft.Alignment.CENTER,
         content=ft.Row(
             [
                 ft.Image(
                     src=buddy.asset_for(companion_mood),
-                    width=138,
-                    height=150,
+                    width=124,
+                    height=135,
                     fit=ft.BoxFit.CONTAIN,
                 ),
                 ft.Container(
-                    width=174,
-                    height=88,
+                    width=157,
+                    height=79,
                     alignment=ft.Alignment.CENTER,
-                    padding=ft.Padding.symmetric(vertical=12, horizontal=12),
+                    padding=ft.Padding.symmetric(vertical=10, horizontal=10),
                     bgcolor="#1D2B24",
                     border=ft.Border.all(1, "#95D899"),
                     border_radius=12,
@@ -281,7 +267,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ),
                     content=ft.Text(
                         companion_message,
-                        size=11,
+                        size=10.5,
                         color=HOME_TEXT,
                         font_family=HOME_FONT,
                         text_align=ft.TextAlign.CENTER,
@@ -302,7 +288,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 if has_tasks
                 else f"Nggak ada tugas hari ini {display_name},\nEnjoy the Day!"
             ),
-            size=21,
+            size=19,
             color=HOME_TEXT,
             weight=ft.FontWeight.W_800,
             font_family=HOME_FONT,
@@ -533,30 +519,31 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
 
     ring = ft.ProgressRing(
-        value=1.0, width=190, height=190, stroke_width=13,
-        color=theme.PRIMARY, bgcolor=theme.BORDER,
+        value=1.0, width=210, height=210, stroke_width=12,
+        color="#FFBD91", bgcolor="#171719",
     )
-    clock_text = ft.Text("", size=40, weight=ft.FontWeight.BOLD,
+    clock_text = ft.Text("", size=42, weight=ft.FontWeight.BOLD,
                          color=HOME_TEXT, font_family=HOME_FONT)
     sub_text = ft.Text("", size=11, color=HOME_TEXT, text_align=ft.TextAlign.CENTER)
-    status_text = ft.Text("", size=12.5, color=HOME_TEXT,
-                          text_align=ft.TextAlign.CENTER)
-    step_text = ft.Text("", size=15, weight=ft.FontWeight.BOLD, color=HOME_TEXT,
-                        text_align=ft.TextAlign.CENTER)
+    step_text = ft.Text("", size=16, weight=ft.FontWeight.BOLD, color=HOME_TEXT,
+                        text_align=ft.TextAlign.LEFT, expand=True)
     task_title_text = ft.Text(
-        "", size=11.5, color=HOME_TEXT, text_align=ft.TextAlign.CENTER
+        "", size=10.5, color=HOME_TEXT, text_align=ft.TextAlign.RIGHT, width=92
     )
-    task_estimate_value = ft.Text(
-        "—", size=15, weight=ft.FontWeight.BOLD, color=HOME_TEXT
+    focus_progress = ft.ProgressBar(
+        value=0,
+        color="#91A8FF",
+        bgcolor="#171719",
+        bar_height=10,
+        border_radius=8,
+        expand=True,
     )
-    session_duration_value = ft.Text(
-        "—", size=15, weight=ft.FontWeight.BOLD, color=HOME_TEXT
+    focus_progress_text = ft.Text(
+        "0%", size=14, weight=ft.FontWeight.BOLD, color="#91A8FF"
     )
     controls_row = ft.Row(
         alignment=ft.MainAxisAlignment.CENTER,
         spacing=8,
-        wrap=True,
-        run_spacing=6,
     )
 
     def toggle_pause(e):
@@ -564,6 +551,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
             focus_session.pause()
         else:
             focus_session.resume()
+        refresh_focus()
+
+    def restart_focus(e):
+        focus_session.reset()
+        focus_session.resume()
         refresh_focus()
 
     def save_outcome(outcome: str, reflection: str = "") -> None:
@@ -610,13 +602,20 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def ask_duration(e) -> None:
         current = focus_session.snapshot()
-        current_minutes = max(1, current["total_seconds"] // 60)
+        current_minutes = min(30, max(1, current["total_seconds"] // 60))
         duration = ft.TextField(
             label="Durasi sesi (menit)",
             value=str(current_minutes),
             keyboard_type=ft.KeyboardType.NUMBER,
             autofocus=True,
-            helper="Boleh 1–120 menit dan harus lebih panjang dari waktu yang sudah lewat.",
+            helper="Isi 1 - 30 Menit yaa",
+            helper_style=ft.TextStyle(color=theme.MUTED),
+            filled=True,
+            bgcolor="#343446",
+            color=theme.ON_BACKGROUND,
+            border_color=theme.BORDER,
+            focused_border_color=theme.PRIMARY,
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
         )
 
         def submit(ev) -> None:
@@ -628,7 +627,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 return
             if not focus_session.update_duration(minutes):
                 duration.error = (
-                    "Pilih 1–120 menit dan jangan lebih pendek dari waktu yang sudah berjalan"
+                    "Pilih 1 - 30 menit dan jangan lebih pendek dari waktu yang sudah berjalan"
                 )
                 page.update()
                 return
@@ -638,11 +637,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("Ubah durasi fokus", size=16),
+                bgcolor="#1C1C26",
+                title=ft.Text(
+                    "Edit waktu fokus",
+                    size=17,
+                    color=theme.ON_BACKGROUND,
+                    weight=ft.FontWeight.BOLD,
+                ),
                 content=duration,
                 actions=[
                     ft.TextButton(
-                        content=ft.Text("Batal"), on_click=lambda ev: page.pop_dialog()
+                        content=ft.Text("Batal", color=theme.ON_BACKGROUND),
+                        on_click=lambda ev: page.pop_dialog(),
                     ),
                     ui_helpers.primary_button("Simpan durasi", submit),
                 ],
@@ -705,55 +711,56 @@ def build(page: ft.Page, navigate) -> ft.Control:
         ring.value = s["progress"]
         clock_text.value = s["clock"]
         step_text.value = s["label"] or "Sesi fokus"
-        task_title_text.value = f"dari: {s['task_title']}" if s["task_title"] else ""
-        total = s["total_seconds"] // 60
-        estimate = int(s.get("task_estimate_minutes", 0) or 0)
-        task_estimate_value.value = f"~{estimate} menit" if estimate else "Belum ada"
-        session_duration_value.value = f"{total} menit"
+        task_title_text.value = f"Dari\n{s['task_title']}" if s["task_title"] else ""
+        completed_progress = max(0.0, min(1.0, 1.0 - float(s["progress"])))
+        focus_progress.value = completed_progress
+        focus_progress_text.value = f"{round(completed_progress * 100)}%"
         if s["finished"]:
-            rest = kalem_engine.break_minutes_for(day.energy_level or 3)
             ring.color = theme.SUCCESS
             clock_text.value = "Selesai"
-            status_text.value = f"Kelar! 🎉 Istirahat {rest} menit dulu."
             sub_text.value = "Nggak usah langsung lanjut."
         elif s["running"]:
-            ring.color = theme.PRIMARY
-            status_text.value = "Fokus jalan... satu hal aja dulu."
+            ring.color = "#FFBD91"
             sub_text.value = "Satu sesi aja dulu."
         else:
             ring.color = theme.WARN
-            status_text.value = "Dijeda. Lanjut kapan pun kamu siap."
             sub_text.value = "Nggak apa-apa berhenti sebentar."
 
         buttons: list[ft.Control] = []
         if not s["finished"]:
-            buttons.append(
-                ui_helpers.primary_button(
-                    "Jeda" if s["running"] else "Lanjut",
-                    toggle_pause,
-                    icon=ft.Icons.PAUSE if s["running"] else ft.Icons.PLAY_ARROW,
-                )
-            )
-            buttons.append(
-                ui_helpers.primary_button(
-                    "DONE", lambda e: save_outcome("completed"), icon=ft.Icons.CHECK
-                )
-            )
-            buttons.append(
-                ft.TextButton(
-                    content=ft.Text("Ubah durasi", size=12),
-                    icon=ft.Icons.EDIT_CALENDAR_OUTLINED,
-                    on_click=ask_duration,
-                )
-            )
-            buttons.append(
-                ft.TextButton(
-                    content=ft.Text("Akhiri sesi", size=12, color=theme.MUTED),
-                    on_click=finish_session,
-                )
+            buttons.extend(
+                [
+                    ft.OutlinedButton(
+                        content=ft.Icon(
+                            ft.Icons.PAUSE if s["running"] else ft.Icons.PLAY_ARROW,
+                            color="#FFBD91",
+                        ),
+                        tooltip="Jeda" if s["running"] else "Lanjut",
+                        style=ft.ButtonStyle(side=ft.BorderSide(1, "#6D5545")),
+                        on_click=toggle_pause,
+                        expand=True,
+                    ),
+                    ft.OutlinedButton(
+                        content=ft.Icon(ft.Icons.REPLAY, color="#FFBD91"),
+                        tooltip="Ulangi sesi",
+                        style=ft.ButtonStyle(side=ft.BorderSide(1, "#6D5545")),
+                        on_click=restart_focus,
+                        expand=True,
+                    ),
+                    ft.Button(
+                        content=ft.Text(
+                            "Sudahi", color="#2B211B", weight=ft.FontWeight.BOLD
+                        ),
+                        bgcolor="#FFBD91",
+                        on_click=finish_session,
+                        expand=True,
+                    ),
+                ]
             )
         else:
-            buttons.extend(outcome_buttons())
+            buttons.append(
+                ui_helpers.primary_button("Lihat hasil sesi", finish_session, expand=True)
+            )
         controls_row.controls = buttons
         page.update()
 
@@ -772,26 +779,29 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     focus_card = centered_home_block(
         ft.Container(
-            bgcolor=HOME_PANEL,
+            bgcolor="#302A27",
+            border=ft.Border.all(1, "#6D5545"),
             border_radius=20,
-            padding=18,
+            padding=16,
             content=ft.Column(
                 [
-                    ft.Text(
-                        "SESI FOKUS",
-                        size=12,
-                        color=HOME_TEXT,
-                        font_family=HOME_FONT,
-                        weight=ft.FontWeight.W_700,
-                    ),
-                    step_text,
-                    task_title_text,
                     ft.Row(
                         [
-                            _focus_stat("Estimasi sisa task", task_estimate_value),
-                            _focus_stat("Durasi sesi", session_duration_value),
+                            step_text,
+                            task_title_text,
+                            ft.TextButton(
+                                content=ft.Text(
+                                    "Edit",
+                                    size=11,
+                                    color="#FFBD91",
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+                                icon=ft.Icons.EDIT_CALENDAR_OUTLINED,
+                                tooltip="Edit waktu",
+                                on_click=ask_duration,
+                            ),
                         ],
-                        spacing=8,
+                        vertical_alignment=ft.CrossAxisAlignment.START,
                     ),
                     ft.Container(
                         content=ft.Stack(
@@ -804,23 +814,32 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                         alignment=ft.MainAxisAlignment.CENTER,
                                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                                     ),
-                                    width=190,
-                                    height=190,
+                                    width=210,
+                                    height=210,
                                     alignment=ft.Alignment.CENTER,
                                     padding=ft.Padding.symmetric(vertical=0, horizontal=24),
                                 ),
                             ],
-                            width=190,
-                            height=190,
+                            width=210,
+                            height=210,
                         ),
                         alignment=ft.Alignment.CENTER,
                     ),
-                    status_text,
+                    ft.Row([focus_progress, focus_progress_text], spacing=10),
                     controls_row,
                 ],
-                spacing=12,
+                spacing=10,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
+        )
+    )
+    focus_heading = centered_home_block(
+        ft.Text(
+            "Sesi fokus:",
+            size=24,
+            color=HOME_TEXT,
+            font_family=HOME_FONT,
+            weight=ft.FontWeight.W_800,
         )
     )
 
@@ -959,7 +978,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     capture_row = centered_home_block(
         ft.Container(
-            height=42,
+            height=38,
             bgcolor="#DDE0FF",
             border_radius=18,
             padding=ft.Padding.symmetric(vertical=5, horizontal=11),
@@ -977,10 +996,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     left=0,
                     top=0,
                     width=HOME_CONTENT_WIDTH,
-                    height=42,
+                    height=38,
                     content=ft.Text(
                         "Kewalahan? YUK AMBIL JEDA",
-                        size=12.5,
+                        size=11.5,
                         color="#17153A",
                         font_family=HOME_FONT,
                         weight=ft.FontWeight.W_700,
@@ -1001,39 +1020,39 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.Image(
                     src="kalem_cemas.svg",
                     left=-12,
-                    top=-15,
-                    width=72,
-                    height=72,
+                    top=-14,
+                    width=65,
+                    height=65,
                     fit=ft.BoxFit.CONTAIN,
                 ),
             ],
             width=HOME_CONTENT_WIDTH,
-            height=42,
+            height=38,
             clip_behavior=ft.ClipBehavior.NONE,
         )
     )
 
-    home_controls = [
-        *sim_banner,
-        *med_banner,
-        greeting,
-        kalem_block,
-        task_heading,
-        *(
-            [focus_card]
-            if session_active
-            else ([] if hide_empty_add_action else [action_card])
-        ),
-        capture_row,
-        sos_row,
-    ]
+    home_controls = [*sim_banner, *med_banner]
+    if session_active:
+        home_controls.extend([focus_heading, focus_card, capture_row])
+    else:
+        home_controls.extend(
+            [
+                greeting,
+                kalem_block,
+                task_heading,
+                *([] if hide_empty_add_action else [action_card]),
+                capture_row,
+                sos_row,
+            ]
+        )
     layout = ft.Container(
         bgcolor=HOME_BACKGROUND,
         content=ft.Column(
             [
                 ft.Column(
                     home_controls,
-                    spacing=12,
+                    spacing=10,
                     scroll=ft.ScrollMode.AUTO,
                     expand=True,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -1044,14 +1063,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     padding=ft.Padding(left=4, top=2, right=4, bottom=0),
                     content=ft.Text(
                         "FocusBuddy bukan alat diagnosis dan bukan pengganti tenaga medis",
-                        size=11.5,
+                        size=10.5,
                         color="#DDE0FF",
                         font_family=HOME_FONT,
                         text_align=ft.TextAlign.CENTER,
                     ),
                 ),
             ],
-            spacing=8,
+            spacing=6,
             expand=True,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),

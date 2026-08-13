@@ -336,6 +336,7 @@ def tes_langganan_demo():
     import json
     import flet as ft
     import app.main as main_mod
+    from app import theme
     from app.views import subscription
 
     class HalamanPembayaran(HalamanPalsu):
@@ -355,6 +356,13 @@ def tes_langganan_demo():
     root = subscription.build(page, tujuan.append)
 
     ok("subscription" in main_mod.ROUTES, "halaman langganan terdaftar di router")
+    ok(
+        punya_teks(root, "KALEM Freemium")
+        and punya_teks(root, "Kamu sedang memakai paket Free")
+        and punya_teks(root, "IDR 29.000/Bulan")
+        and cari_tombol_berteks(root, "Upgrade ke Freemium") is not None,
+        "card pertama menampilkan status Free, harga, dan upgrade Freemium",
+    )
     tombol_on = cari_tombol_berteks(root, "Coba pembayaran demo")
     ok(tombol_on is not None, "paket Free membuka checkout pembayaran demo")
     if tombol_on is None:
@@ -362,13 +370,15 @@ def tes_langganan_demo():
 
     tombol_on.on_click(None)
     checkout = page.dialogs[-1] if page.dialogs else None
-    ok(checkout is not None and punya_teks(checkout, "Checkout Premium — DEMO"),
-       "checkout demo tampil sebelum Premium diaktifkan")
+    ok(checkout is not None and punya_teks(checkout, "Checkout Freemium — DEMO"),
+       "checkout demo tampil sebelum Freemium diaktifkan")
     ok(not storage.is_premium(), "membuka checkout belum mengaktifkan Premium")
 
     fields = [control for control in jalan_tree(checkout) if isinstance(control, ft.TextField)]
     card = next((field for field in fields if field.label == "Nomor kartu demo"), None)
     gopay = next((field for field in fields if field.label == "Nomor GoPay demo"), None)
+    expiry = next((field for field in fields if field.label == "Bulan/Tahun"), None)
+    cvc = next((field for field in fields if field.label == "CVC"), None)
     consent = next(
         (control for control in jalan_tree(checkout)
          if isinstance(control, ft.Checkbox) and "simulasi" in (control.label or "")),
@@ -380,18 +390,28 @@ def tes_langganan_demo():
         None,
     )
     lanjut = cari_tombol_berteks(checkout, "Lanjut konfirmasi")
-    ok(card is not None and gopay is not None and consent is not None
+    ok(card is not None and gopay is not None and expiry is not None and cvc is not None
+       and consent is not None
        and payment_method is not None and lanjut is not None,
-       "checkout menyediakan pilihan Kartu/GoPay dan persetujuan simulasi")
-    if card is None or gopay is None or consent is None or payment_method is None or lanjut is None:
+       "checkout menyediakan kartu lengkap, GoPay, dan persetujuan simulasi")
+    if (card is None or gopay is None or expiry is None or cvc is None
+            or consent is None or payment_method is None or lanjut is None):
         return
+    ok(
+        card.value == "0000 0000 0000 0000"
+        and gopay.value == "081234567890"
+        and checkout.bgcolor == theme.SURFACE,
+        "checkout gelap memakai nomor pembayaran demo yang baru",
+    )
     payment_method.value = "gopay"
     payment_method.on_change(None)
     ok(gopay.visible and not card.visible,
        "memilih GoPay mengganti input tanpa mengaktifkan Premium")
     payment_method.value = "card"
     payment_method.on_change(None)
-    card.value = "4242 4242 4242 4242"
+    card.value = "0000 0000 0000 0000"
+    expiry.value = "12/30"
+    cvc.value = "000"
     consent.value = True
     lanjut.on_click(None)
     confirmation = page.dialogs[-1] if page.dialogs else None
@@ -406,7 +426,7 @@ def tes_langganan_demo():
        "konfirmasi akhir baru mengaktifkan Premium pada akun aktif")
     ok(tujuan == ["subscription"], "halaman dirender ulang setelah status berubah")
     serialized = json.dumps(storage.load_state())
-    ok("4242424242424242" not in serialized and "081200000000" not in serialized,
+    ok("0000000000000000" not in serialized and "081234567890" not in serialized,
        "nomor pembayaran demo tidak pernah disimpan ke state/Supabase")
 
     root = subscription.build(HalamanPalsu(), tujuan.append)
@@ -584,6 +604,8 @@ def tes_pertanyaan_makan_dan_jam():
 
 def tes_pecah_hemat_api():
     bagian("Pecah Tugas: pungut hasil lama biar nggak nelpon API terus")
+    from unittest.mock import patch
+
     from app.core import decomposer_logic as dl
     from models import model_pecah
 
@@ -608,10 +630,17 @@ def tes_pecah_hemat_api():
 
     tugas = {"title": "Bikin proposal", "description": "Cari ide\nCari solusi\nTulis draft",
              "important": True, "kategori": "", "jumlah_unit": 0, "menit_est": 0}
-    langkah, sumber = dl._langkah_lokal(tugas)
-    ok(sumber == "manual", f"deskripsi per-baris -> jalur manual (dapet {sumber!r})")
-    ok(langkah == ["Cari ide", "Cari solusi", "Tulis draft"],
-       "langkahnya dipakai APA ADANYA, nggak dikirim ke AI buat dipecah lagi")
+    with patch.object(
+        model_pecah,
+        "cari",
+        return_value=model_pecah.HasilPecah(ketemu=False, langkah=[]),
+    ):
+        langkah, sumber = dl._langkah_lokal(tugas)
+    ok(sumber != "manual" and langkah is None,
+       "baris deskripsi tetap menjadi konteks dan tidak disalin sebagai langkah manual")
+    fallback = [step for _title, step, _minutes in dl._rule_based_steps([tugas], 4)]
+    ok("Cari ide" not in fallback and "Cari solusi" not in fallback,
+       "fallback juga tidak mengubah kalimat deskripsi menjadi daftar langkah")
 
     dipanggil = {"n": 0}
     asli = dl._ai_steps
@@ -1236,17 +1265,30 @@ def tes_viewport_phone_global():
        "layar HP yang lebih kecil tetap muat tanpa horizontal overflow")
 
 
-def tes_tema_date_picker_gelap():
+def tes_tema_picker_gelap():
     from app import theme
 
-    bagian("Tema kalender mengikuti permukaan gelap aplikasi")
-    date_theme = theme.build_theme().date_picker_theme
+    bagian("Tema pemilih tanggal dan jam mengikuti permukaan gelap aplikasi")
+    app_theme = theme.build_theme()
+    ok(
+        app_theme.visual_density.name == "COMFORTABLE",
+        "kepadatan komponen global diperkecil tanpa transform zoom palsu",
+    )
+    date_theme = app_theme.date_picker_theme
     ok(
         date_theme is not None
         and date_theme.bgcolor == "#24242F"
         and date_theme.header_bgcolor == "#343446"
         and date_theme.header_foreground_color == theme.ON_BACKGROUND,
         "dialog tanggal memakai latar gelap dengan header dan teks putih",
+    )
+    time_theme = app_theme.time_picker_theme
+    ok(
+        time_theme is not None
+        and time_theme.bgcolor == "#24242F"
+        and time_theme.dial_bgcolor == "#343446"
+        and time_theme.dial_text_color == theme.ON_BACKGROUND,
+        "dialog jam memakai latar dan dial gelap dengan angka putih",
     )
 
 
@@ -1321,7 +1363,7 @@ def main() -> int:
         tes_onboarding_entry_dan_status_custom,
         tes_onboarding_opsional_bisa_dilewati,
         tes_viewport_phone_global,
-        tes_tema_date_picker_gelap,
+        tes_tema_picker_gelap,
         tes_langganan_demo,
         tes_alat_demo_terpusat,
         tes_halaman_kebangun,

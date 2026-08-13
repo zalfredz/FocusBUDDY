@@ -135,12 +135,10 @@ def scenario_retry_loop() -> None:
 
     finish_grounding(root)
     breathing = texts(root)
-    check("Yuk Tarik Nafas Dulu..." in breathing,
-          "grounding langsung berlanjut ke napas tanpa menu pilihan")
     check(
-        "Semua daftar tugas lagi disembunyiin. Sekarang nggak ada yang harus dikejar dulu."
-        in breathing,
-        "latihan napas menenangkan user dari daftar tugas",
+        "Yuk Tarik Nafas Dulu..." not in breathing
+        and not any("Semua daftar tugas lagi disembunyiin" in value for value in breathing),
+        "dua teks pembuka latihan napas dihapus",
     )
     check("Ikutin Lingkarannya Yaaa" in breathing,
           "halaman napas memakai instruksi lingkaran baru")
@@ -152,8 +150,6 @@ def scenario_retry_loop() -> None:
     check("Sekarang rasanya gimana?" in outcome, "layar selesai berlanjut ke check-in")
     check("Nggak harus langsung pulih kok" in outcome,
           "check-in memakai copy pemulihan yang ringkas")
-    check("Yuk Tarik Nafas Dulu..." not in outcome,
-          "check-in tidak meminta user memilih napas berkali-kali")
 
     click(root, "Belum bisa")
     check("Sebutkan hal-hal itu dalam hati, pelan-pelan aja." in texts(root),

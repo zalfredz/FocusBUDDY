@@ -458,7 +458,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             rec_holder.content = ui_helpers.card(
                 ui_helpers.upgrade_hint(
                     "Jatah kartu rekomendasi minggu ini udah kepakai. "
-                    "Premium bisa terus-terusan, dan makin personal seiring data."
+                    "Freemium bisa terus-terusan, dan makin personal seiring data."
                 ),
                 padding=14,
             )
@@ -528,7 +528,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             children.append(
                 ui_helpers.upgrade_hint(
                     f"Ada {hidden} temuan lagi yang kebaca dari catatan kamu. "
-                    "Kebuka semua di Premium."
+                    "Kebuka semua di Freemium."
                 )
             )
 
@@ -566,7 +566,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         if not storage.is_premium():
             children.append(
                 ui_helpers.upgrade_hint(
-                    "Bulan ini kebuka gratis. Premium bisa telusuri "
+                    "Bulan ini kebuka gratis. Freemium bisa telusuri "
                     "bulan-bulan sebelumnya buat lihat tren panjang."
                 )
             )
@@ -584,7 +584,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         modal=True,
                         title=ft.Text("Tren bulan lain", size=16),
                         content=ft.Text(
-                            "Telusur bulan-bulan sebelumnya ada di Premium. "
+                            "Telusur bulan-bulan sebelumnya ada di Freemium. "
                             "Grafik bulan ini tetap kebuka gratis.",
                             size=13,
                         ),

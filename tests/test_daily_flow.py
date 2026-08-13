@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from app import buddy, clock, focus_session, storage
-from app.core.kalem_engine import DayState, decide, focus_minutes_for
+from app.core.kalem_engine import DayState, MorningBrief, decide, focus_minutes_for
 from app.views import home, morning_brief, tracker
 from models.model_overwhelm import Risiko
 
@@ -61,6 +61,19 @@ def button_with_prefix(root, prefix: str):
     return None
 
 
+def text_values(root) -> list[str]:
+    values: list[str] = []
+    for control in walk_controls(root):
+        value = getattr(control, "value", None)
+        if isinstance(value, str):
+            values.append(value)
+        spans = getattr(control, "spans", None) or []
+        joined = "".join(str(getattr(span, "text", "")) for span in spans)
+        if joined:
+            values.append(joined)
+    return values
+
+
 def task(
     task_id: str,
     title: str,
@@ -105,6 +118,41 @@ def scenario_brief_before_checkin_and_decision() -> None:
     brief_page = FakePage()
     routes: list[str] = []
     brief_root = morning_brief.build(brief_page, routes.append)
+    brief_text = text_values(brief_root)
+    check("Hai Ari!\nAku Kalem!" in brief_text, "Insight memakai sapaan KALEM baru")
+    check(
+        "Progress catatan Kalem" in brief_text
+        and "Aku ngerasa beda" in brief_text,
+        "Insight menampilkan progress dan dua aksi seperti desain baru",
+    )
+    check(
+        morning_brief.prediction_copy(2) == "SEMANGAT!! Hari ini mungkin berat"
+        and morning_brief.prediction_copy(3) == "Kemungkinan biasa aja"
+        and morning_brief.prediction_copy(6) == "Semangat kamu FULL hari ini",
+        "Insight siap memiliki tiga tingkat copy prediksi",
+    )
+    ready_brief = MorningBrief(
+        ready=True,
+        greeting="Pagi, Ari!",
+        forecast="Kemungkinan biasa aja",
+        plan="Aku setel sesi fokus 20 menit dulu -- santai tapi jalan.",
+        mood="tenang",
+        energy_level=3,
+        focus_minutes=20,
+        reasons=["pola tidur kamu lagi berantakan"],
+    )
+    with patch(
+        "app.views.morning_brief.kalem_engine.build_morning_brief",
+        return_value=ready_brief,
+    ):
+        ready_root = morning_brief.build(brief_page, routes.append)
+    ready_text = text_values(ready_root)
+    check(
+        "Ramalan hari ini:\nKemungkinan biasa aja" in ready_text
+        and "Aku mikir begitu karena pola tidur kamu lagi berantakan" in ready_text
+        and "Progress catatan Kalem" not in ready_text,
+        "Insight siap menampilkan prediksi, alasan, dan rencana tanpa progress onboarding",
+    )
     accept = button_with_prefix(brief_root, "Oke") or button_with_prefix(
         brief_root, "Sesuai"
     )

@@ -133,28 +133,42 @@ def test_partial_ai_response_never_leaves_a_task_without_steps_or_honest_source(
         directory.cleanup()
 
 
-def test_ai_quota_does_not_disable_retrieval_manual_or_rule_fallback() -> None:
+def test_ai_quota_does_not_disable_retrieval_or_rule_fallback() -> None:
     directory, original = _temporary_storage()
     try:
         storage.reset_all_data()
-        manual = _task(
-            "Susun proposal", task_id="manual", description="Cari tujuan\nTulis draft"
+        contextual = _task(
+            "Susun proposal", task_id="context", description="Cari tujuan\nTulis draft"
         )
         retrieved = _task("Beresin kamar", task_id="retrieved")
         unknown = _task("Rancang eksperimen robot", task_id="unknown")
-        result = decomposer_logic.plan_today(
-            [manual, retrieved, unknown], allow_ai=False
-        )
+        original_local = decomposer_logic._langkah_lokal
+
+        def local_without_description_shortcut(task: dict):
+            if task["id"] == "context":
+                return None, ""
+            return original_local(task)
+
+        with patch.object(
+            decomposer_logic,
+            "_langkah_lokal",
+            side_effect=local_without_description_shortcut,
+        ):
+            result = decomposer_logic.plan_today(
+                [contextual, retrieved, unknown], allow_ai=False
+            )
 
         assert result.ai_called is False
         assert result.n_ai == 0
-        assert result.n_manual == 1 and result.n_retrieval == 1
+        assert result.n_manual == 0 and result.n_retrieval == 1
         assert result.source == "campuran"
         assert result.task_sources == {
-            "manual": "manual",
+            "context": "fallback",
             "retrieved": "retrieval",
             "unknown": "fallback",
         }
+        context_steps = [step["text"] for step in result.task_steps["context"]]
+        assert "Cari tujuan" not in context_steps and "Tulis draft" not in context_steps
         assert all(result.task_steps[key] for key in result.task_sources)
     finally:
         storage.DATA_DIR, storage.DATA_FILE, storage.BACKUP_FILE = original

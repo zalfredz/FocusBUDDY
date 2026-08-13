@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import flet as ft
 
-from app import clock, focus_session, storage
+from app import clock, focus_session, storage, theme
 from app.core import decomposer_logic, kalem_engine
 from app.views import tracker
 
@@ -90,7 +90,10 @@ def by_tooltip(root, tooltip: str) -> list:
 
 def calendar_cell(root, day_number: int):
     for control in walk(root):
-        if getattr(control, "height", None) != 42 or getattr(control, "on_click", None) is None:
+        if (
+            getattr(control, "height", None) not in (32, 42)
+            or getattr(control, "on_click", None) is None
+        ):
             continue
         if str(day_number) in texts(control):
             return control
@@ -141,10 +144,30 @@ def scenario_calendar_modes_and_done() -> None:
     page = FakePage()
     root = tracker.build(page, lambda route: None)
     visible = texts(root)
-    check(daily["title"] in visible and weekly["title"] in visible,
-          "mode Mingguan menampilkan seluruh task dalam minggu terpilih")
-    check(monthly["title"] not in visible,
-          "mode Mingguan tidak mencampur task di luar minggu terpilih")
+    check(
+        f"{tracker.MONTH_NAMES[today.month - 1]} {today.year}" in visible,
+        "kalender mingguan memakai nama bulan lengkap tanpa rentang tanggal singkat",
+    )
+    check(
+        all(day in visible for day in tracker.DAY_SHORT),
+        "kalender mingguan menampilkan nama hari yang jelas",
+    )
+    check(
+        any(
+            isinstance(control, ft.Container) and control.bgcolor == "#DDE0FF"
+            for control in walk(root)
+        ),
+        "baris tanggal mingguan dibedakan dengan warna terang",
+    )
+    check(
+        any("Istirahat juga termasuk progress" in value for value in visible)
+        or "Semangat untuk Hari Ini!" in visible,
+        "Tracker menampilkan mascot dan bubble kondisi seperti Home",
+    )
+    check(daily["title"] in visible and weekly["title"] not in visible,
+          "mode Mingguan tetap menampilkan card tugas aktif untuk hari terpilih saja")
+    check("2 aktif · 1 selesai" in visible,
+          "mode Mingguan hanya memperluas hitungan Sebaran Tugas")
     check(any("selesai" in value.lower() for value in visible)
           and "Tugas sudah selesai" in visible,
           "Sebaran dan card memakai status task yang benar-benar selesai")
@@ -160,8 +183,8 @@ def scenario_calendar_modes_and_done() -> None:
     weekly_chip = clickable(root, "Mingguan")
     if weekly_chip is not None:
         weekly_chip.on_click(SimpleNamespace(control=weekly_chip))
-    expand = clickable(root, "Lihat bulan")
-    check(expand is not None, "calendar ringkas menyediakan Lihat bulan")
+    expand = clickable(root, "Lebih lengkap")
+    check(expand is not None, "calendar ringkas menyediakan Lebih lengkap")
     if expand is not None:
         expand.on_click(SimpleNamespace(control=expand))
     visible = texts(root)
@@ -170,13 +193,14 @@ def scenario_calendar_modes_and_done() -> None:
     monthly_chip = clickable(root, "Bulanan")
     if monthly_chip is not None:
         monthly_chip.on_click(SimpleNamespace(control=monthly_chip))
-    check(monthly["title"] in texts(root),
-          "filter Bulanan mengubah daftar tugas tanpa mengatur ukuran kalender")
+    monthly_visible = texts(root)
+    check(monthly["title"] not in monthly_visible and "3 aktif · 1 selesai" in monthly_visible,
+          "filter Bulanan hanya mengubah Sebaran Tugas, bukan card tugas aktif")
     collapse = clickable(root, "Ringkas kalender")
     check(collapse is not None, "kalender bulanan punya kontrol ukuran sendiri")
     if collapse is not None:
         collapse.on_click(SimpleNamespace(control=collapse))
-    check(monthly["title"] in texts(root) and clickable(root, "Lihat bulan") is not None,
+    check(monthly["title"] not in texts(root) and clickable(root, "Lebih lengkap") is not None,
           "meringkas kalender tidak mengubah filter Bulanan")
 
 
@@ -219,8 +243,27 @@ def scenario_deadline_and_no_deadline() -> None:
     dialog_text = texts(dialog)
     check(
         "Seberat apa buat dimulai?" in dialog_text
-        and "+ Kasih tau jenis & jumlahnya (opsional)" not in dialog_text,
-        "difficulty tetap tersedia dan menu jenis/jumlah opsional sudah dihapus",
+        and "+ Kasih tau jenis & jumlahnya (opsional)" not in dialog_text
+        and not any("Diisi -> Pecah Tugas" in value for value in dialog_text),
+        "difficulty tetap tersedia dan teks bantuan yang tidak perlu sudah dihapus",
+    )
+    repeat_dropdown = next(
+        (
+            control
+            for control in walk(dialog)
+            if isinstance(control, ft.Dropdown) and control.label == "Tugas berulang"
+        ),
+        None,
+    )
+    check(
+        repeat_dropdown is not None
+        and [option.key for option in repeat_dropdown.options]
+        == ["none", "daily", "weekly", "monthly"],
+        "pilihan tugas berulang menggunakan dropdown",
+    )
+    check(
+        getattr(dialog, "bgcolor", None) == "#1C1C26",
+        "dialog Tambah Tugas memakai latar gelap",
     )
     title_field = next(
         (control for control in walk(dialog) if isinstance(control, ft.TextField)
@@ -258,12 +301,14 @@ def scenario_deadline_and_no_deadline() -> None:
     )
     form_controls = getattr(getattr(dialog, "content", None), "controls", [])
     check(
-        no_deadline in form_controls
-        and date_holder in form_controls
-        and time_holder in form_controls
-        and form_controls.index(no_deadline) < form_controls.index(date_holder)
-        < form_controls.index(time_holder),
-        "urutan deadline adalah Tanpa deadline → tanggal → jam",
+        len(form_controls) == 3
+        and "Nama + deskripsi" in texts(form_controls[0])
+        and "Deadline" in texts(form_controls[1])
+        and "Penting + tingkat kesulitan" in texts(form_controls[2])
+        and no_deadline in list(walk(form_controls[1]))
+        and date_holder in list(walk(form_controls[1]))
+        and time_holder in list(walk(form_controls[1])),
+        "form dibagi menjadi tiga card dan seluruh kontrol deadline tetap satu kelompok",
     )
     if title_field is not None and no_deadline is not None:
         title_field.value = "Task tanpa deadline dari UI"
@@ -308,24 +353,31 @@ def scenario_task_input_supports_voice_description_and_time_picker() -> None:
         ),
         None,
     )
-    mic = next(
+    check(
+        description_field is not None
+        and description_field.bgcolor == "#343446"
+        and description_field.color == theme.ON_BACKGROUND,
+        "input nama dan deskripsi memakai field gelap dengan tulisan terang",
+    )
+    voice_button = next(
         (
             control
-            for control in walk(getattr(description_field, "suffix", None))
-            if isinstance(control, ft.IconButton)
+            for control in walk(dialog)
+            if isinstance(control, ft.OutlinedButton)
             and control.icon == ft.Icons.MIC_NONE
             and control.tooltip == "Isi pakai suara · maksimal 120 detik"
         ),
         None,
     )
-    check(mic is not None, "mikrofon deskripsi berada di dalam text box")
-    if description_field is not None:
-        description_field.value = "Mulai mengetik"
-        description_field.on_change(SimpleNamespace(control=description_field))
-        check(not description_field.suffix.visible,
-              "mikrofon menghilang saat user mulai mengetik")
-        description_field.value = ""
-        description_field.on_change(SimpleNamespace(control=description_field))
+    check(
+        voice_button is not None
+        and "Isi deskripsi pakai suara" in texts(voice_button),
+        "aksi voice untuk deskripsi selalu terlihat dan memiliki label yang jelas",
+    )
+    check(
+        any("Deskripsi dipakai KALEM sebagai konteks tugas" in value for value in texts(dialog)),
+        "form menjelaskan bahwa deskripsi adalah konteks, bukan daftar langkah",
+    )
     check(
         not any(
             isinstance(control, ft.TextField) and control.label == "Jam deadline (opsional)"
@@ -392,12 +444,14 @@ def scenario_decomposition_identity_and_persistence() -> None:
     today = clock.today()
     first = storage.add_task(
         "Judul kembar", today.isoformat(), scheduled_date=today.isoformat(),
-        description="Buka dokumen A\nRapikan bagian A",
+        description="Laporan untuk kelas A dengan format PDF.",
+        custom_steps=["Buka dokumen A"],
         steps=[{"text": "Placeholder A", "done": False}],
     )
     second = storage.add_task(
         "Judul kembar", today.isoformat(), scheduled_date=today.isoformat(),
-        description="Cari catatan B\nTulis bagian B",
+        description="Ringkasan kelas B untuk dikirim ke dosen.",
+        custom_steps=["Cari catatan B"],
         steps=[{"text": "Placeholder B", "done": False}],
     )
     tasks = storage.tasks_for(today.isoformat())
@@ -423,7 +477,9 @@ def scenario_decomposition_identity_and_persistence() -> None:
     check(split is not None, "aksi Pecah Tugas tersedia")
     if split is not None:
         split.on_click(SimpleNamespace(control=split))
-    dialog_text = texts(page.dialogs[-1]) if page.dialogs else []
+    split_dialog = page.dialogs[-1] if page.dialogs else None
+    dialog_text = texts(split_dialog)
+    split_content = getattr(split_dialog, "content", None)
     check(
         not any("tambahkan langkah" in text.casefold() for text in dialog_text)
         and not any(
@@ -431,6 +487,12 @@ def scenario_decomposition_identity_and_persistence() -> None:
             for control in walk(page.dialogs[-1] if page.dialogs else None)
         ),
         "sebelum decomposition tidak ada pertanyaan manual-step tambahan",
+    )
+    check(
+        getattr(split_dialog, "bgcolor", None) == "#1C1C26"
+        and getattr(split_content, "width", None) == 320
+        and getattr(split_content, "height", 999) <= 420,
+        "dialog Pecah Tugas ringkas dan memakai tema gelap",
     )
 
 
@@ -468,6 +530,27 @@ def scenario_decomposition_renders_multi_task_timeline() -> None:
             submit.on_click(SimpleNamespace(control=submit))
 
     shown = texts(root)
+    direct_controls = list(getattr(root, "controls", []) or [])
+    button_row_index = next(
+        (
+            index
+            for index, control in enumerate(direct_controls)
+            if "Tambah Tugas" in texts(control) and "Pecah Tugas" in texts(control)
+        ),
+        -1,
+    )
+    plan_index = next(
+        (
+            index
+            for index, control in enumerate(direct_controls)
+            if any(value.startswith("Berhasil disusun") for value in texts(control))
+        ),
+        -1,
+    )
+    check(
+        button_row_index >= 0 and plan_index == button_row_index + 1,
+        "card hasil Pecah Tugas tampil tepat di bawah dua tombol utama",
+    )
     check(
         "Tugas deadline awal" in shown
         and "Tugas deadline malam" in shown
@@ -500,6 +583,20 @@ def scenario_step_crud_and_done() -> None:
     )
     page = FakePage()
     root = tracker.build(page, lambda route: None)
+
+    visible_step = next(
+        (
+            control
+            for control in walk(root)
+            if isinstance(control, ft.Checkbox) and control.label == "Langkah awal"
+        ),
+        None,
+    )
+    check(
+        visible_step is not None
+        and visible_step.label_style.color == theme.ON_BACKGROUND,
+        "teks item langkah pada card tugas memakai warna putih",
+    )
 
     add = clickable(root, "+ Tambah langkah")
     check(add is not None, "task card menyediakan + Tambah langkah")

@@ -1,285 +1,282 @@
-"""Halaman ringkasan kondisi dan target harian."""
+"""Halaman Insight pagi KALEM."""
 from __future__ import annotations
 
 import flet as ft
 
-from app import storage, ui_helpers
+from app import buddy, storage, theme
 from app.core import kalem_engine
 
 BACKGROUND = "#141416"
-TEXT_PRIMARY = "#FFFFFF"
-TYPEBOX_BG = "#484863"
-BUTTON_BG = "#DDE0FF"
-BUTTON_TEXT = "#484863"
+TEXT = "#FFFFFF"
+PRIMARY = "#DDE0FF"
+INK = "#181A35"
 FONT = "Plus Jakarta Sans"
+CONTENT_WIDTH = 340
+MIN_INSIGHT_LOGS = 5
+
+
+def prediction_copy(energy_level: int, burnout_risk: bool = False) -> str:
+    if burnout_risk or energy_level <= 2:
+        return "SEMANGAT!! Hari ini mungkin berat"
+    if energy_level >= 5:
+        return "Semangat kamu FULL hari ini"
+    return "Kemungkinan biasa aja"
 
 
 def build(page: ft.Page, navigate) -> ft.Control:
     profile, day = kalem_engine.snapshot()
     brief = kalem_engine.build_morning_brief(profile, day)
-    plan_text = ft.Text(
-        brief.plan,
-        size=13.5,
-        color=TEXT_PRIMARY,
-        font_family=FONT,
-        weight=ft.FontWeight.W_400,
-        text_align=ft.TextAlign.CENTER,
-    )
+    name = str(profile.get("name") or "Teman")
+    log_count = min(len(day.mood_logs), MIN_INSIGHT_LOGS)
+    progress = log_count / MIN_INSIGHT_LOGS
 
-    def dismiss(route: str):
+    def dismiss(route: str) -> None:
         storage.set_last_brief_date()
         navigate(route)
 
-    def accept(e):
+    def accept(event) -> None:
         storage.set_today_energy(brief.energy_level)
         dismiss("home")
 
-    def override(e):
+    def override(event) -> None:
         dismiss("mood")
 
-    name = str(profile.get("name") or "Teman")
-    before_name, separator, after_name = brief.greeting.partition(name)
     greeting = ft.Text(
-        spans=(
-            [
-                ft.TextSpan(
-                    before_name,
-                    style=ft.TextStyle(
-                        color=TEXT_PRIMARY,
-                        font_family=FONT,
-                        size=26,
-                        weight=ft.FontWeight.W_400,
-                    ),
+        spans=[
+            ft.TextSpan(
+                f"Hai {name}!\nAku ",
+                style=ft.TextStyle(
+                    color=TEXT,
+                    size=29,
+                    height=1.22,
+                    weight=ft.FontWeight.W_500,
+                    font_family=FONT,
                 ),
-                ft.TextSpan(
-                    name,
-                    style=ft.TextStyle(
-                        color="#95D899",
-                        font_family=FONT,
-                        size=26,
-                        weight=ft.FontWeight.W_700,
-                    ),
+            ),
+            ft.TextSpan(
+                "Kalem!",
+                style=ft.TextStyle(
+                    color="#95D899",
+                    size=29,
+                    height=1.22,
+                    weight=ft.FontWeight.W_800,
+                    font_family=FONT,
                 ),
-                ft.TextSpan(
-                    after_name,
-                    style=ft.TextStyle(
-                        color=TEXT_PRIMARY,
-                        font_family=FONT,
-                        size=26,
-                        weight=ft.FontWeight.W_400,
-                    ),
-                ),
-            ]
-            if separator
-            else [
-                ft.TextSpan(
-                    brief.greeting,
-                    style=ft.TextStyle(
-                        color=TEXT_PRIMARY,
-                        font_family=FONT,
-                        size=26,
-                        weight=ft.FontWeight.W_700,
-                    ),
-                )
-            ]
-        ),
-        text_align=ft.TextAlign.CENTER,
-        font_family=FONT,
+            ),
+        ],
+        width=CONTENT_WIDTH,
+        text_align=ft.TextAlign.LEFT,
     )
 
-    content_items: list[ft.Control] = [
-        greeting,
-        ft.Text(
-            brief.forecast,
-            size=14,
-            color=TEXT_PRIMARY,
-            font_family=FONT,
-            text_align=ft.TextAlign.CENTER,
+    def mascot_row(mood: str, bubble_text: str) -> ft.Control:
+        return ft.Row(
+            [
+                buddy.face(mood, 104),
+                ft.Container(
+                    content=ft.Text(
+                        bubble_text,
+                        size=10.5,
+                        color=TEXT,
+                        font_family=FONT,
+                    ),
+                    expand=True,
+                    bgcolor="#26342F",
+                    border=ft.Border.all(1, "#708B82"),
+                    border_radius=10,
+                    padding=ft.Padding.symmetric(vertical=10, horizontal=11),
+                    shadow=ft.BoxShadow(blur_radius=18, color="#443FA66B"),
+                ),
+            ],
+            spacing=8,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
+    progress_card = ft.Container(
+        width=CONTENT_WIDTH,
+        bgcolor="#1C1C26",
+        border=ft.Border.all(1, "#484863"),
+        border_radius=20,
+        padding=ft.Padding.symmetric(vertical=13, horizontal=14),
+        content=ft.Column(
+            [
+                ft.Text(
+                    "Progress catatan Kalem",
+                    size=12.5,
+                    color=TEXT,
+                    font_family=FONT,
+                ),
+                ft.Row(
+                    [
+                        ft.ProgressBar(
+                            value=progress,
+                            color="#95ABFF",
+                            bgcolor="#111115",
+                            bar_height=14,
+                            border_radius=8,
+                            expand=True,
+                        ),
+                        ft.Text(
+                            f"{round(progress * 100)}%",
+                            size=13,
+                            weight=ft.FontWeight.W_700,
+                            color="#95ABFF",
+                            font_family=FONT,
+                        ),
+                    ],
+                    spacing=12,
+                ),
+            ],
+            spacing=8,
         ),
-    ]
+    )
 
-    if brief.reasons:
-        content_items.append(
-            ft.Container(
-                bgcolor=TYPEBOX_BG,
-                border_radius=14,
-                padding=14,
-                alignment=ft.Alignment.CENTER,
-                content=ft.Column(
-                    [
-                        ft.Text(
-                            "Kenapa KALEM mikir gitu",
-                            size=12,
-                            weight=ft.FontWeight.W_700,
-                            color=TEXT_PRIMARY,
-                            font_family=FONT,
-                            text_align=ft.TextAlign.CENTER,
-                        ),
-                        *[
-                            ft.Text(
-                                reason,
-                                size=12,
-                                color=TEXT_PRIMARY,
-                                font_family=FONT,
-                                text_align=ft.TextAlign.CENTER,
-                            )
-                            for reason in brief.reasons
-                        ],
-                    ],
-                    spacing=7,
-                    tight=True,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
+    primary_button = ft.Button(
+        width=CONTENT_WIDTH,
+        height=48,
+        content=ft.Text(
+            "Oke, Mulai Aja",
+            size=15,
+            weight=ft.FontWeight.W_800,
+            color=INK,
+            font_family=FONT,
+        ),
+        style=ft.ButtonStyle(
+            bgcolor=PRIMARY,
+            shape=ft.RoundedRectangleBorder(radius=100),
+        ),
+        on_click=accept,
+    )
+    override_button = ft.OutlinedButton(
+        width=CONTENT_WIDTH,
+        height=48,
+        content=ft.Text(
+            "Aku ngerasa beda",
+            size=14,
+            weight=ft.FontWeight.W_700,
+            color=PRIMARY,
+            font_family=FONT,
+        ),
+        style=ft.ButtonStyle(
+            side=ft.BorderSide(1, PRIMARY),
+            shape=ft.RoundedRectangleBorder(radius=100),
+        ),
+        on_click=override,
+    )
+
+    if brief.ready:
+        reason = brief.reasons[0] if brief.reasons else "catatan harian kamu mulai membentuk pola"
+        focus_label = f"{brief.focus_minutes} menit"
+        before_focus, separator, after_focus = brief.plan.partition(focus_label)
+        plan_spans = [ft.TextSpan(before_focus)]
+        if separator:
+            plan_spans.extend(
+                [
+                    ft.TextSpan(
+                        focus_label,
+                        style=ft.TextStyle(weight=ft.FontWeight.W_800),
+                    ),
+                    ft.TextSpan(after_focus),
+                ]
             )
+        pattern_text = (
+            brief.long_pattern
+            or "KALEM nyambungin pola berminggu-minggu, bukan cuma hari ini"
         )
-
-    content_items.append(plan_text)
-
-    if brief.long_pattern:
-        content_items.append(
-            ft.Container(
-                bgcolor=TYPEBOX_BG,
-                border_radius=14,
-                padding=14,
-                alignment=ft.Alignment.CENTER,
-                content=ft.Column(
-                    [
-                        ft.Text(
-                            "Pola beberapa minggu terakhir",
-                            size=11,
-                            weight=ft.FontWeight.W_700,
-                            color=TEXT_PRIMARY,
+        insight_content: list[ft.Control] = [
+            greeting,
+            ft.Text(
+                spans=[
+                    ft.TextSpan(
+                        "Ramalan hari ini:\n",
+                        style=ft.TextStyle(size=15, color=TEXT, font_family=FONT),
+                    ),
+                    ft.TextSpan(
+                        prediction_copy(brief.energy_level, brief.burnout_risk),
+                        style=ft.TextStyle(
+                            size=19,
+                            color=TEXT,
+                            weight=ft.FontWeight.W_800,
                             font_family=FONT,
-                            text_align=ft.TextAlign.CENTER,
+                        ),
+                    ),
+                ],
+                width=CONTENT_WIDTH,
+            ),
+            mascot_row(
+                brief.mood,
+                f"Aku mikir begitu karena {reason}",
+            ),
+            ft.Text(
+                spans=plan_spans,
+                width=CONTENT_WIDTH,
+                size=15,
+                color=TEXT,
+                font_family=FONT,
+            ),
+            ft.Container(
+                width=CONTENT_WIDTH,
+                border=ft.Border.all(2, "#F1C98F"),
+                border_radius=18,
+                padding=ft.Padding.symmetric(vertical=13, horizontal=14),
+                content=ft.Row(
+                    [
+                        ft.Icon(
+                            ft.Icons.WORKSPACE_PREMIUM,
+                            size=25,
+                            color="#F1C98F",
                         ),
                         ft.Text(
-                            brief.long_pattern,
+                            pattern_text,
                             size=12.5,
-                            color=TEXT_PRIMARY,
+                            color="#F1C98F",
                             font_family=FONT,
-                            text_align=ft.TextAlign.CENTER,
+                            weight=ft.FontWeight.W_600,
+                            expand=True,
                         ),
                     ],
-                    spacing=6,
-                    tight=True,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=11,
                 ),
-            )
-        )
-    elif brief.ready and not storage.is_premium():
-        content_items.append(
-            ft.Container(
-                bgcolor=TYPEBOX_BG,
-                border_radius=14,
-                padding=14,
-                alignment=ft.Alignment.CENTER,
-                content=ft.Text(
-                    "Premium: KALEM nyambungin pola berminggu-minggu, "
-                    "bukan cuma hari ini.",
-                    size=12,
-                    color=TEXT_PRIMARY,
+            ),
+        ]
+    else:
+        insight_content = [
+            greeting,
+            ft.Text(
+                "Aku belum ada cukup data buat meramal hari kamu.",
+                width=CONTENT_WIDTH,
+                size=13,
+                color=TEXT,
+                font_family=FONT,
+            ),
+            mascot_row(
+                "semangat",
+                "Yuk cerita dikit sama aku biar aku lebih kenal sama kamu dan "
+                "pengalamanmu jadi lebih terpersonalisasi",
+            ),
+            progress_card,
+        ]
+
+    return ft.Container(
+        expand=True,
+        bgcolor=BACKGROUND,
+        padding=ft.Padding(left=24, top=30, right=24, bottom=28),
+        content=ft.Column(
+            [
+                *insight_content,
+                primary_button,
+                override_button,
+                ft.Text(
+                    "Ramalan ini dari pola catatan kamu sendiri, bukan diagnosis. "
+                    "Kalau kamu ngerasa beda, kamu yang benar, bukan modelnya.",
+                    width=CONTENT_WIDTH,
+                    size=10.5,
+                    color=theme.MUTED,
                     font_family=FONT,
                     text_align=ft.TextAlign.CENTER,
                 ),
-            )
-        )
-
-    if brief.task_count:
-        content_items.append(
-            ft.Text(
-                f"Ada {brief.task_count} tugas hari ini.",
-                size=11.5,
-                color=TEXT_PRIMARY,
-                font_family=FONT,
-                text_align=ft.TextAlign.CENTER,
-            )
-        )
-
-    if brief.encouragement and (brief.energy_level <= 2 or brief.burnout_risk):
-        content_items.append(
-            ft.Text(
-                f'"{brief.encouragement}"',
-                size=13,
-                italic=True,
-                color=TEXT_PRIMARY,
-                font_family=FONT,
-                text_align=ft.TextAlign.CENTER,
-            )
-        )
-
-    accept_label = "Sesuai, mulai hari ini" if brief.ready else "Oke, mulai aja"
-    content_items.extend(
-        [
-            ui_helpers.primary_button(
-                accept_label,
-                accept,
-                icon=ft.Icons.CHECK,
-                expand=True,
-            ),
-            ft.TextButton(
-                content=ft.Text(
-                    "Aku ngerasa beda",
-                    size=12.5,
-                    color=TEXT_PRIMARY,
-                    font_family=FONT,
-                ),
-                on_click=override,
-            ),
-            ft.Text(
-                "Ramalan ini dari pola catatan kamu sendiri, bukan diagnosis. "
-                "Kalau kamu ngerasa beda, kamu yang bener -- bukan modelnya.",
-                size=10.5,
-                color=TEXT_PRIMARY,
-                font_family=FONT,
-                text_align=ft.TextAlign.CENTER,
-            ),
-        ]
-    )
-
-    foreground = ft.Container(
-        padding=ft.Padding(left=24, top=36, right=24, bottom=36),
-        content=ft.Column(
-            [
-                ft.ResponsiveRow(
-                    [
-                        ft.Container(
-                            col={"xs": 12, "sm": 10, "md": 7, "lg": 4.5, "xl": 3.4},
-                            content=ft.Column(
-                                content_items,
-                                spacing=18,
-                                tight=True,
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                            ),
-                        )
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=0,
-                ),
             ],
-            spacing=0,
+            spacing=14,
             scroll=ft.ScrollMode.AUTO,
-            alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            expand=True,
         ),
-    )
-
-    return ft.Stack(
-        [
-            ft.Container(
-                bgcolor=BACKGROUND,
-                alignment=ft.Alignment.CENTER,
-                content=ft.Image(
-                    src="Property 1=med_mood.png",
-                    width=520,
-                    height=620,
-                    fit=ft.BoxFit.CONTAIN,
-                    opacity=0.55,
-                ),
-            ),
-            ft.Container(bgcolor="#66141416", blur=8),
-            foreground,
-        ],
-        fit=ft.StackFit.EXPAND,
-        expand=True,
     )
