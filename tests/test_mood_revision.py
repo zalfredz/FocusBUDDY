@@ -159,6 +159,22 @@ def scenario_checkin_upsert_and_recompute() -> None:
     )
     check("Istirahat cukup semalam?" in initial_text,
           "form Check-in menampilkan pertanyaan istirahat di layar yang sama")
+    recommendation_gradient = next(
+        (
+            control.gradient
+            for control in walk(root)
+            if isinstance(control, ft.Container)
+            and isinstance(getattr(control, "gradient", None), ft.LinearGradient)
+            and "Rekomendasi personal\nkamu" in texts(control)
+        ),
+        None,
+    )
+    check(
+        recommendation_gradient is not None
+        and recommendation_gradient.begin == ft.Alignment.TOP_CENTER
+        and recommendation_gradient.colors[0] == "#5F957B",
+        "card rekomendasi memakai hijau lebih gelap di bagian atas",
+    )
     check(not any("paling ngaruh hari ini" in value.lower() for value in texts(root)),
           "pertanyaan faktor yang paling berpengaruh tidak tampil di Check-in")
 
