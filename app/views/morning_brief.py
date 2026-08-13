@@ -44,7 +44,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     greeting = ft.Text(
         spans=[
             ft.TextSpan(
-                f"Hai {name}!\nAku ",
+                f"Hai {name}\nAku ",
                 style=ft.TextStyle(
                     color=TEXT,
                     size=29,

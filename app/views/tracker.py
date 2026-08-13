@@ -271,7 +271,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             calendar_nav.controls = [
                 ft.Container(content=month_label, expand=True),
                 ft.TextButton(
-                    content=ft.Text("Lebih lengkap", size=11.5, color="#181A35"),
+                    content=ft.Text("Bulan Ini", size=11.5, color="#181A35"),
                     style=ft.ButtonStyle(bgcolor="#DDE0FF"),
                     on_click=lambda e: toggle_month(True),
                 ),
@@ -1150,6 +1150,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             options=[
                 ft.DropdownOption(
                     key=value,
+                    text=label,
                     content=ft.Text(label, color=theme.ON_BACKGROUND),
                 )
                 for value, label in (

@@ -1103,6 +1103,8 @@ def tes_onboarding_entry_dan_status_custom():
     )
     ok(name is not None and not name.hint_text,
        "field nama pakai 'Nama panggilan kamu' tanpa contoh placeholder")
+    ok(name is not None and name.width == onboarding.FORM_WIDTH,
+       "pertanyaan dan field nama memakai lebar form ringkas yang bisa dipusatkan")
     intro = cari_kontrol(
         root,
         lambda c: isinstance(c, ft.Text)
@@ -1111,6 +1113,9 @@ def tes_onboarding_entry_dan_status_custom():
     )
     ok(intro is not None and punya_teks(root, "Developed By ATURLAH - FASILKOM UI"),
        "entry memakai intro KALEM rata kiri dan credit developer")
+    if intro is not None:
+        ok(all(getattr(span.style, "height", 0) == 1.22 for span in intro.spans),
+           "judul Haloo dan Aku KALEM punya jarak antarbaris yang lebih lega")
     ok(
         list(storage.PRODUCTIVE_TIME_OPTIONS.values())
         == ["Pagi", "Siang", "Sore", "Malam", "Tidak tentu"],
@@ -1148,6 +1153,8 @@ def tes_onboarding_entry_dan_status_custom():
         return
     picker.value = datetime(2004, 1, 28, 17, tzinfo=timezone.utc)
     picker.on_change(SimpleNamespace(data="2004-01-29"))
+    ok(punya_teks(root, "Tanggal Lahir Kamu?"),
+       "pertanyaan tanggal lahir memakai copy baru")
 
     nav = cari_kontrol(
         root,
@@ -1178,8 +1185,13 @@ def tes_onboarding_entry_dan_status_custom():
         and all(
             getattr(option.content, "color", None) == onboarding.TEXT_PRIMARY
             for option in pekerjaan.options
+        )
+        and all(
+            getattr(option, "text", None) != getattr(option, "key", None)
+            for option in pekerjaan.options
+            if getattr(option, "key", None) != "lainnya"
         ),
-        "field, menu, dan seluruh teks opsi dropdown memakai tema gelap kontras",
+        "dropdown gelap menampilkan label manusia, bukan nilai internal ber-underscore",
     )
     pekerjaan.value = "lainnya"
     pekerjaan.on_select(SimpleNamespace(control=pekerjaan))

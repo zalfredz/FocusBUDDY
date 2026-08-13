@@ -16,6 +16,7 @@ BUTTON_BG = "#DDE0FF"
 BUTTON_TEXT = "#181A35"
 KALEM_GREEN = "#95D899"
 FONT = "Plus Jakarta Sans"
+FORM_WIDTH = 340
 
 MONTH_NAMES = (
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -60,6 +61,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         border=ft.InputBorder.NONE,
         border_radius=12,
         height=46,
+        width=FORM_WIDTH,
         content_padding=ft.Padding.symmetric(horizontal=16, vertical=8),
         text_size=14,
         on_submit=lambda e: next_from_name(),
@@ -101,7 +103,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     )
 
     QUESTIONS = [
-        ("birth_date", "Kapan tanggal lahir kamu?"),
+        ("birth_date", "Tanggal Lahir Kamu?"),
         ("status", "Apa kesibukan kamu saat ini?"),
         ("productive_time", "Kapan biasanya kamu paling enak buat fokus?"),
         ("sleep_condition", "Pola tidur kamu akhir-akhir ini gimana?"),
@@ -142,7 +144,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         color=TEXT_PRIMARY,
                         font_family=FONT,
                         size=size,
-                        height=1.05,
+                        height=1.22,
                         weight=ft.FontWeight.W_700,
                     ),
                 ),
@@ -152,7 +154,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         color=KALEM_GREEN,
                         font_family=FONT,
                         size=size,
-                        height=1.05,
+                        height=1.22,
                         weight=ft.FontWeight.W_700,
                     ),
                 ),
@@ -228,6 +230,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         choices = [
             ft.DropdownOption(
                 key=value,
+                text=label,
                 content=ft.Text(
                     label,
                     color=TEXT_PRIMARY,
@@ -241,6 +244,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             choices.append(
                 ft.DropdownOption(
                     key="lainnya",
+                    text="Lainnya",
                     content=ft.Text(
                         "Lainnya",
                         color=TEXT_PRIMARY,
@@ -418,12 +422,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                         size=20,
                                         color=TEXT_PRIMARY,
                                         font_family=FONT,
-                                        text_align=ft.TextAlign.LEFT,
+                                        width=FORM_WIDTH,
+                                        text_align=ft.TextAlign.CENTER,
                                     ),
                                     name_field,
                                 ],
                                 spacing=10,
                                 tight=True,
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             ),
                             ft.Row(
                                 [
@@ -481,13 +487,22 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 size=20,
                 color=TEXT_PRIMARY,
                 font_family=FONT,
-                text_align=ft.TextAlign.LEFT,
+                text_align=(
+                    ft.TextAlign.CENTER
+                    if key == "birth_date"
+                    else ft.TextAlign.LEFT
+                ),
             ),
             ft.Container(
                 bgcolor=TEXT_FIELD,
                 border_radius=16,
                 padding=18,
-                content=ft.Column(card_controls, spacing=12, tight=True),
+                content=ft.Column(
+                    card_controls,
+                    spacing=12,
+                    tight=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                ),
             ),
         ]
 
@@ -497,6 +512,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 question_controls,
                 spacing=10,
                 tight=True,
+                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             ),
             ft.Row(
                 [

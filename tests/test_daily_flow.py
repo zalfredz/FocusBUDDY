@@ -119,7 +119,8 @@ def scenario_brief_before_checkin_and_decision() -> None:
     routes: list[str] = []
     brief_root = morning_brief.build(brief_page, routes.append)
     brief_text = text_values(brief_root)
-    check("Hai Ari!\nAku Kalem!" in brief_text, "Insight memakai sapaan KALEM baru")
+    check("Hai Ari\nAku Kalem!" in brief_text,
+          "Insight menyapa nama tanpa tanda seru setelah nama")
     check(
         "Progress catatan Kalem" in brief_text
         and "Aku ngerasa beda" in brief_text,

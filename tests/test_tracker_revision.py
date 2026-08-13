@@ -183,8 +183,8 @@ def scenario_calendar_modes_and_done() -> None:
     weekly_chip = clickable(root, "Mingguan")
     if weekly_chip is not None:
         weekly_chip.on_click(SimpleNamespace(control=weekly_chip))
-    expand = clickable(root, "Lebih lengkap")
-    check(expand is not None, "calendar ringkas menyediakan Lebih lengkap")
+    expand = clickable(root, "Bulan Ini")
+    check(expand is not None, "calendar ringkas menyediakan tombol Bulan Ini")
     if expand is not None:
         expand.on_click(SimpleNamespace(control=expand))
     visible = texts(root)
@@ -200,7 +200,7 @@ def scenario_calendar_modes_and_done() -> None:
     check(collapse is not None, "kalender bulanan punya kontrol ukuran sendiri")
     if collapse is not None:
         collapse.on_click(SimpleNamespace(control=collapse))
-    check(monthly["title"] not in texts(root) and clickable(root, "Lebih lengkap") is not None,
+    check(monthly["title"] not in texts(root) and clickable(root, "Bulan Ini") is not None,
           "meringkas kalender tidak mengubah filter Bulanan")
 
 
