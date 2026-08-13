@@ -231,12 +231,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ft.DropdownOption(
                 key=value,
                 text=label,
-                content=ft.Text(
-                    label,
-                    color=TEXT_PRIMARY,
-                    font_family=FONT,
-                    size=13,
-                ),
+                style=ft.ButtonStyle(color=TEXT_PRIMARY),
             )
             for value, label in options.items()
         ]
@@ -245,12 +240,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.DropdownOption(
                     key="lainnya",
                     text="Lainnya",
-                    content=ft.Text(
-                        "Lainnya",
-                        color=TEXT_PRIMARY,
-                        font_family=FONT,
-                        size=13,
-                    ),
+                    style=ft.ButtonStyle(color=TEXT_PRIMARY),
                 )
             )
         return ft.Dropdown(

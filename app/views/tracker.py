@@ -629,14 +629,19 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ft.Row(
                 [
                     ft.Checkbox(
-                        label=step["text"],
                         value=step.get("done", False),
-                        expand=True,
-                        label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
                         on_change=lambda e, tid=task["id"], i=i,
                         od=task.get("_occurrence_date"): toggle_step(
                             tid, i, e.control.value, od
                         ),
+                    ),
+                    ft.Text(
+                        step["text"],
+                        size=12.5,
+                        color=theme.ON_BACKGROUND,
+                        max_lines=2,
+                        overflow=ft.TextOverflow.ELLIPSIS,
+                        expand=True,
                     ),
                     ft.IconButton(
                         icon=ft.Icons.EDIT_OUTLINED,
@@ -1151,7 +1156,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ft.DropdownOption(
                     key=value,
                     text=label,
-                    content=ft.Text(label, color=theme.ON_BACKGROUND),
+                    style=ft.ButtonStyle(color=theme.ON_BACKGROUND),
                 )
                 for value, label in (
                     ("none", "Sekali"),
@@ -1932,12 +1937,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 ],
                 spacing=10,
             ),
+            eisenhower_column,
             plan_column,
             next_action_holder,
             timeline_column,
             day_tasks_column,
             focus_history_holder,
-            eisenhower_column,
         ],
         spacing=14,
         scroll=ft.ScrollMode.AUTO,

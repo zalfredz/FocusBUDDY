@@ -283,6 +283,15 @@ def scenario_link_cards_and_back_buttons() -> None:
             storage.set_medication("CETIRIZINe", 1, 1)
         child = builder(page, destinations.append)
         child_text = text_values(child)
+        child_fields = [
+            control for control in walk(child)
+            if isinstance(control, ft.TextField)
+        ]
+        check(
+            child_fields
+            and all(field.color == "#FFFFFF" for field in child_fields),
+            f"seluruh input {name} menggunakan teks putih",
+        )
         if name == "Pengingat Obat":
             check(
                 not any("Opsional" in value and "cukup isi sekali" in value for value in child_text),

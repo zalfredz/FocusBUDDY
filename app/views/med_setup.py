@@ -121,6 +121,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
         value=str(existing["pills_per_day"]) if existing else "1",
         keyboard_type=ft.KeyboardType.NUMBER,
     )
+    for field in (name_field, stock_field, dose_field):
+        field.color = theme.ON_BACKGROUND
+        field.cursor_color = theme.ON_BACKGROUND
+        field.label_style = ft.TextStyle(color=theme.ON_BACKGROUND)
+        field.hint_style = ft.TextStyle(color=theme.MUTED)
+        field.bgcolor = "#343446"
+        field.filled = True
+        field.border_color = theme.BORDER
+        field.focused_border_color = theme.PRIMARY
 
     status_holder = ft.Container(visible=False)
     pharmacy_holder = ft.Column(spacing=10, visible=False)

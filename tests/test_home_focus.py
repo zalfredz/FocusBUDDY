@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import flet as ft
 
-from app import clock, focus_session, storage
+from app import clock, focus_session, storage, theme
 from app.core import kalem_engine
 from app.core.kalem_engine import DayState
 from app.views import home
@@ -470,6 +470,10 @@ def scenario_multiple_diary_and_quick_capture() -> None:
             and "Kamu boleh tulis apapun, tugas, cerita, atau apapun itu" in dialog_text,
             "dialog catatan menggunakan copy yang baru",
         )
+        check(
+            getattr(dialog.content, "width", None) == 360,
+            "input catatan memenuhi lebar dialog dengan gap kiri-kanan seimbang",
+        )
         field = next(control for control in walk(dialog) if isinstance(control, ft.TextField))
         save = button(dialog, "Simpan")
         note_text = "Balas email dosen setelah makan siang"
@@ -511,6 +515,15 @@ def scenario_multiple_diary_and_quick_capture() -> None:
         if convert is not None:
             convert.on_click(SimpleNamespace(control=None))
             task_dialog = page.dialogs[-1]
+            task_fields = [
+                control for control in walk(task_dialog)
+                if isinstance(control, ft.TextField)
+            ]
+            check(
+                task_dialog.bgcolor == "#1C1C26"
+                and all(field.color == theme.ON_BACKGROUND for field in task_fields),
+                "dialog Jadiin tugas memakai latar gelap dan teks input putih",
+            )
             split = next(
                 control for control in walk(task_dialog)
                 if isinstance(control, ft.Checkbox)

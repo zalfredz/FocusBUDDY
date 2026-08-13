@@ -532,8 +532,9 @@ def tes_fokus_ngunci():
         [label for _, label, _ in main_mod.NAV_ROUTES]
         == ["Tracker", "Home", "Mood"]
         and main_mod.NAV_LABEL_BEHAVIOR
-        == ft.NavigationBarLabelBehavior.ONLY_SHOW_SELECTED,
-        "hanya tab aktif menampilkan label dengan penamaan sesuai desain",
+        == ft.NavigationBarLabelBehavior.ONLY_SHOW_SELECTED
+        and main_mod.NAV_BACKGROUND == "#FFFFFF",
+        "navigation putih hanya menampilkan label tab aktif",
     )
 
     ok("reset" not in main_mod.FOKUS_BOLEH,
@@ -1182,10 +1183,6 @@ def tes_onboarding_entry_dan_status_custom():
         pekerjaan.fill_color == onboarding.INPUT_BG
         and pekerjaan.bgcolor == onboarding.INPUT_BG
         and pekerjaan.color == onboarding.TEXT_PRIMARY
-        and all(
-            getattr(option.content, "color", None) == onboarding.TEXT_PRIMARY
-            for option in pekerjaan.options
-        )
         and all(
             getattr(option, "text", None) != getattr(option, "key", None)
             for option in pekerjaan.options

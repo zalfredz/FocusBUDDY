@@ -899,9 +899,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ),
                         note_field,
                     ],
-                    width=280,
+                    width=360,
                     spacing=12,
                     tight=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                 ),
                 actions=[
                     ft.OutlinedButton(
@@ -998,9 +999,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         color="#17153A",
                         font_family=HOME_FONT,
                         weight=ft.FontWeight.W_700,
-                        text_align=ft.TextAlign.CENTER,
+                        text_align=ft.TextAlign.LEFT,
                     ),
-                    alignment=ft.Alignment.CENTER,
+                    alignment=ft.Alignment.CENTER_LEFT,
                     gradient=ft.LinearGradient(
                         begin=ft.Alignment.CENTER_LEFT,
                         end=ft.Alignment.CENTER_RIGHT,
@@ -1058,10 +1059,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     padding=ft.Padding(left=4, top=2, right=4, bottom=0),
                     content=ft.Text(
                         "FocusBuddy bukan alat diagnosis dan bukan pengganti tenaga medis",
-                        size=10.5,
+                        size=8.5,
                         color="#DDE0FF",
                         font_family=HOME_FONT,
                         text_align=ft.TextAlign.CENTER,
+                        no_wrap=True,
                     ),
                 ),
             ],

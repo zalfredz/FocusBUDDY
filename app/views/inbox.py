@@ -42,6 +42,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
             max_lines=5,
             helper="Diisi -> Pecah Tugas mecah dari SINI, bukan cuma judul",
         )
+        for field in (title_field, description_field):
+            field.color = theme.ON_BACKGROUND
+            field.cursor_color = theme.ON_BACKGROUND
+            field.label_style = ft.TextStyle(color=theme.ON_BACKGROUND)
+            field.hint_style = ft.TextStyle(color=theme.MUTED)
+            field.helper_style = ft.TextStyle(color=theme.MUTED)
+            field.bgcolor = "#343446"
+            field.filled = True
+            field.border_color = theme.BORDER
+            field.focused_border_color = theme.PRIMARY
         deadline_time_state = {"value": ""}
         deadline_time_label = ft.Text("Belum dipilih", size=11.5, color=theme.MUTED)
         deadline_time_picker = ft.TimePicker(
@@ -79,8 +89,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         deadline_time_picker.on_change = choose_deadline_time
         deadline_time_button = ft.OutlinedButton(
-            content=ft.Text("Pilih jam", size=11.5),
+            content=ft.Text("Pilih jam", size=11.5, color=theme.ON_BACKGROUND),
             icon=ft.Icons.SCHEDULE,
+            style=ft.ButtonStyle(
+                color=theme.ON_BACKGROUND,
+                side=ft.BorderSide(1, theme.BORDER),
+            ),
             on_click=lambda ev: page.show_dialog(deadline_time_picker),
         )
         deadline_time_clear = ft.IconButton(
@@ -102,11 +116,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ],
             spacing=4,
         )
-        important_check = ft.Checkbox(label="Penting (berdampak besar)", value=True)
+        important_check = ft.Checkbox(
+            label="Penting (berdampak besar)",
+            value=True,
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+        )
         can_use_ai = storage.can_use("decompose")
         split_check = ft.Checkbox(
             label="Pecah otomatis jadi langkah kecil",
             value=True,
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
         )
         note_text = ft.Text(
             "" if can_use_ai else "Kuota penyusunan KALEM habis: tetap coba pola lokal; "
@@ -165,7 +184,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("Rapikan jadi tugas", size=16),
+                bgcolor="#1C1C26",
+                shape=ft.RoundedRectangleBorder(radius=22),
+                title=ft.Text(
+                    "Rapikan jadi tugas",
+                    size=16,
+                    color=theme.ON_BACKGROUND,
+                    weight=ft.FontWeight.BOLD,
+                ),
                 content=ft.Column(
                     [
                         title_field,
@@ -178,9 +204,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ],
                     spacing=8,
                     tight=True,
+                    width=340,
+                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                 ),
                 actions=[
-                    ft.TextButton(content=ft.Text("Batal"), on_click=cancel_to_task),
+                    ft.TextButton(
+                        content=ft.Text("Batal", color=theme.ON_BACKGROUND),
+                        on_click=cancel_to_task,
+                    ),
                     submit_button,
                 ],
             )

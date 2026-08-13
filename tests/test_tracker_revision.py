@@ -171,6 +171,11 @@ def scenario_calendar_modes_and_done() -> None:
     check(any("selesai" in value.lower() for value in visible)
           and "Tugas sudah selesai" in visible,
           "Sebaran dan card memakai status task yang benar-benar selesai")
+    check(
+        visible.index("Pecah Tugas") < visible.index("SEBARAN TUGAS")
+        < visible.index("FOCUS HISTORY"),
+        "Sebaran Tugas tepat di bawah tombol Tambah/Pecah Tugas",
+    )
 
     target_cell = calendar_cell(root, another_weekday.day)
     check(target_cell is not None, "tanggal spesifik di kalender minggu dapat dipilih")
@@ -258,8 +263,10 @@ def scenario_deadline_and_no_deadline() -> None:
     check(
         repeat_dropdown is not None
         and [option.key for option in repeat_dropdown.options]
-        == ["none", "daily", "weekly", "monthly"],
-        "pilihan tugas berulang menggunakan dropdown",
+        == ["none", "daily", "weekly", "monthly"]
+        and [option.text for option in repeat_dropdown.options]
+        == ["Sekali", "Harian", "Mingguan", "Bulanan"],
+        "dropdown tugas berulang menampilkan Sekali, bukan nilai internal none",
     )
     check(
         getattr(dialog, "bgcolor", None) == "#1C1C26",

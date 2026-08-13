@@ -50,7 +50,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
     back_route = getattr(page, "_focusbuddy_favorites_return", "mood")
     current = storage.get_favorites()
     fields: dict[str, ft.TextField] = {}
-    saved_note = ft.Text("", size=12, color=theme.PRIMARY)
     progress_holder = ft.Container()
 
     picks: dict[str, str] = {
@@ -135,7 +134,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
         hour_chips = [
-            ui_helpers.choice_chip(
+            _favorite_choice_chip(
                 label,
                 picks["jam_capek"] == value,
                 lambda e, selected=value: choose("jam_capek", selected),
@@ -148,7 +147,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
 
         style_chips = [
-            ui_helpers.choice_chip(
+            _favorite_choice_chip(
                 label,
                 value in work_styles,
                 lambda e, selected=value: toggle_work_style(selected),
@@ -169,6 +168,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
             hint_text=HINTS.get(key, ""),
             border_color=theme.BORDER,
             focused_border_color=theme.PRIMARY,
+            color=theme.ON_BACKGROUND,
+            cursor_color=theme.ON_BACKGROUND,
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+            hint_style=ft.TextStyle(color=theme.MUTED),
+            bgcolor="#343446",
+            filled=True,
             text_align=ft.TextAlign.JUSTIFY,
             expand=True,
             multiline=key in {"penyemangat", "kembali_fokus", "rasa_aman"},
@@ -186,8 +191,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         for key, value in picks.items():
             storage.set_favorite(key, value)
         storage.set_favorite("preferensi_kerja", ",".join(sorted(work_styles)))
-        saved_note.value = "Tersimpan 🤍"
         render_progress()
+        ui_helpers.reward_overlay(page, "Favorit kamu tersimpan 🤍")
         page.update()
 
     render_picks()
@@ -196,7 +201,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
     groups = [
         ui_helpers.card(
             ft.ExpansionTile(
-                title=ft.Text(title, size=13.5, weight=ft.FontWeight.BOLD),
+                title=ft.Text(
+                    title,
+                    size=13.5,
+                    weight=ft.FontWeight.BOLD,
+                    color=theme.ON_BACKGROUND,
+                ),
                 controls=[field_control(key) for key in keys],
                 controls_padding=ft.Padding.only(bottom=8),
                 tile_padding=ft.Padding.symmetric(vertical=4, horizontal=14),
@@ -232,7 +242,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ui_helpers.card(progress_holder, padding=16),
             *groups,
             ui_helpers.wide_button("Simpan", save, icon=ft.Icons.SAVE),
-            saved_note,
             ui_helpers.disclaimer(
                 "Semua isian tersimpan di ruang akun kamu dan boleh diubah kapan pun."
             ),
@@ -254,4 +263,21 @@ def _preference_block(label: str, control: ft.Control) -> ft.Control:
             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         ),
         padding=ft.Padding.symmetric(vertical=8, horizontal=14),
+    )
+
+
+def _favorite_choice_chip(label: str, active: bool, on_click) -> ft.Control:
+    return ft.Container(
+        content=ft.Text(
+            label,
+            size=12.5,
+            color=theme.ON_BACKGROUND,
+            text_align=ft.TextAlign.CENTER,
+        ),
+        bgcolor=theme.PRIMARY if active else theme.SURFACE,
+        border=ft.Border.all(1, theme.PRIMARY if active else theme.BORDER),
+        border_radius=12,
+        padding=ft.Padding.symmetric(vertical=10, horizontal=14),
+        on_click=on_click,
+        ink=True,
     )

@@ -39,7 +39,7 @@ NAV_ROUTES = [
     ("mood", "Mood", ft.Icons.FAVORITE_BORDER),
 ]
 NAV_LABEL_BEHAVIOR = ft.NavigationBarLabelBehavior.ONLY_SHOW_SELECTED
-NAV_BACKGROUND = "#1C1C26"
+NAV_BACKGROUND = "#FFFFFF"
 
 ROUTES = {
     "home": home.build,
@@ -582,8 +582,8 @@ async def main(page: ft.Page) -> None:
             on_change=lambda e: navigate(NAV_ROUTES[e.control.selected_index][0]),
             destinations=[
                 ft.NavigationBarDestination(
-                    icon=ft.Icon(icon, color="#DDE0FF"),
-                    selected_icon=ft.Icon(icon, color="#484863"),
+                    icon=ft.Icon(icon, color="#181A35"),
+                    selected_icon=ft.Icon(icon, color="#181A35"),
                     label=label,
                 )
                 for _, label, icon in NAV_ROUTES
@@ -593,7 +593,7 @@ async def main(page: ft.Page) -> None:
         nav_shell = ft.Container(
             content=nav_bar,
             bgcolor=NAV_BACKGROUND,
-            border=ft.Border.all(1, "#484863"),
+            border=ft.Border.all(1, "#DDE0FF"),
             border_radius=100,
             clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
             margin=ft.Padding(left=16, top=3, right=16, bottom=8),

@@ -345,6 +345,11 @@ def scenario_favorites_preserve_and_personalize() -> None:
     storage.set_favorite("musik", "lo-fi lama")
     storage.set_favorite("orang", "Rani")
     page = FakePage()
+    popup_messages: list[str] = []
+    original_reward = favorites.ui_helpers.reward_overlay
+    favorites.ui_helpers.reward_overlay = (
+        lambda _page, message="": popup_messages.append(message)
+    )
     root = favorites.build(page, lambda route: None)
     shown = texts(root)
     for group in (
@@ -366,6 +371,14 @@ def scenario_favorites_preserve_and_personalize() -> None:
         safe.value = "duduk sebentar di kamar"
     if save is not None:
         save.on_click(None)
+    favorites.ui_helpers.reward_overlay = original_reward
+    check(popup_messages == ["Favorit kamu tersimpan 🤍"],
+          "Simpan Favorit menampilkan popup hijau, bukan teks status permanen")
+    favorite_fields = [
+        control for control in walk(root) if isinstance(control, ft.TextField)
+    ]
+    check(favorite_fields and all(field.color == "#FFFFFF" for field in favorite_fields),
+          "seluruh input Favorit menggunakan tulisan putih")
 
     stored = storage.get_favorites()
     check(stored.get("musik") == "lo-fi lama" and stored.get("orang") == "Rani",
