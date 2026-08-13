@@ -14,7 +14,7 @@ from app.core.reset_preferences import (
 )
 
 
-BACKGROUND = "#232337"
+BACKGROUND = "#141416"
 PANEL = "#343446"
 TEXT = "#FFFFFF"
 SOFT_TEXT = "#DDE0FF"

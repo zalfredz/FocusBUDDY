@@ -576,6 +576,19 @@ def scenario_navigation_is_locked_while_active() -> None:
     focus_session.pause()
     check(not allowed("tracker"), "pause tidak membuka navigation utama")
     check(allowed("home"), "route internal Home tetap boleh untuk merender Focus Session")
+    dialog = main.focus_guard_dialog(focus_session.snapshot(), lambda event: None)
+    dialog_texts = [
+        control for control in walk(dialog)
+        if isinstance(control, ft.Text)
+    ]
+    check(
+        dialog.bgcolor == "#1C1C26"
+        and all(
+            control.color in {theme.ON_BACKGROUND, theme.MUTED, "#181A35"}
+            for control in dialog_texts
+        ),
+        "popup pindah tab memakai background gelap dan tulisan berkontras jelas",
+    )
     focus_session.stop()
     check(allowed("tracker"), "navigation terbuka lagi setelah sesi benar-benar diakhiri")
 

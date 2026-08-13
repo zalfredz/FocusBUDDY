@@ -543,6 +543,11 @@ def tes_fokus_ngunci():
         and app_theme.dialog_theme.content_text_style.color == "#FFFFFF",
         "popup cerita dan dialog default memakai latar gelap dengan tulisan putih",
     )
+    from app.views import daily_checkin, reset
+    ok(
+        theme.BACKGROUND == daily_checkin.BACKGROUND == reset.BACKGROUND == "#141416",
+        "background shell, Check-in, dan Kewalahan seragam #141416",
+    )
 
     ok("reset" not in main_mod.FOKUS_BOLEH,
        "OVERWHELM tidak dibuka di tengah sesi; user mengakhiri sesi dulu")

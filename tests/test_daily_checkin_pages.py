@@ -70,7 +70,7 @@ def test_daily_checkin_is_two_full_pages_and_saves(monkeypatch, tmp_path) -> Non
     routes: list[str] = []
     root = daily_checkin.build(page, routes.append)
 
-    assert root.bgcolor == "#343446"
+    assert root.bgcolor == "#141416"
     first_images = images(root)
     assert buddy.asset_for(buddy.DEFAULT_MOOD) in first_images
     assert {buddy.asset_for(mood) for mood in buddy.MOOD_ORDER} <= first_images

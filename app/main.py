@@ -85,6 +85,45 @@ def main_navigation_visible(route: str) -> bool:
     return route not in FULLSCREEN_ROUTES
 
 
+def focus_guard_dialog(snapshot: dict, on_continue) -> ft.AlertDialog:
+    """Dialog kontras saat user mencoba meninggalkan sesi fokus aktif."""
+    apa = snapshot.get("label") or snapshot.get("task_title") or "satu hal"
+    return ft.AlertDialog(
+        modal=True,
+        bgcolor="#1C1C26",
+        shape=ft.RoundedRectangleBorder(radius=22),
+        title=ft.Text(
+            "Lagi fokus, nih 🌿",
+            size=16,
+            color=theme.ON_BACKGROUND,
+            weight=ft.FontWeight.BOLD,
+        ),
+        content=ft.Column(
+            [
+                ft.Text(
+                    f"Kamu lagi ngerjain \"{apa}\" — sisa {snapshot['clock']}.",
+                    size=13,
+                    color=theme.ON_BACKGROUND,
+                ),
+                ft.Text(
+                    "Selesaikan, pause, atau akhiri sesi dari layar Focus dulu.",
+                    size=11.5,
+                    color=theme.MUTED,
+                ),
+            ],
+            spacing=8,
+            tight=True,
+            width=320,
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+        ),
+        actions=[
+            ui_helpers.primary_button(
+                "Lanjut fokus", on_continue, icon=ft.Icons.BOLT
+            ),
+        ],
+    )
+
+
 def phone_view(page: ft.Page, content: ft.Control) -> ft.Control:
     """Batasi aplikasi ke viewport HP, tetapi tetap muat di layar yang lebih kecil."""
     available = getattr(page, "width", None)
@@ -497,7 +536,11 @@ async def main(page: ft.Page) -> None:
 
     def build_application() -> None:
         page.clean()
-        content = ft.Container(expand=True, padding=16)
+        content = ft.Container(
+            expand=True,
+            padding=16,
+            bgcolor=theme.BACKGROUND,
+        )
 
         storage.touch_last_open()
 
@@ -506,37 +549,11 @@ async def main(page: ft.Page) -> None:
                 return False
 
             s = focus_session.snapshot()
-            apa = s["label"] or s["task_title"] or "satu hal"
 
             def lanjut(e):
                 page.pop_dialog()
 
-            page.show_dialog(
-                ft.AlertDialog(
-                    modal=True,
-                    title=ft.Text("Lagi fokus, nih 🌿", size=16),
-                    content=ft.Column(
-                        [
-                            ft.Text(
-                                f"Kamu lagi ngerjain \"{apa}\" — sisa {s['clock']}.",
-                                size=13,
-                            ),
-                            ft.Text(
-                                "Selesaikan, pause, atau akhiri sesi dari layar Focus dulu.",
-                                size=11.5,
-                                color=theme.MUTED,
-                            ),
-                        ],
-                        spacing=8,
-                        tight=True,
-                    ),
-                    actions=[
-                        ui_helpers.primary_button(
-                            "Lanjut fokus", lanjut, icon=ft.Icons.BOLT
-                        ),
-                    ],
-                )
-            )
+            page.show_dialog(focus_guard_dialog(s, lanjut))
             return True
 
         def navigate(route: str) -> None:

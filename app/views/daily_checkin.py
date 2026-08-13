@@ -5,7 +5,7 @@ import flet as ft
 
 from app import buddy, storage
 
-BACKGROUND = "#343446"
+BACKGROUND = "#141416"
 OPTION_BG = "#484863"
 OPTION_ACTIVE = "#5B5B7A"
 TEXT_PRIMARY = "#FFFFFF"

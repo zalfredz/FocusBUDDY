@@ -190,6 +190,9 @@ def scenario_checkin_upsert_and_recompute() -> None:
     edit = clickable(root, "Ubah check-in")
     if edit is not None:
         edit.on_click(None)
+    details = root.controls[2] if len(root.controls) > 2 else None
+    check(details is not None and not details.visible,
+          "edit Check-in menyembunyikan konten panjang agar scroll tetap ringan")
     energy_five = energy_slider(root)
     update = clickable(root, "Simpan perubahan")
     check(energy_five is not None and update is not None,
@@ -198,6 +201,8 @@ def scenario_checkin_upsert_and_recompute() -> None:
         set_slider(energy_five, 5)
     if update is not None:
         update.on_click(None)
+    check(details is not None and details.visible,
+          "selesai edit menampilkan kembali insight dan grafik")
 
     updated = storage.today_mood() or {}
     old = next((log for log in storage.get_mood_logs() if log.get("date") == yesterday), {})

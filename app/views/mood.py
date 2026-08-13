@@ -54,6 +54,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
     care_holder = ft.Container()
     checkin_holder = ft.Container()
     result_holder = ft.Container(visible=False)
+    details_holder = ft.Container(visible=not state["editing"])
 
     def pick_mood(mood: str):
         state["mood"] = mood
@@ -244,12 +245,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
     def begin_edit(e):
         load_today_into_state()
         state["editing"] = True
+        details_holder.visible = False
         render_checkin()
         page.update()
 
     def cancel_edit(e):
         load_today_into_state()
         state["editing"] = False
+        details_holder.visible = True
         render_checkin()
         page.update()
 
@@ -351,6 +354,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         storage.set_today_energy(energy)
         state["has_checkin"] = True
         state["editing"] = False
+        details_holder.visible = True
         render_checkin()
         render_condition()
         render_insight()
@@ -627,10 +631,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
         padding=16,
     )
 
-    return ft.Column(
+    details_holder.content = ft.Column(
         [
-            ui_helpers.title("Mood", 22),
-            checkin_holder,
             result_holder,
             learning_card,
             ui_helpers.card(history_holder),
@@ -661,6 +663,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 on_click=open_favorites,
                 ink=True,
             ),
+        ],
+        spacing=14,
+        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+    )
+
+    return ft.Column(
+        [
+            ui_helpers.title("Mood", 22),
+            checkin_holder,
+            details_holder,
         ],
         spacing=14,
         scroll=ft.ScrollMode.AUTO,
