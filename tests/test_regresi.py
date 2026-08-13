@@ -524,7 +524,7 @@ def tes_fokus_ngunci():
     bagian("Mode fokus ngunci seluruh navigation utama")
     import flet as ft
     import app.main as main_mod
-    from app import focus_session
+    from app import focus_session, theme
 
     ok([route for route, _, _ in main_mod.NAV_ROUTES] == ["tracker", "home", "mood"],
        "navigasi bawah berurutan Tracker — Home — Mood")
@@ -535,6 +535,13 @@ def tes_fokus_ngunci():
         == ft.NavigationBarLabelBehavior.ONLY_SHOW_SELECTED
         and main_mod.NAV_BACKGROUND == "#FFFFFF",
         "navigation putih hanya menampilkan label tab aktif",
+    )
+    app_theme = theme.build_theme()
+    ok(
+        app_theme.dialog_theme.bgcolor == "#1C1C26"
+        and app_theme.dialog_theme.title_text_style.color == "#FFFFFF"
+        and app_theme.dialog_theme.content_text_style.color == "#FFFFFF",
+        "popup cerita dan dialog default memakai latar gelap dengan tulisan putih",
     )
 
     ok("reset" not in main_mod.FOKUS_BOLEH,

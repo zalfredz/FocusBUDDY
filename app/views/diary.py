@@ -142,6 +142,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     saved_note,
                 ],
                 spacing=6,
+                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             ),
             ui_helpers.title("Cerita Sebelumnya", 15),
             entries_column,
@@ -154,4 +155,5 @@ def build(page: ft.Page, navigate) -> ft.Control:
         spacing=14,
         scroll=ft.ScrollMode.AUTO,
         expand=True,
+        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
     )

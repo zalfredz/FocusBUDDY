@@ -459,6 +459,19 @@ def scenario_multiple_diary_and_quick_capture() -> None:
     routes: list[str] = []
     page = FakePage()
     root = home.build(page, routes.append)
+    legal = next(
+        (
+            control for control in walk(root)
+            if isinstance(control, ft.Text)
+            and control.value
+            == "FocusBuddy bukan alat diagnosis dan bukan pengganti tenaga medis"
+        ),
+        None,
+    )
+    check(
+        legal is not None and legal.size == 7.5 and legal.max_lines == 1,
+        "disclaimer Home kecil dan hanya mengambil satu baris",
+    )
     capture = button(root, "Ada yang Keingat?")
     check(capture is not None, "quick capture tersedia di Home normal")
     if capture is not None:

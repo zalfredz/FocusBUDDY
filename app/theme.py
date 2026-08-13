@@ -89,6 +89,21 @@ def build_theme() -> ft.Theme:
             confirm_button_style=ft.ButtonStyle(color=PRIMARY),
             shape=ft.RoundedRectangleBorder(radius=24),
         ),
+        dialog_theme=ft.DialogTheme(
+            bgcolor="#1C1C26",
+            title_text_style=ft.TextStyle(
+                color=ON_BACKGROUND,
+                font_family=FONT_AUTH,
+                size=18,
+                weight=ft.FontWeight.W_700,
+            ),
+            content_text_style=ft.TextStyle(
+                color=ON_BACKGROUND,
+                font_family=FONT_AUTH,
+                size=13,
+            ),
+            shape=ft.RoundedRectangleBorder(radius=22),
+        ),
         navigation_bar_theme=ft.NavigationBarTheme(
             bgcolor="#FFFFFF",
             indicator_color="#DDE0FF",
