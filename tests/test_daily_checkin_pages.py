@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import flet as ft
 
-from app import buddy, storage
+from app import buddy, clock, storage
 from app.views import daily_checkin, home, task_add
 
 
@@ -157,7 +157,7 @@ def test_home_uses_checkin_energy_mood_and_has_no_meal_popup(
     assert "kalem_lelah.svg" in images(root)
     assert "Ada yang Keingat?" in shown
     assert "Kewalahan? YUK AMBIL JEDA" in shown
-    assert button(root, "Tambah tugas") is None
+    assert button(root, "+ Tambah Tugas") is None
     assert not page.dialogs
 
     controls = list(walk(root))
@@ -185,17 +185,17 @@ def test_home_uses_checkin_energy_mood_and_has_no_meal_popup(
         for control in controls
         if isinstance(control, ft.Image)
         and control.src == "kalem_cemas.svg"
-        and control.width == 72
+        and control.width == 65
     )
 
     assert home.HOME_CONTENT_WIDTH == 320
-    assert greeting.size == 35 and greeting.weight == ft.FontWeight.W_900
+    assert greeting.size == 32 and greeting.weight == ft.FontWeight.W_900
     assert greeting.style.letter_spacing == 1.1
-    assert task_copy.size == 21
-    assert capture.height == 42
+    assert task_copy.size == 19
+    assert capture.height == 38
     assert reset_gradient.colors == ["#95D899", "#95D899", "#AEEEF8"]
     assert reset_gradient.stops == [0.0, 0.8, 1.0]
-    assert reset_face.width == 72
+    assert reset_face.width == 65
     assert reset_face.left == -12
 
 
@@ -205,6 +205,11 @@ def test_home_add_task_opens_dedicated_page(monkeypatch, tmp_path) -> None:
     state["profile"].update({"name": "Ari", "onboarded": True})
     storage.save_state(state)
     storage.add_mood_log("tenang", buddy.score_for("tenang"), 4)
+    storage.add_task(
+        "Tugas hari ini",
+        clock.today().isoformat(),
+        steps=[{"text": "Mulai", "done": False}],
+    )
 
     routes: list[str] = []
     page = FakePage()
@@ -213,7 +218,7 @@ def test_home_add_task_opens_dedicated_page(monkeypatch, tmp_path) -> None:
     page.run_task = lambda fn, *args: None
     page.show_dialog = page.dialogs.append
     root = home.build(page, routes.append)
-    add = button(root, "Tambah tugas")
+    add = button(root, "+ Tambah Tugas")
 
     assert add is not None
     add.on_click(SimpleNamespace(control=add))

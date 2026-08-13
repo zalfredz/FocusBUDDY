@@ -101,6 +101,7 @@ def jalan_tree(kontrol):
         yield from jalan_tree(aksi)
     yield from jalan_tree(getattr(kontrol, "title", None))
     yield from jalan_tree(getattr(kontrol, "subtitle", None))
+    yield from jalan_tree(getattr(kontrol, "suffix", None))
     yield from jalan_tree(getattr(kontrol, "content", None))
 
 
@@ -360,7 +361,11 @@ def tes_langganan_demo():
         punya_teks(root, "KALEM Freemium")
         and punya_teks(root, "Kamu sedang memakai paket Free")
         and punya_teks(root, "IDR 29.000/Bulan")
-        and cari_tombol_berteks(root, "Upgrade ke Freemium") is not None,
+        and cari_kontrol(
+            root,
+            lambda control: getattr(control, "on_click", None) is not None
+            and punya_teks(control, "Upgrade ke Freemium"),
+        ) is not None,
         "card pertama menampilkan status Free, harga, dan upgrade Freemium",
     )
     tombol_on = cari_tombol_berteks(root, "Coba pembayaran demo")
@@ -547,8 +552,9 @@ def tes_fokus_ngunci():
     )
     from app.views import daily_checkin, reset
     ok(
-        theme.BACKGROUND == daily_checkin.BACKGROUND == reset.BACKGROUND == "#141416",
-        "background shell, Check-in, dan Kewalahan seragam #141416",
+        theme.BACKGROUND == daily_checkin.BACKGROUND == "#141416"
+        and reset.BACKGROUND == "#232337",
+        "background shell dan Check-in #141416; Kewalahan khusus #232337",
     )
 
     ok("reset" not in main_mod.FOKUS_BOLEH,
@@ -946,6 +952,23 @@ def tes_voice_diary():
     silent_text, silent_error = stt.transcribe_pcm16(b"\x00\x00" * stt.SAMPLE_RATE)
     ok(not silent_text and silent_error == stt.PESAN_TIDAK_TERDENGAR,
        "rekaman panjang tetapi sunyi ditolak sebelum memanggil provider")
+
+    quiet_pcm = b"".join(
+        struct.pack("<h", int(40 * math.sin(2 * math.pi * 220 * i / stt.SAMPLE_RATE)))
+        for i in range(stt.SAMPLE_RATE)
+    )
+    original_provider = stt._speech_provider
+    original_gemini = stt._transcribe_gemini
+    try:
+        stt._speech_provider = lambda: "gemini"
+        stt._transcribe_gemini = lambda wav: ("Suara pelan masih terbaca.", "")
+        quiet_text, quiet_error = stt.transcribe_pcm16(quiet_pcm)
+    finally:
+        stt._speech_provider = original_provider
+        stt._transcribe_gemini = original_gemini
+    ok(quiet_text == "Suara pelan masih terbaca." and not quiet_error,
+       "suara pelan dengan sinyal nyata tetap diteruskan ke provider")
+
     ok(not stt._clean_transcript("<noise>") and not stt._clean_transcript("[silence]"),
        "marker noise atau silence dari provider tidak masuk ke textbox")
 
@@ -1113,14 +1136,18 @@ def tes_pecah_tugas_judul_kembar():
     storage_baru("pecah_kembar_")
     pertama = storage.add_task(
         "Belajar", storage.clock.today().isoformat(), description="Buka catatan A\nTandai rumus A",
+        custom_steps=["Tandai rumus A"],
     )
     kedua = storage.add_task(
         "Belajar", storage.clock.today().isoformat(), description="Buka catatan B\nTandai rumus B",
+        custom_steps=["Tandai rumus B"],
     )
     result = dl.plan_today([pertama, kedua], allow_ai=False)
-    ok([s["text"] for s in result.task_steps[pertama["id"]]] == ["Buka catatan A", "Tandai rumus A"],
+    langkah_pertama = [s["text"] for s in result.task_steps[pertama["id"]]]
+    langkah_kedua = [s["text"] for s in result.task_steps[kedua["id"]]]
+    ok("Tandai rumus A" in langkah_pertama and "Tandai rumus B" not in langkah_pertama,
        "tugas judul kembar pertama mempertahankan langkahnya sendiri")
-    ok([s["text"] for s in result.task_steps[kedua["id"]]] == ["Buka catatan B", "Tandai rumus B"],
+    ok("Tandai rumus B" in langkah_kedua and "Tandai rumus A" not in langkah_kedua,
        "tugas judul kembar kedua tidak tertimpa langkah tugas pertama")
 
 

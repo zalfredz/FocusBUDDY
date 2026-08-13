@@ -33,10 +33,12 @@ PESAN_GAGAL = "KALEM belum berhasil mengubah suara jadi tulisan. Coba lagi atau 
 PESAN_JARINGAN = "Koneksi terputus saat memproses suara. Coba lagi ketika internet lebih stabil."
 PESAN_KUOTA = "Cerita suara sedang ramai dipakai. Coba lagi sebentar lagi."
 
-# Ambang ini hanya menolak buffer yang praktis sunyi. Audio pelan tetap diteruskan
-# ke provider agar validasi lokal tidak terlalu agresif pada mikrofon ponsel.
-MIN_SIGNAL_RMS = 25.0
-MIN_SIGNAL_PEAK = 160
+# Ambang ini hanya menolak buffer yang praktis sunyi. Mikrofon ponsel tertentu
+# menghasilkan PCM dengan amplitudo sangat kecil, jadi rekaman baru ditolak bila
+# RMS dan peak sama-sama rendah. Salah satu tanda suara yang nyata sudah cukup
+# untuk meneruskan audio ke provider.
+MIN_SIGNAL_RMS = 8.0
+MIN_SIGNAL_PEAK = 80
 
 _NON_SPEECH_MARKERS = {
     "noise",
@@ -240,7 +242,7 @@ def transcribe_pcm16(pcm: bytes) -> tuple[str, str]:
         return "", PESAN_TERLALU_PENDEK
 
     rms, peak = pcm16_signal_metrics(pcm)
-    if rms < MIN_SIGNAL_RMS or peak < MIN_SIGNAL_PEAK:
+    if rms < MIN_SIGNAL_RMS and peak < MIN_SIGNAL_PEAK:
         _log.info(
             "rekaman suara ditolak karena sinyal terlalu rendah (bytes=%s, rms=%.1f, peak=%s)",
             len(pcm),
