@@ -403,10 +403,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                 ),
                 gradient=ft.LinearGradient(
-                    begin=ft.Alignment.TOP_CENTER,
-                    end=ft.Alignment.BOTTOM_CENTER,
-                    colors=["#5F957B", theme.PRIMARY, theme.SECONDARY],
-                    stops=[0.0, 0.58, 1.0],
+                    begin=ft.Alignment.CENTER_LEFT,
+                    end=ft.Alignment.CENTER_RIGHT,
+                    colors=[theme.PRIMARY, theme.SECONDARY],
                 ),
                 border_radius=16,
                 padding=ft.Padding.symmetric(vertical=10, horizontal=14),
