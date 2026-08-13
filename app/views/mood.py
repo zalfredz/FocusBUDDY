@@ -643,34 +643,28 @@ def build(page: ft.Page, navigate) -> ft.Control:
                 "Tulis cerita hari ini, atau baca lagi yang udah pernah kamu tulis.",
                 lambda e: navigate("diary"),
             ),
-            ft.Container(
-                content=ft.Row(
-                    [
-                        ft.Icon(ft.Icons.FAVORITE_BORDER, color="#181A35", size=22),
-                        ft.Text(
-                            "Tambah favoritmu di sini",
-                            color="#181A35",
-                            weight=ft.FontWeight.BOLD,
-                            expand=True,
-                            text_align=ft.TextAlign.CENTER,
-                        ),
-                    ],
-                    spacing=8,
-                ),
-                bgcolor="#DDE0FF",
-                border_radius=18,
-                padding=ft.Padding.symmetric(vertical=10, horizontal=16),
-                on_click=open_favorites,
-                ink=True,
-            ),
         ],
         spacing=14,
         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
     )
 
+    header_row = ft.Row(
+        [
+            ft.Container(content=ui_helpers.title("Mood", 22), expand=True),
+            ft.IconButton(
+                icon=ft.Icons.FAVORITE_BORDER,
+                icon_color=theme.TERTIARY,
+                icon_size=22,
+                tooltip="Favorit Kamu",
+                on_click=open_favorites,
+            ),
+        ],
+        spacing=0,
+    )
+
     return ft.Column(
         [
-            ui_helpers.title("Mood", 22),
+            header_row,
             checkin_holder,
             details_holder,
         ],

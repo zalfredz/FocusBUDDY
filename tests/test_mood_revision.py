@@ -149,13 +149,26 @@ def scenario_checkin_upsert_and_recompute() -> None:
         "Yang KALEM paling pelajarin tentang kamu",
         "Grafik Bulanan",
         "Cerita Kamu",
-        "Tambah favoritmu di sini",
     ]
     check(
         all(label in initial_text for label in order_labels)
         and [initial_text.index(label) for label in order_labels]
         == sorted(initial_text.index(label) for label in order_labels),
-        "Mood mengurutkan insight + rekomendasi, grafik, Cerita, lalu Favorit",
+        "Mood mengurutkan insight + rekomendasi, grafik, lalu Cerita",
+    )
+    favorite_shortcut = next(
+        (
+            control for control in walk(root)
+            if isinstance(control, ft.IconButton)
+            and control.icon == ft.Icons.FAVORITE_BORDER
+            and control.tooltip == "Favorit Kamu"
+        ),
+        None,
+    )
+    check(
+        favorite_shortcut is not None
+        and "Tambah favoritmu di sini" not in initial_text,
+        "Favorit dipindahkan menjadi ikon hati di kanan atas Mood",
     )
     check("Istirahat cukup semalam?" in initial_text,
           "form Check-in menampilkan pertanyaan istirahat di layar yang sama")
