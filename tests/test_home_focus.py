@@ -240,6 +240,27 @@ def scenario_focus_ui_has_done_and_is_compact() -> None:
     root = home.build(page, routes.append)
     finish = button(root, "Sudahi")
     check(finish is not None, "tombol Sudahi tersedia saat timer masih berjalan")
+    check(
+        finish is not None
+        and finish.width == 92
+        and finish.bgcolor == home.FOCUS_ACCENT
+        and finish.content.no_wrap
+        and finish.content.max_lines == 1,
+        "tombol Sudahi ungu dan teksnya dipaksa tetap satu baris",
+    )
+    focus_rings = [
+        control for control in walk(root)
+        if isinstance(control, ft.ProgressRing) and control.width == 210
+    ]
+    check(
+        bool(focus_rings)
+        and focus_rings[0].color == home.FOCUS_ACCENT
+        and not any(
+            getattr(control, "bgcolor", None) == "#302A27"
+            for control in walk(root)
+        ),
+        "ring dan card sesi fokus memakai palet ungu, bukan oranye",
+    )
     visible = texts(root)
     check(
         "Sesi fokus:" in visible and "Ada yang Keingat?" in visible

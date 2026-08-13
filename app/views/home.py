@@ -31,6 +31,11 @@ HOME_BUTTON = "#DDE0FF"
 HOME_BUTTON_TEXT = "#181A35"
 HOME_FONT = "Plus Jakarta Sans"
 HOME_CONTENT_WIDTH = 320
+FOCUS_SURFACE = "#1C1C26"
+FOCUS_BORDER = "#484863"
+FOCUS_ACCENT = "#DDE0FF"
+FOCUS_ACCENT_TEXT = "#181A35"
+FOCUS_TRACK = "#141416"
 
 
 def deadline_cue(task: dict, now: datetime | None = None) -> tuple[str, str]:
@@ -515,7 +520,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     ring = ft.ProgressRing(
         value=1.0, width=210, height=210, stroke_width=12,
-        color="#FFBD91", bgcolor="#171719",
+        color=FOCUS_ACCENT, bgcolor=FOCUS_TRACK,
     )
     clock_text = ft.Text("", size=42, weight=ft.FontWeight.BOLD,
                          color=HOME_TEXT, font_family=HOME_FONT)
@@ -715,10 +720,10 @@ def build(page: ft.Page, navigate) -> ft.Control:
             clock_text.value = "Selesai"
             sub_text.value = "Nggak usah langsung lanjut."
         elif s["running"]:
-            ring.color = "#FFBD91"
+            ring.color = FOCUS_ACCENT
             sub_text.value = "Satu sesi aja dulu."
         else:
-            ring.color = theme.WARN
+            ring.color = "#B9BDF2"
             sub_text.value = "Nggak apa-apa berhenti sebentar."
 
         buttons: list[ft.Control] = []
@@ -728,27 +733,45 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ft.OutlinedButton(
                         content=ft.Icon(
                             ft.Icons.PAUSE if s["running"] else ft.Icons.PLAY_ARROW,
-                            color="#FFBD91",
+                            color=FOCUS_ACCENT,
                         ),
                         tooltip="Jeda" if s["running"] else "Lanjut",
-                        style=ft.ButtonStyle(side=ft.BorderSide(1, "#6D5545")),
+                        height=40,
+                        style=ft.ButtonStyle(
+                            side=ft.BorderSide(1, FOCUS_BORDER),
+                            padding=0,
+                        ),
                         on_click=toggle_pause,
                         expand=True,
                     ),
                     ft.OutlinedButton(
-                        content=ft.Icon(ft.Icons.REPLAY, color="#FFBD91"),
+                        content=ft.Icon(ft.Icons.REPLAY, color=FOCUS_ACCENT),
                         tooltip="Ulangi sesi",
-                        style=ft.ButtonStyle(side=ft.BorderSide(1, "#6D5545")),
+                        height=40,
+                        style=ft.ButtonStyle(
+                            side=ft.BorderSide(1, FOCUS_BORDER),
+                            padding=0,
+                        ),
                         on_click=restart_focus,
                         expand=True,
                     ),
                     ft.Button(
                         content=ft.Text(
-                            "Sudahi", color="#2B211B", weight=ft.FontWeight.BOLD
+                            "Sudahi",
+                            color=FOCUS_ACCENT_TEXT,
+                            weight=ft.FontWeight.BOLD,
+                            size=12,
+                            no_wrap=True,
+                            max_lines=1,
                         ),
-                        bgcolor="#FFBD91",
+                        width=92,
+                        height=40,
+                        bgcolor=FOCUS_ACCENT,
+                        style=ft.ButtonStyle(
+                            padding=0,
+                            shape=ft.RoundedRectangleBorder(radius=18),
+                        ),
                         on_click=finish_session,
-                        expand=True,
                     ),
                 ]
             )
@@ -774,8 +797,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     focus_card = centered_home_block(
         ft.Container(
-            bgcolor="#302A27",
-            border=ft.Border.all(1, "#6D5545"),
+            bgcolor=FOCUS_SURFACE,
+            border=ft.Border.all(1, FOCUS_BORDER),
             border_radius=20,
             padding=16,
             content=ft.Column(
@@ -788,7 +811,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                                 content=ft.Text(
                                     "Edit",
                                     size=11,
-                                    color="#FFBD91",
+                                    color=FOCUS_ACCENT,
                                     weight=ft.FontWeight.BOLD,
                                 ),
                                 icon=ft.Icons.EDIT_CALENDAR_OUTLINED,
