@@ -103,15 +103,6 @@ def finish_latest_breathing(page: FakePage) -> None:
         asyncio.run(fn(*args))
 
 
-def finish_completion_transition(page: FakePage) -> None:
-    check(bool(page.tasks), "transisi selesai dijadwalkan selama tiga detik")
-    if not page.tasks:
-        return
-    fn, args = page.tasks.pop(0)
-    with patch("app.views.reset.asyncio.sleep", _no_sleep):
-        asyncio.run(fn(*args))
-
-
 def prepare() -> None:
     state = storage.reset_all_data()
     state["profile"].update({"name": "Ari", "onboarded": True})
@@ -134,10 +125,11 @@ def scenario_retry_loop() -> None:
           "Dengerin musik nenangin tidak muncul")
 
     finish_grounding(root)
-    check("Frame 2.png" in [getattr(control, "src", None) for control in walk(root)],
-          "layar selesai muncul setelah lima halaman grounding")
-    finish_completion_transition(page)
     breathing = texts(root)
+    check(
+        "Frame 2.png" not in [getattr(control, "src", None) for control in walk(root)],
+        "grounding langsung masuk napas tanpa layar Selesai",
+    )
     check(
         "Yuk Tarik Nafas Dulu..." not in breathing
         and not any("Semua daftar tugas lagi disembunyiin" in value for value in breathing),
@@ -157,7 +149,6 @@ def scenario_retry_loop() -> None:
     check(not routes, "Belum bisa tidak kembali ke Home")
 
     finish_grounding(root)
-    finish_completion_transition(page)
     finish_latest_breathing(page)
     check("Sekarang rasanya gimana?" in texts(root),
           "loop kedua kembali meminta outcome user")
@@ -186,7 +177,6 @@ def scenario_improved_and_light_menu() -> None:
     routes: list[str] = []
     root = reset.build(page, routes.append)
     finish_grounding(root)
-    finish_completion_transition(page)
     finish_latest_breathing(page)
     click(root, "Sedikit lebih baik")
 

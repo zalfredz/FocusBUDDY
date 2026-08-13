@@ -495,34 +495,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
         )
         page.run_task(run_cycle)
 
-    def show_completion() -> None:
-        gradient = ft.LinearGradient(
-            begin=ft.Alignment.TOP_LEFT,
-            end=ft.Alignment.BOTTOM_RIGHT,
-            colors=[PRIMARY, SECONDARY],
-        )
-        show_screen(
-            ft.Container(
-                expand=True,
-                alignment=ft.Alignment.CENTER,
-                content=ft.Image(
-                    src="Frame 2.png",
-                    width=290,
-                    height=226,
-                    fit=ft.BoxFit.CONTAIN,
-                ),
-            ),
-            gradient=gradient,
-        )
-        screen_token = mounted["screen"]
-
-        async def continue_after_pause() -> None:
-            await asyncio.sleep(3)
-            if mounted["active"] and mounted["screen"] == screen_token:
-                show_breathing(next_stage="outcome")
-
-        page.run_task(continue_after_pause)
-
     def show_grounding(next_stage: str) -> None:
         position = {"index": 0}
 
@@ -531,7 +503,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             if next_stage == "light":
                 show_light_menu()
             else:
-                show_completion()
+                show_breathing(next_stage="outcome")
 
         def render() -> None:
             index = position["index"]
