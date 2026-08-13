@@ -6,7 +6,7 @@ import flet as ft
 from app import buddy, storage
 
 BACKGROUND = "#141416"
-OPTION_BG = "#484863"
+OPTION_BG = "#1C1C26"
 OPTION_ACTIVE = "#5B5B7A"
 TEXT_PRIMARY = "#FFFFFF"
 TEXT_MUTED = "#D7D6E3"

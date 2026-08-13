@@ -266,7 +266,7 @@ def scenario_diary_does_not_fake_checkin() -> None:
           "rekam suara tetap tersedia langsung di kolom Cerita")
     check(
         root.horizontal_alignment == ft.CrossAxisAlignment.STRETCH
-        and field.bgcolor == "#484863",
+        and field.bgcolor == "#1C1C26",
         "textbox Cerita memakai tema gelap dan memenuhi lebar container",
     )
     if field is not None:
