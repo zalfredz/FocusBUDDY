@@ -134,6 +134,9 @@ def scenario_retry_loop() -> None:
           "Dengerin musik nenangin tidak muncul")
 
     finish_grounding(root)
+    check("Frame 2.png" in [getattr(control, "src", None) for control in walk(root)],
+          "layar selesai muncul setelah lima halaman grounding")
+    finish_completion_transition(page)
     breathing = texts(root)
     check(
         "Yuk Tarik Nafas Dulu..." not in breathing
@@ -143,11 +146,8 @@ def scenario_retry_loop() -> None:
     check("Ikutin Lingkarannya Yaaa" in breathing,
           "halaman napas memakai instruksi lingkaran baru")
     finish_latest_breathing(page)
-    check("Frame 2.png" in [getattr(control, "src", None) for control in walk(root)],
-          "layar selesai baru muncul setelah latihan napas")
-    finish_completion_transition(page)
     outcome = texts(root)
-    check("Sekarang rasanya gimana?" in outcome, "layar selesai berlanjut ke check-in")
+    check("Sekarang rasanya gimana?" in outcome, "latihan napas berlanjut ke check-in")
     check("Nggak harus langsung pulih kok" in outcome,
           "check-in memakai copy pemulihan yang ringkas")
 
@@ -157,8 +157,8 @@ def scenario_retry_loop() -> None:
     check(not routes, "Belum bisa tidak kembali ke Home")
 
     finish_grounding(root)
-    finish_latest_breathing(page)
     finish_completion_transition(page)
+    finish_latest_breathing(page)
     check("Sekarang rasanya gimana?" in texts(root),
           "loop kedua kembali meminta outcome user")
 
@@ -186,8 +186,8 @@ def scenario_improved_and_light_menu() -> None:
     routes: list[str] = []
     root = reset.build(page, routes.append)
     finish_grounding(root)
-    finish_latest_breathing(page)
     finish_completion_transition(page)
+    finish_latest_breathing(page)
     click(root, "Sedikit lebih baik")
 
     light = texts(root)

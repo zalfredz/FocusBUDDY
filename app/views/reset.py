@@ -14,7 +14,7 @@ from app.core.reset_preferences import (
 )
 
 
-BACKGROUND = "#141416"
+BACKGROUND = "#232337"
 PANEL = "#343446"
 TEXT = "#FFFFFF"
 SOFT_TEXT = "#DDE0FF"
@@ -467,8 +467,6 @@ def build(page: ft.Page, navigate) -> ft.Control:
             log_stage(STAGE_BREATHING_DONE)
             if next_stage == "light":
                 show_light_menu()
-            elif next_stage == "completion":
-                show_completion()
             else:
                 show_outcome()
 
@@ -521,7 +519,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         async def continue_after_pause() -> None:
             await asyncio.sleep(3)
             if mounted["active"] and mounted["screen"] == screen_token:
-                show_outcome()
+                show_breathing(next_stage="outcome")
 
         page.run_task(continue_after_pause)
 
@@ -533,7 +531,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             if next_stage == "light":
                 show_light_menu()
             else:
-                show_breathing(next_stage="completion")
+                show_completion()
 
         def render() -> None:
             index = position["index"]

@@ -928,38 +928,45 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                 ),
                 actions=[
-                    ft.OutlinedButton(
-                        width=100,
-                        height=42,
-                        content=ft.Text(
-                            "Batal",
-                            color="#DDE0FF",
-                            weight=ft.FontWeight.W_700,
-                            font_family=HOME_FONT,
-                        ),
-                        style=ft.ButtonStyle(
-                            side=ft.BorderSide(1, "#DDE0FF"),
-                            shape=ft.RoundedRectangleBorder(radius=18),
-                        ),
-                        on_click=lambda ev: page.pop_dialog(),
-                    ),
-                    ft.Button(
-                        width=176,
-                        height=42,
-                        content=ft.Text(
-                            "Simpan",
-                            color="#181A35",
-                            weight=ft.FontWeight.W_800,
-                            font_family=HOME_FONT,
-                        ),
-                        style=ft.ButtonStyle(
-                            bgcolor="#DDE0FF",
-                            shape=ft.RoundedRectangleBorder(radius=18),
-                        ),
-                        on_click=save,
+                    ft.Column(
+                        [
+                            ft.Button(
+                                width=220,
+                                height=42,
+                                content=ft.Text(
+                                    "Simpan",
+                                    color="#181A35",
+                                    weight=ft.FontWeight.W_800,
+                                    font_family=HOME_FONT,
+                                ),
+                                style=ft.ButtonStyle(
+                                    bgcolor="#DDE0FF",
+                                    shape=ft.RoundedRectangleBorder(radius=18),
+                                ),
+                                on_click=save,
+                            ),
+                            ft.OutlinedButton(
+                                width=220,
+                                height=42,
+                                content=ft.Text(
+                                    "Batal",
+                                    color="#DDE0FF",
+                                    weight=ft.FontWeight.W_700,
+                                    font_family=HOME_FONT,
+                                ),
+                                style=ft.ButtonStyle(
+                                    side=ft.BorderSide(1, "#DDE0FF"),
+                                    shape=ft.RoundedRectangleBorder(radius=18),
+                                ),
+                                on_click=lambda ev: page.pop_dialog(),
+                            ),
+                        ],
+                        spacing=12,
+                        tight=True,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                 ],
-                actions_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                actions_alignment=ft.MainAxisAlignment.CENTER,
             )
         )
 

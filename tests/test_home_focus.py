@@ -510,6 +510,16 @@ def scenario_multiple_diary_and_quick_capture() -> None:
         )
         field = next(control for control in walk(dialog) if isinstance(control, ft.TextField))
         save = button(dialog, "Simpan")
+        cancel = button(dialog, "Batal")
+        action_column = dialog.actions[0]
+        check(
+            isinstance(action_column, ft.Column)
+            and action_column.controls == [save, cancel]
+            and save.width == cancel.width == 220
+            and action_column.spacing == 12
+            and action_column.horizontal_alignment == ft.CrossAxisAlignment.CENTER,
+            "tombol Simpan dan Batal vertikal, sama lebar, berjarak, dan terpusat",
+        )
         note_text = "Balas email dosen setelah makan siang"
         diary_count = len(storage.diary_entries())
         field.value = note_text
