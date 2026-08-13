@@ -216,6 +216,7 @@ def _default_profile() -> dict[str, Any]:
     return {
         "name": "",
         "onboarded": False,
+        "birth_date": "",
         "age_range": "",
         "status": [],
         "productive_time": "",
@@ -262,7 +263,7 @@ def _migrate(state: dict[str, Any]) -> dict[str, Any]:
     old_profile = state.get("profile", {})
     fresh["profile"]["name"] = old_profile.get("name", "")
     fresh["profile"]["onboarded"] = old_profile.get("onboarded", False)
-    for key in ("age_range", "status", "productive_time", "productive_hours",
+    for key in ("birth_date", "age_range", "status", "productive_time", "productive_hours",
                 "sleep_condition", "on_medication", "custom_triggers", "skipped_detail"):
         if key in old_profile:
             fresh["profile"][key] = old_profile[key]
@@ -323,6 +324,10 @@ def _migrate(state: dict[str, Any]) -> dict[str, Any]:
 def _normalise_profile(profile: dict[str, Any]) -> bool:
     changed = False
 
+    if not isinstance(profile.get("birth_date"), str):
+        profile["birth_date"] = ""
+        changed = True
+
     status = profile.get("status")
     if isinstance(status, str):
         profile["status"] = [status] if status else []
@@ -363,6 +368,32 @@ def _normalise_profile(profile: dict[str, Any]) -> bool:
         changed = True
 
     return changed
+
+
+def age_from_birth_date(value: str, today: Optional[date] = None) -> Optional[int]:
+    """Hitung usia penuh dari tanggal lahir ISO; kembalikan None jika tidak valid."""
+    try:
+        born = date.fromisoformat(str(value)[:10])
+    except (TypeError, ValueError):
+        return None
+    today = today or date.today()
+    if born > today:
+        return None
+    age = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+    return age if 0 <= age <= 120 else None
+
+
+def age_range_from_birth_date(value: str, today: Optional[date] = None) -> str:
+    age = age_from_birth_date(value, today)
+    if age is None:
+        return ""
+    if age < 18:
+        return "<18"
+    if age < 25:
+        return "18-24"
+    if age < 35:
+        return "25-34"
+    return "35+"
 
 
 def all_triggers(profile: Optional[dict] = None) -> list[str]:
@@ -779,7 +810,9 @@ def save_profile(answers: dict[str, Any]) -> dict:
     for key, value in answers.items():
         if key in profile:
             profile[key] = value
-    if "productive_hours" in answers:
+    if "birth_date" in answers:
+        profile["age_range"] = age_range_from_birth_date(profile.get("birth_date", ""))
+    if "productive_hours" in answers and "productive_time" not in answers:
         profile["productive_time"] = ""
     profile["onboarded"] = True
     _normalise_profile(profile)

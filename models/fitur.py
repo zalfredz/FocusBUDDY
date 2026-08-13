@@ -186,8 +186,12 @@ def bangun_fitur(
     _jam_capek = storage.FAVORITE_TIRED_HOURS.get(favorit.get("jam_capek", ""))
     di_jam_capek = bool(_jam_capek) and _jam_capek[1][0] <= now.hour < _jam_capek[1][1]
 
+    age_range = (
+        storage.age_range_from_birth_date(profil.get("birth_date", ""))
+        or profil.get("age_range", "")
+    )
     nilai: dict[str, float] = {
-        "umur_idx": float(UMUR_IDX.get(profil.get("age_range", ""), 1)),
+        "umur_idx": float(UMUR_IDX.get(age_range, 1)),
         "n_status": float(len(profil.get("status") or [])),
         "tidur_jam": sleep_hours_for(profil.get("sleep_condition", "")),
         "punya_jam_produktif": 1.0 if profil.get("productive_hours") else 0.0,

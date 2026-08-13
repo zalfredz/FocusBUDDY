@@ -31,6 +31,7 @@ from app.views import (
 )
 
 ASSETS_DIR = str(Path(__file__).resolve().parent / "assets")
+PHONE_VIEW_WIDTH = 430
 
 NAV_ROUTES = [
     ("tracker", "Tracker", ft.Icons.CALENDAR_MONTH),
@@ -80,6 +81,36 @@ def focus_navigation_allowed(route: str) -> bool:
 def main_navigation_visible(route: str) -> bool:
     """Navigation tetap terlihat; guard Focus yang menolak perpindahannya."""
     return route not in FULLSCREEN_ROUTES
+
+
+def phone_view(page: ft.Page, content: ft.Control) -> ft.Control:
+    """Batasi aplikasi ke viewport HP, tetapi tetap muat di layar yang lebih kecil."""
+    available = getattr(page, "width", None)
+    initial_width = (
+        min(PHONE_VIEW_WIDTH, available)
+        if available and available > 0
+        else PHONE_VIEW_WIDTH
+    )
+    shell = ft.Container(
+        content=content,
+        width=initial_width,
+        bgcolor=theme.BACKGROUND,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+    )
+
+    def resize(e) -> None:
+        width = getattr(e, "width", None) or getattr(page, "width", None)
+        shell.width = min(PHONE_VIEW_WIDTH, width) if width and width > 0 else PHONE_VIEW_WIDTH
+        page.update()
+
+    page.on_resize = resize
+    return ft.Row(
+        [shell],
+        alignment=ft.MainAxisAlignment.CENTER,
+        vertical_alignment=ft.CrossAxisAlignment.STRETCH,
+        spacing=0,
+        expand=True,
+    )
 
 
 async def _read_preference_string(
@@ -225,15 +256,18 @@ async def main(page: ft.Page) -> None:
         cloud = FocusBuddyCloud()
     except CloudUnavailable:
         page.add(
-            ft.Container(
-                expand=True,
-                alignment=ft.Alignment.CENTER,
-                padding=28,
-                content=ft.Text(
-                    "Database demo belum dikonfigurasi. Isi SUPABASE_URL dan "
-                    "SUPABASE_PUBLISHABLE_KEY di environment hosting.",
-                    text_align=ft.TextAlign.CENTER,
-                    color=theme.MUTED,
+            phone_view(
+                page,
+                ft.Container(
+                    expand=True,
+                    alignment=ft.Alignment.CENTER,
+                    padding=28,
+                    content=ft.Text(
+                        "Database demo belum dikonfigurasi. Isi SUPABASE_URL dan "
+                        "SUPABASE_PUBLISHABLE_KEY di environment hosting.",
+                        text_align=ft.TextAlign.CENTER,
+                        color=theme.MUTED,
+                    ),
                 ),
             )
         )
@@ -354,7 +388,7 @@ async def main(page: ft.Page) -> None:
         heading = ft.Text(
             spans=[
                 ft.TextSpan(
-                    "Selamat datang di\n",
+                    "Selamat Datang\ndi ",
                     style=ft.TextStyle(
                         color="#FFFFFF",
                         font_family=theme.FONT_AUTH,
@@ -379,72 +413,75 @@ async def main(page: ft.Page) -> None:
         )
         page.clean()
         page.add(
-            ft.Container(
-                expand=True,
-                bgcolor="#141416",
-                alignment=ft.Alignment.CENTER,
-                padding=ft.Padding(left=24, top=32, right=24, bottom=32),
-                content=ft.Container(
-                    content=ft.Column(
-                        [
-                            heading,
-                            ft.Image(
-                                src="Property 1=good_mood.png",
-                                width=300,
-                                height=300,
-                                fit=ft.BoxFit.CONTAIN,
-                            ),
-                            ft.Column(
-                                [
-                                    ft.Button(
-                                        width=230,
-                                        height=48,
-                                        content=ft.Row(
-                                            [
-                                                ft.Image(
-                                                    src="google_logo.svg",
-                                                    width=18,
-                                                    height=18,
-                                                ),
-                                                ft.Text(
-                                                    "Masuk dengan Google",
-                                                    size=15,
-                                                    weight=ft.FontWeight.W_800,
-                                                    color="#1C1B2C",
-                                                    font_family=theme.FONT_AUTH,
-                                                ),
-                                            ],
-                                            alignment=ft.MainAxisAlignment.CENTER,
-                                            spacing=10,
-                                            tight=True,
+            phone_view(
+                page,
+                ft.Container(
+                    expand=True,
+                    bgcolor="#141416",
+                    alignment=ft.Alignment.CENTER,
+                    padding=ft.Padding(left=24, top=32, right=24, bottom=32),
+                    content=ft.Container(
+                        content=ft.Column(
+                            [
+                                heading,
+                                ft.Image(
+                                    src="Property 1=good_mood.png",
+                                    width=260,
+                                    height=260,
+                                    fit=ft.BoxFit.CONTAIN,
+                                ),
+                                ft.Column(
+                                    [
+                                        ft.Button(
+                                            width=230,
+                                            height=48,
+                                            content=ft.Row(
+                                                [
+                                                    ft.Image(
+                                                        src="google_logo.svg",
+                                                        width=18,
+                                                        height=18,
+                                                    ),
+                                                    ft.Text(
+                                                        "Masuk dengan Google",
+                                                        size=15,
+                                                        weight=ft.FontWeight.W_800,
+                                                        color="#1C1B2C",
+                                                        font_family=theme.FONT_AUTH,
+                                                    ),
+                                                ],
+                                                alignment=ft.MainAxisAlignment.CENTER,
+                                                spacing=10,
+                                                tight=True,
+                                            ),
+                                            style=ft.ButtonStyle(
+                                                bgcolor="#FFFFFF",
+                                                color="#1C1B2C",
+                                                padding=0,
+                                                shape=ft.RoundedRectangleBorder(radius=100),
+                                            ),
+                                            on_click=login_google,
+                                            disabled=busy,
                                         ),
-                                        style=ft.ButtonStyle(
-                                            bgcolor="#FFFFFF",
-                                            color="#1C1B2C",
-                                            padding=0,
-                                            shape=ft.RoundedRectangleBorder(radius=100),
+                                        ft.ProgressRing(width=20, height=20, visible=busy),
+                                        ft.Text(
+                                            message,
+                                            size=11.5,
+                                            color=message_color,
+                                            font_family=theme.FONT_AUTH,
+                                            text_align=ft.TextAlign.CENTER,
                                         ),
-                                        on_click=login_google,
-                                        disabled=busy,
-                                    ),
-                                    ft.ProgressRing(width=20, height=20, visible=busy),
-                                    ft.Text(
-                                        message,
-                                        size=11.5,
-                                        color=message_color,
-                                        font_family=theme.FONT_AUTH,
-                                        text_align=ft.TextAlign.CENTER,
-                                    ),
-                                ],
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                spacing=8,
-                                tight=True,
-                            ),
-                        ],
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        spacing=28,
-                        scroll=ft.ScrollMode.AUTO,
+                                    ],
+                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                    spacing=8,
+                                    tight=True,
+                                ),
+                            ],
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            alignment=ft.MainAxisAlignment.CENTER,
+                            spacing=20,
+                            scroll=ft.ScrollMode.AUTO,
+                        ),
                     ),
                 ),
             )
@@ -556,7 +593,12 @@ async def main(page: ft.Page) -> None:
             margin=ft.Padding(left=20, top=4, right=20, bottom=12),
         )
 
-        page.add(ft.Column([content, nav_shell], expand=True, spacing=0))
+        page.add(
+            phone_view(
+                page,
+                ft.Column([content, nav_shell], expand=True, spacing=0),
+            )
+        )
         navigate("home")
 
     callback_code, _ = oauth_code_from_url(

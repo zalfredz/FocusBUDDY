@@ -4,8 +4,9 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -1055,16 +1056,24 @@ def tes_onboarding_entry_dan_status_custom():
     bagian("Entry onboarding: copy baru & kesibukan custom")
     storage_baru("onboarding_copy_")
     tujuan: list[str] = []
-    root = onboarding.build(HalamanPalsu(), tujuan.append)
+    page = HalamanPalsu()
+    dialogs: list[ft.Control] = []
+    page.show_dialog = dialogs.append
+    root = onboarding.build(page, tujuan.append)
 
     name = cari_kontrol(
         root, lambda c: isinstance(c, ft.TextField) and c.label == "Nama panggilan kamu"
     )
     ok(name is not None and not name.hint_text,
        "field nama pakai 'Nama panggilan kamu' tanpa contoh placeholder")
-    ok(punya_teks(root, "Halo! Aku KALEM.")
-       and punya_teks(root, "Developed By ATURLAH - FASILKOM UI"),
-       "entry memakai identitas KALEM dan credit developer baru")
+    intro = cari_kontrol(
+        root,
+        lambda c: isinstance(c, ft.Text)
+        and "".join(getattr(span, "text", "") for span in (c.spans or []))
+        == "Haloo\nAku KALEM!",
+    )
+    ok(intro is not None and punya_teks(root, "Developed By ATURLAH - FASILKOM UI"),
+       "entry memakai intro KALEM rata kiri dan credit developer")
     ok(
         list(storage.PRODUCTIVE_TIME_OPTIONS.values())
         == ["Pagi", "Siang", "Sore", "Malam", "Tidak tentu"],
@@ -1081,25 +1090,52 @@ def tes_onboarding_entry_dan_status_custom():
         return
 
     name.value = "Raka"
-    lanjut = cari_tombol_berteks(root, "Lanjut")
+    lanjut = cari_tombol_berteks(root, "Lanjutkan")
     if lanjut is None:
         ok(False, "tombol lanjut entry ditemukan")
         return
     lanjut.on_click(None)
 
-    umur = cari_tombol_berteks(root, "18-24")
-    if umur is None:
-        ok(False, "chip usia ditemukan")
-        return
-    umur.on_click(None)
-
-    lainnya = cari_kontrol(
-        root, lambda c: getattr(c, "on_click", None) is not None and punya_teks(c, "Lainnya")
+    tanggal = cari_kontrol(
+        root,
+        lambda c: getattr(c, "on_click", None) is not None
+        and punya_teks(c, "Pilih tanggal lahir"),
     )
-    if lainnya is None:
-        ok(False, "chip Lainnya kesibukan ditemukan")
+    if tanggal is None:
+        ok(False, "field tanggal lahir ditemukan")
         return
-    lainnya.on_click(None)
+    tanggal.on_click(None)
+    picker = dialogs[-1] if dialogs else None
+    ok(isinstance(picker, ft.DatePicker), "tanggal lahir membuka DatePicker native")
+    if not isinstance(picker, ft.DatePicker):
+        return
+    picker.value = date(2004, 8, 13)
+    picker.on_change(None)
+
+    nav = cari_kontrol(
+        root,
+        lambda c: isinstance(c, ft.Row)
+        and len(c.controls) == 2
+        and punya_teks(c.controls[0], "Kembali")
+        and punya_teks(c.controls[1], "Lanjutkan"),
+    )
+    ok(nav is not None, "navigasi menempatkan Kembali di kiri dan Lanjutkan di kanan")
+    lanjut = cari_tombol_berteks(root, "Lanjutkan")
+    if lanjut is None:
+        ok(False, "tombol lanjut tanggal lahir ditemukan")
+        return
+    lanjut.on_click(None)
+
+    pekerjaan = cari_kontrol(
+        root,
+        lambda c: isinstance(c, ft.Dropdown)
+        and c.hint_text == "Pilih pekerjaan atau kesibukan",
+    )
+    if pekerjaan is None:
+        ok(False, "pekerjaan menggunakan dropdown")
+        return
+    pekerjaan.value = "lainnya"
+    pekerjaan.on_select(SimpleNamespace(control=pekerjaan))
     status = cari_kontrol(
         root, lambda c: isinstance(c, ft.TextField) and c.hint_text == "Tulis kesibukan kamu"
     )
@@ -1115,16 +1151,79 @@ def tes_onboarding_entry_dan_status_custom():
         ok(False, "tombol simpan kesibukan custom ditemukan")
         return
     simpan_status.on_click(None)
-    lewati = cari_tombol_berteks(root, "Lewati, langsung ke Beranda")
-    if lewati is None:
-        ok(False, "tombol lewati ditemukan")
+
+    def lanjut_dan_pilih(hint: str, value: str, label: str) -> bool:
+        lanjut = cari_tombol_berteks(root, "Lanjutkan")
+        if lanjut is None:
+            ok(False, f"tombol lanjut menuju {label} ditemukan")
+            return False
+        lanjut.on_click(None)
+        control = cari_kontrol(
+            root,
+            lambda c: isinstance(c, ft.Dropdown) and c.hint_text == hint,
+        )
+        ok(control is not None, f"{label} menggunakan dropdown")
+        if control is None:
+            return False
+        control.value = value
+        control.on_select(SimpleNamespace(control=control))
+        return True
+
+    if not lanjut_dan_pilih("Pilih waktu produktif", "pagi", "waktu produktif"):
         return
-    lewati.on_click(None)
+    if not lanjut_dan_pilih("Pilih pola tidur", "cukup", "pola tidur"):
+        return
+    if not lanjut_dan_pilih(
+        "Pilih kondisi obat atau suplemen", "tidak", "obat atau suplemen"
+    ):
+        return
+    if not lanjut_dan_pilih(
+        "Pilih pemicu yang paling sering", "deadline", "pemicu overwhelm"
+    ):
+        return
+
+    selesai = cari_tombol_berteks(root, "Selesai")
+    if selesai is None:
+        ok(False, "tombol selesai onboarding ditemukan")
+        return
+    selesai.on_click(None)
 
     profile = storage.get_profile()
-    ok(profile["name"] == "Raka" and profile["status"] == ["Content creator"]
+    ok(profile["name"] == "Raka"
+       and profile["birth_date"] == "2004-08-13"
+       and profile["age_range"] == "18-24"
+       and profile["status"] == ["Content creator"]
+       and profile["productive_time"] == "pagi"
+       and profile["productive_hours"] == [[6, 11]]
+       and profile["sleep_condition"] == "cukup"
+       and profile["on_medication"] == "tidak"
+       and profile["overwhelm_triggers"] == ["deadline"]
        and tujuan == ["home"],
-       "kesibukan custom tersimpan ke profil dan ikut batas maksimal status")
+       "tanggal lahir dan seluruh jawaban dropdown tersimpan ke profil")
+
+
+def tes_viewport_phone_global():
+    import flet as ft
+    from app import main as main_app
+
+    bagian("Viewport browser dikunci ke ukuran aplikasi HP")
+
+    class PagePalsu:
+        width = 1200
+        on_resize = None
+
+        def update(self):
+            pass
+
+    page = PagePalsu()
+    wrapper = main_app.phone_view(page, ft.Text("Isi aplikasi"))
+    shell = wrapper.controls[0]
+    ok(shell.width == main_app.PHONE_VIEW_WIDTH == 430,
+       "browser lebar tetap menampilkan aplikasi selebar 430 px")
+
+    page.on_resize(SimpleNamespace(width=360))
+    ok(shell.width == 360,
+       "layar HP yang lebih kecil tetap muat tanpa horizontal overflow")
 
 
 def main() -> int:
@@ -1153,6 +1252,7 @@ def main() -> int:
         tes_fokus_pakai_decision_task_tugas_berulang,
         tes_pecah_tugas_judul_kembar,
         tes_onboarding_entry_dan_status_custom,
+        tes_viewport_phone_global,
         tes_langganan_demo,
         tes_alat_demo_terpusat,
         tes_halaman_kebangun,
