@@ -17,6 +17,8 @@ BUTTON_TEXT = "#181A35"
 KALEM_GREEN = "#95D899"
 FONT = "Plus Jakarta Sans"
 FORM_WIDTH = 340
+PAGE_TOP_PADDING = 58
+INTRO_TO_QUESTION_GAP = 150
 
 MONTH_NAMES = (
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -60,16 +62,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
         filled=True,
         border=ft.InputBorder.NONE,
         border_radius=12,
-        height=46,
+        height=52,
         width=FORM_WIDTH,
         content_padding=ft.Padding.symmetric(horizontal=16, vertical=8),
-        text_size=14,
+        text_size=16,
         on_submit=lambda e: next_from_name(),
     )
     status_field = ft.TextField(
         hint_text="Tulis kesibukan kamu",
-        text_size=12,
-        height=42,
+        text_size=14,
+        height=46,
         content_padding=ft.Padding.symmetric(vertical=4, horizontal=10),
         expand=True,
         autofocus=True,
@@ -77,8 +79,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
     )
     custom_field = ft.TextField(
         hint_text="Tulis sendiri, mis. rapat mendadak",
-        text_size=12,
-        height=42,
+        text_size=14,
+        height=46,
         content_padding=ft.Padding.symmetric(vertical=4, horizontal=10),
         expand=True,
         autofocus=True,
@@ -135,7 +137,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         else:
             navigate("home")
 
-    def kalem_title(size: int = 30) -> ft.Text:
+    def kalem_title(size: int = 34) -> ft.Text:
         return ft.Text(
             spans=[
                 ft.TextSpan(
@@ -164,16 +166,16 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
     def intro(progress_image: str) -> list[ft.Control]:
         return [
-            kalem_title(26),
+            kalem_title(30),
             ft.Text(
                 "Agar pengalamanmu lebih terpersonalisasi, isi pertanyaannya ya.",
-                size=14,
+                size=16,
                 color=TEXT_PRIMARY,
                 font_family=FONT,
                 text_align=ft.TextAlign.JUSTIFY,
             ),
-            ft.Container(height=135),
-            ft.Image(src=progress_image, height=42, fit=ft.BoxFit.CONTAIN),
+            ft.Container(height=INTRO_TO_QUESTION_GAP),
+            ft.Image(src=progress_image, height=46, fit=ft.BoxFit.CONTAIN),
         ]
 
     def pill_button(
@@ -185,12 +187,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
         width: int | None = None,
     ) -> ft.Control:
         return ft.Button(
-            height=48,
+            height=52,
             expand=expand,
             width=width,
             content=ft.Text(
                 label,
-                size=15,
+                size=17,
                 color=BUTTON_BG if outlined else BUTTON_TEXT,
                 font_family=FONT,
                 weight=ft.FontWeight.W_700,
@@ -247,9 +249,9 @@ def build(page: ft.Page, navigate) -> ft.Control:
             value=selected_dropdown_value(key),
             options=choices,
             hint_text=hint,
-            text_size=13,
+            text_size=15,
             color=TEXT_PRIMARY,
-            text_style=ft.TextStyle(color=TEXT_PRIMARY, font_family=FONT, size=13),
+            text_style=ft.TextStyle(color=TEXT_PRIMARY, font_family=FONT, size=15),
             hint_style=ft.TextStyle(color="#B9B8C8", font_family=FONT),
             filled=True,
             fill_color=INPUT_BG,
@@ -314,7 +316,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                         ft.Icon(ft.Icons.CALENDAR_MONTH, color=TEXT_PRIMARY, size=19),
                         ft.Text(
                             _birth_date_label(answers["birth_date"]),
-                            size=13,
+                            size=15,
                             color=TEXT_PRIMARY,
                             font_family=FONT,
                             expand=True,
@@ -323,7 +325,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     ],
                     spacing=9,
                 ),
-                height=48,
+                height=52,
                 bgcolor=INPUT_BG,
                 border_radius=10,
                 padding=ft.Padding.symmetric(horizontal=14),
@@ -391,25 +393,34 @@ def build(page: ft.Page, navigate) -> ft.Control:
         if i == 0:
             body.controls = [
                 ft.Container(
-                    padding=ft.Padding(left=24, top=48, right=24, bottom=32),
+                    padding=ft.Padding(
+                        left=24,
+                        top=PAGE_TOP_PADDING,
+                        right=24,
+                        bottom=32,
+                    ),
                     content=ft.Column(
                         [
                             kalem_title(),
                             ft.Text(
                                 "Agar pengalamanmu lebih terpersonalisasi, tolong isi semua "
                                 "pertanyaannya ya!",
-                                size=14,
+                                size=16,
                                 color=TEXT_PRIMARY,
                                 font_family=FONT,
                                 text_align=ft.TextAlign.JUSTIFY,
                             ),
-                            ft.Container(height=135),
-                            ft.Image(src="Property 1=q1.png", height=42, fit=ft.BoxFit.CONTAIN),
+                            ft.Container(height=INTRO_TO_QUESTION_GAP),
+                            ft.Image(
+                                src="Property 1=q1.png",
+                                height=46,
+                                fit=ft.BoxFit.CONTAIN,
+                            ),
                             ft.Column(
                                 [
                                     ft.Text(
                                         "Mau dipanggil apa?",
-                                        size=20,
+                                        size=23,
                                         color=TEXT_PRIMARY,
                                         font_family=FONT,
                                         width=FORM_WIDTH,
@@ -432,7 +443,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
                             ),
                             ft.Text(
                                 "Developed By ATURLAH - FASILKOM UI",
-                                size=10.5,
+                                size=12,
                                 color=TEXT_PRIMARY,
                                 font_family=FONT,
                                 text_align=ft.TextAlign.CENTER,
@@ -456,7 +467,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         card_controls: list[ft.Control] = [
             ft.Text(
                 WHY[key],
-                size=11.5,
+                size=13,
                 color=BUTTON_BG,
                 font_family=FONT,
                 text_align=ft.TextAlign.JUSTIFY,
@@ -468,13 +479,13 @@ def build(page: ft.Page, navigate) -> ft.Control:
             card_controls.append(extra)
         if step["error"]:
             card_controls.append(
-                ft.Text(step["error"], size=11, color="#FF8A80", font_family=FONT)
+                ft.Text(step["error"], size=12.5, color="#FF8A80", font_family=FONT)
             )
 
         question_controls: list[ft.Control] = [
             ft.Text(
                 question,
-                size=20,
+                size=23,
                 color=TEXT_PRIMARY,
                 font_family=FONT,
                 text_align=(
@@ -486,7 +497,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ft.Container(
                 bgcolor=TEXT_FIELD,
                 border_radius=16,
-                padding=18,
+                padding=20,
                 content=ft.Column(
                     card_controls,
                     spacing=12,
@@ -517,7 +528,12 @@ def build(page: ft.Page, navigate) -> ft.Control:
 
         body.controls = [
             ft.Container(
-                padding=ft.Padding(left=24, top=48, right=24, bottom=32),
+                padding=ft.Padding(
+                    left=24,
+                    top=PAGE_TOP_PADDING,
+                    right=24,
+                    bottom=32,
+                ),
                 content=ft.Column(
                     controls,
                     spacing=14,
