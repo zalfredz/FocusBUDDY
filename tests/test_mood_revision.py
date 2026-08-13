@@ -389,6 +389,12 @@ def scenario_favorites_preserve_and_personalize() -> None:
     ]
     check(favorite_fields and all(field.color == "#FFFFFF" for field in favorite_fields),
           "seluruh input Favorit menggunakan tulisan putih")
+    check(
+        favorite_fields
+        and all(field.label_style.color == "#A5A3B2" for field in favorite_fields)
+        and all(field.hint_style.color == "#8F8D9E" for field in favorite_fields),
+        "label dan placeholder Favorit redup saat field masih kosong",
+    )
 
     stored = storage.get_favorites()
     check(stored.get("musik") == "lo-fi lama" and stored.get("orang") == "Rani",
