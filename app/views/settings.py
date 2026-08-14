@@ -100,7 +100,21 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
         "trigger_input_open": False,
     }
 
-    name_field = ft.TextField(label="Nama panggilan kamu", value=state["name"])
+    profile_field_style = {
+        "color": theme.ON_BACKGROUND,
+        "cursor_color": theme.ON_BACKGROUND,
+        "bgcolor": theme.BACKGROUND,
+        "filled": True,
+        "border_color": theme.BORDER,
+        "focused_border_color": theme.PRIMARY,
+        "label_style": ft.TextStyle(color=theme.ON_BACKGROUND),
+        "hint_style": ft.TextStyle(color=theme.MUTED),
+    }
+    name_field = ft.TextField(
+        label="Nama panggilan kamu",
+        value=state["name"],
+        **profile_field_style,
+    )
     birth_date_holder = ft.Container()
     status_holder = ft.Container()
     sleep_holder = ft.Container()
@@ -113,6 +127,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
         content_padding=ft.Padding.symmetric(vertical=4, horizontal=10),
         expand=True,
         on_submit=lambda e: add_custom_status(e),
+        **profile_field_style,
     )
     trigger_field = ft.TextField(
         hint_text="Tulis sendiri, mis. rapat mendadak",
@@ -122,6 +137,7 @@ def build_profile(page: ft.Page, navigate) -> ft.Control:
         expand=True,
         autofocus=True,
         on_submit=lambda e: add_custom_trigger(e),
+        **profile_field_style,
     )
 
     today = date.today()

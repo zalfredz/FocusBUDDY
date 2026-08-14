@@ -1,12 +1,14 @@
-"""Jam aplikasi dengan offset per sesi untuk kebutuhan demo."""
+"""Jam aplikasi WIB (UTC+7) dengan offset per sesi untuk kebutuhan demo."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from app import session_scope
 
 _SESSION_KEY = "focusbuddy.clock.v1"
+APP_UTC_OFFSET_HOURS = 7
+APP_TIMEZONE = timezone(timedelta(hours=APP_UTC_OFFSET_HOURS), name="WIB")
 
 
 @dataclass
@@ -70,6 +72,12 @@ def today() -> date:
     return now().date()
 
 
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 def now() -> datetime:
+    """Waktu lokal aplikasi dalam WIB, tetap naive agar cocok dengan data lama."""
     state = _state()
-    return datetime.now() + timedelta(days=state.days, hours=state.hours)
+    local = _utc_now().astimezone(APP_TIMEZONE).replace(tzinfo=None)
+    return local + timedelta(days=state.days, hours=state.hours)

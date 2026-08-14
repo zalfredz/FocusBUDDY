@@ -144,6 +144,36 @@ def tes_mendesak_dari_deadline():
     ok(storage.is_urgent({}) is False, "tanpa deadline sama sekali -> False, bukan crash")
 
 
+def tes_waktu_wib_dan_pecah_lintas_hari():
+    bagian("Jam aplikasi WIB & Pecah Tugas lanjut ke hari berikutnya")
+    from unittest.mock import patch
+
+    from app import clock
+    from app.core import decomposer_logic
+
+    clock.reset_offset()
+    utc_time = datetime(2026, 8, 14, 16, 58, tzinfo=timezone.utc)
+    with patch.object(clock, "_utc_now", return_value=utc_time):
+        local_time = clock.now()
+
+    ok(
+        local_time == datetime(2026, 8, 14, 23, 58),
+        "jam server UTC dikonversi menjadi WIB (UTC+7)",
+    )
+    blocks, _total = decomposer_logic.lay_out(
+        [("Tugas mepet", "Mulai dari langkah kecil", 5)],
+        energy_level=3,
+        start_at=local_time,
+    )
+    deadline = datetime(2026, 8, 14, 23, 59)
+    ok(
+        bool(blocks)
+        and blocks[0].start_at == datetime(2026, 8, 15, 0, 0)
+        and blocks[0].end_at > deadline,
+        "rencana pukul 23:58 dibulatkan dan diteruskan ke 00:00 hari berikutnya",
+    )
+
+
 def tes_data_basi():
     bagian("Data mood basi TIDAK dipakai buat nebak hari ini")
     from app.core import kalem_engine as ke
@@ -1262,6 +1292,12 @@ def tes_onboarding_entry_dan_status_custom():
     if status is None:
         ok(False, "Lainnya membuka input kesibukan")
         return
+    ok(
+        status.color == onboarding.TEXT_PRIMARY
+        and status.cursor_color == onboarding.TEXT_PRIMARY
+        and status.bgcolor == onboarding.INPUT_BG,
+        "input Lainnya untuk kesibukan memakai teks putih di field gelap",
+    )
     status.value = "Content creator"
     simpan_status = cari_kontrol(
         root, lambda c: isinstance(c, ft.IconButton)
@@ -1298,9 +1334,35 @@ def tes_onboarding_entry_dan_status_custom():
     ):
         return
     if not lewati_dan_pilih(
-        "Pilih pemicu yang paling sering", "deadline", "pemicu overwhelm"
+        "Pilih pemicu yang paling sering", "lainnya", "pemicu overwhelm"
     ):
         return
+
+    custom_trigger = cari_kontrol(
+        root,
+        lambda c: isinstance(c, ft.TextField)
+        and c.hint_text == "Tulis sendiri, mis. rapat mendadak",
+    )
+    if custom_trigger is None:
+        ok(False, "Lainnya membuka input pemicu overwhelm")
+        return
+    ok(
+        custom_trigger.color == onboarding.TEXT_PRIMARY
+        and custom_trigger.cursor_color == onboarding.TEXT_PRIMARY
+        and custom_trigger.bgcolor == onboarding.INPUT_BG,
+        "input Lainnya untuk pemicu overwhelm memakai teks putih di field gelap",
+    )
+    custom_trigger.value = "Presentasi mendadak"
+    simpan_trigger = cari_kontrol(
+        root,
+        lambda c: isinstance(c, ft.IconButton)
+        and c.icon == ft.Icons.CHECK
+        and getattr(c, "on_click", None) is not None,
+    )
+    if simpan_trigger is None:
+        ok(False, "tombol simpan pemicu custom ditemukan")
+        return
+    simpan_trigger.on_click(None)
 
     selesai = cari_tombol_berteks(root, "Lewati")
     if selesai is None:
@@ -1317,7 +1379,8 @@ def tes_onboarding_entry_dan_status_custom():
        and profile["productive_hours"] == [[6, 11]]
        and profile["sleep_condition"] == "cukup"
        and profile["on_medication"] == "tidak"
-       and profile["overwhelm_triggers"] == ["deadline"]
+       and profile["overwhelm_triggers"] == []
+       and profile["custom_triggers"] == ["Presentasi mendadak"]
        and tujuan == ["home"],
        "tanggal lahir dan seluruh jawaban dropdown tersimpan ke profil")
 
@@ -1422,6 +1485,7 @@ def main() -> int:
 
     for tes in (
         tes_mendesak_dari_deadline,
+        tes_waktu_wib_dan_pecah_lintas_hari,
         tes_data_basi,
         tes_hari_kosong_bukan_hari_buruk,
         tes_urutan_mood,

@@ -598,6 +598,72 @@ def scenario_decomposition_renders_multi_task_timeline() -> None:
     )
 
 
+def scenario_decomposition_continues_after_midnight() -> None:
+    print("\n=== Pecah Tugas mepet deadline lanjut ke hari berikutnya ===")
+    today = clock.today()
+    task = add_task(
+        "Tugas mepet tengah malam",
+        today,
+        deadline=today,
+        deadline_time="23:59",
+        steps=[{"text": "Placeholder", "done": False}],
+    )
+    tomorrow = today + timedelta(days=1)
+    fake_result = decomposer_logic.PlanResult(
+        blocks=[
+            decomposer_logic.TimeBlock(
+                start="00:00",
+                end="00:05",
+                task_title=task["title"],
+                step="Mulai dari bagian paling kecil",
+                start_at=datetime.combine(tomorrow, time(0, 0)),
+                end_at=datetime.combine(tomorrow, time(0, 5)),
+            )
+        ],
+        source="lokal",
+        total_minutes=5,
+        steps=[(task["title"], "Mulai dari bagian paling kecil", 5)],
+        task_steps={
+            decomposer_logic.task_plan_key(task): [
+                {"text": "Mulai dari bagian paling kecil", "done": False}
+            ]
+        },
+        task_sources={decomposer_logic.task_plan_key(task): "retrieval"},
+        n_lokal=1,
+        n_retrieval=1,
+    )
+
+    page = ImmediatePage()
+    root = tracker.build(page, lambda route: None)
+    split = clickable(root, "Pecah Tugas")
+    if split is not None:
+        split.on_click(SimpleNamespace(control=split))
+    dialog = page.dialogs[-1] if page.dialogs else None
+    submit = clickable(dialog, "Pecah")
+    popup_messages: list[str] = []
+    if submit is not None:
+        with (
+            patch.object(tracker, "plan_today", return_value=fake_result),
+            patch.object(
+                tracker.ui_helpers,
+                "reward_overlay",
+                side_effect=lambda _page, message: popup_messages.append(message),
+            ),
+        ):
+            submit.on_click(SimpleNamespace(control=submit))
+
+    shown = texts(root)
+    check(
+        popup_messages == ["Gapapa lewat deadline, yang penting selesai"]
+        and "Gapapa lewat deadline, yang penting selesai" not in shown,
+        "pesan lewat deadline muncul sekali sebagai overlay, bukan card permanen",
+    )
+    check(
+        any(value.startswith("Besok · ") for value in shown) and "00:00" in shown,
+        "timeline memberi penanda Besok dan meneruskan urutan dalam format 24 jam",
+    )
+
+
 def scenario_step_crud_and_done() -> None:
     print("\n=== K-N: CRUD langkah, checklist, dan DONE dari Tracker ===")
     today = clock.today()
@@ -628,6 +694,12 @@ def scenario_step_crud_and_done() -> None:
         add.on_click(SimpleNamespace(control=add))
         dialog = page.dialogs[-1]
         field = next(control for control in walk(dialog) if isinstance(control, ft.TextField))
+        check(
+            field.color == theme.ON_BACKGROUND
+            and field.cursor_color == theme.ON_BACKGROUND
+            and field.hint_style.color == theme.MUTED,
+            "input tambah langkah memakai teks putih dan hint yang terbaca",
+        )
         field.value = "Langkah tambahan"
         save = clickable(dialog, "Simpan")
         save.on_click(SimpleNamespace(control=save))
@@ -861,6 +933,7 @@ def main() -> int:
                 scenario_task_input_supports_voice_description_and_time_picker,
                 scenario_decomposition_identity_and_persistence,
                 scenario_decomposition_renders_multi_task_timeline,
+                scenario_decomposition_continues_after_midnight,
                 scenario_step_crud_and_done,
                 scenario_focus_outcomes_keep_task_identity,
                 scenario_weekly_schedule_is_not_recommended_and_ui_is_compact,

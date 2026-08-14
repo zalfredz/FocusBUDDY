@@ -193,7 +193,12 @@ def scenario_profile_detail_edits_existing_fields() -> None:
          and item.label == "Nama panggilan kamu"),
         None,
     )
-    check(name is not None, "nama tetap bisa diedit")
+    check(
+        name is not None
+        and name.color == settings.theme.ON_BACKGROUND
+        and name.cursor_color == settings.theme.ON_BACKGROUND,
+        "nama tetap bisa diedit dengan teks dan cursor putih",
+    )
     if name is not None:
         name.value = "Alya"
 
@@ -217,6 +222,31 @@ def scenario_profile_detail_edits_existing_fields() -> None:
         check(control is not None, f"pilihan '{label}' bisa diedit")
         if control is not None:
             control.on_click(SimpleNamespace(control=control))
+
+    other_buttons = [
+        item
+        for item in walk(root)
+        if isinstance(item, ft.Container)
+        and getattr(item, "on_click", None) is not None
+        and contains_text(item, "Lainnya")
+    ]
+    if other_buttons:
+        other_buttons[-1].on_click(None)
+    custom_trigger = next(
+        (
+            item
+            for item in walk(root)
+            if isinstance(item, ft.TextField)
+            and item.hint_text == "Tulis sendiri, mis. rapat mendadak"
+        ),
+        None,
+    )
+    check(
+        custom_trigger is not None
+        and custom_trigger.color == settings.theme.ON_BACKGROUND
+        and custom_trigger.cursor_color == settings.theme.ON_BACKGROUND,
+        "input Lainnya pada pemicu khawatir memakai teks dan cursor putih",
+    )
 
     slider = next((item for item in walk(root) if isinstance(item, ft.RangeSlider)), None)
     check(slider is not None, "jam produktif tetap bisa diedit")
@@ -263,15 +293,15 @@ def scenario_link_cards_and_back_buttons() -> None:
 
     medication = clickable(root, "Pengingat Obat")
     favorite = clickable(root, "Favorit Kamu")
-    subscription = clickable(root, "Subscription KALEM")
-    check(medication is not None and favorite is not None and subscription is not None,
+    subscription_card = clickable(root, "Subscription KALEM")
+    check(medication is not None and favorite is not None and subscription_card is not None,
           "card Pengingat Obat, Favorit, dan Subscription bisa ditekan")
     if medication is not None:
         medication.on_click(None)
     if favorite is not None:
         favorite.on_click(None)
-    if subscription is not None:
-        subscription.on_click(None)
+    if subscription_card is not None:
+        subscription_card.on_click(None)
     check(
         routes == ["med_setup", "favorites", "subscription"],
         "semua card membuka route existing",

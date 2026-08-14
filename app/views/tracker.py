@@ -53,6 +53,41 @@ def _deadline_label(value: datetime) -> str:
     return f"{value.day} {MONTH_NAMES[value.month - 1][:3]} · {value.strftime('%H:%M')}"
 
 
+def _plan_day_label(value: date, today: date) -> str:
+    difference = (value - today).days
+    if difference == 1:
+        prefix = "Besok"
+    elif difference > 1:
+        prefix = f"{difference} hari lagi"
+    else:
+        prefix = "Hari ini"
+    return (
+        f"{prefix} · {DAY_NAMES[value.weekday()]}, {value.day} "
+        f"{MONTH_NAMES[value.month - 1]} {value.year}"
+    )
+
+
+def _late_plan_titles(blocks: list, tasks: list[dict]) -> set[str]:
+    deadlines: dict[str, datetime] = {}
+    for task in tasks:
+        deadline = storage.deadline_at(task)
+        title = str(task.get("title", ""))
+        if deadline is not None and (
+            title not in deadlines or deadline < deadlines[title]
+        ):
+            deadlines[title] = deadline
+
+    task_ends: dict[str, datetime] = {}
+    for block in blocks:
+        if not block.is_break and block.task_title and block.end_at is not None:
+            task_ends[block.task_title] = block.end_at
+    return {
+        title
+        for title, deadline in deadlines.items()
+        if task_ends.get(title, deadline) > deadline
+    }
+
+
 def _history_stat(value: str, label: str) -> ft.Control:
     return ft.Container(
         content=ft.Column(
@@ -517,6 +552,14 @@ def build(page: ft.Page, navigate) -> ft.Control:
             value=current,
             autofocus=True,
             hint_text="mis. Buka dokumen dan baca catatan terakhir",
+            color=theme.ON_BACKGROUND,
+            cursor_color=theme.ON_BACKGROUND,
+            bgcolor=theme.BACKGROUND,
+            filled=True,
+            border_color=theme.BORDER,
+            focused_border_color=theme.PRIMARY,
+            label_style=ft.TextStyle(color=theme.ON_BACKGROUND),
+            hint_style=ft.TextStyle(color=theme.MUTED),
         )
 
         def save(ev):
@@ -536,10 +579,18 @@ def build(page: ft.Page, navigate) -> ft.Control:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("Tambah langkah" if index is None else "Edit langkah", size=16),
+                bgcolor=theme.SURFACE,
+                title=ft.Text(
+                    "Tambah langkah" if index is None else "Edit langkah",
+                    size=16,
+                    color=theme.ON_BACKGROUND,
+                ),
                 content=field,
                 actions=[
-                    ft.TextButton(content=ft.Text("Batal"), on_click=lambda e: page.pop_dialog()),
+                    ft.TextButton(
+                        content=ft.Text("Batal", color=theme.ON_BACKGROUND),
+                        on_click=lambda e: page.pop_dialog(),
+                    ),
                     ui_helpers.primary_button("Simpan", save, icon=ft.Icons.SAVE),
                 ],
             )
@@ -1708,6 +1759,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
             blocks=list(result.blocks),
             total_minutes=result.total_minutes,
             tasks=[dict(task) for task in tasks],
+            late_titles=sorted(_late_plan_titles(result.blocks, tasks)),
         )
         if not saved_count:
             plan_column.controls = [
@@ -1719,6 +1771,11 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ]
             plan_column.visible = True
         refresh_all()
+        if plan_state["late_titles"]:
+            ui_helpers.reward_overlay(
+                page,
+                "Gapapa lewat deadline, yang penting selesai",
+            )
 
     def render_plan():
         saved_count = int(plan_state.get("saved_count", 0))
@@ -1775,6 +1832,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
             if not block.is_break and block.task_title and block.end_at is not None:
                 task_ends[block.task_title] = block.end_at
 
+        late_titles = set(plan_state.get("late_titles") or [])
+
         rows: list[ft.Control] = [
             ui_helpers.banner(f"Berhasil disusun {source}", color, icon),
             ft.Text(
@@ -1784,7 +1843,31 @@ def build(page: ft.Page, navigate) -> ft.Control:
             ),
         ]
         previous_title = ""
+        previous_day: date | None = None
+        plan_reference_day = clock.today()
         for block in blocks:
+            block_day = block.start_at.date() if block.start_at is not None else None
+            if block_day is not None and block_day != previous_day:
+                previous_day = block_day
+                if block_day > plan_reference_day:
+                    rows.append(
+                        ft.Row(
+                            [
+                                ft.Icon(
+                                    ft.Icons.WB_TWILIGHT,
+                                    size=15,
+                                    color=theme.PRIMARY,
+                                ),
+                                ft.Text(
+                                    _plan_day_label(block_day, plan_reference_day),
+                                    size=11,
+                                    color=theme.PRIMARY,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+                            ],
+                            spacing=6,
+                        )
+                    )
             if not block.is_break and block.task_title != previous_title:
                 previous_title = block.task_title
                 deadline = deadlines.get(block.task_title)
@@ -1795,8 +1878,8 @@ def build(page: ft.Page, navigate) -> ft.Control:
                     if deadline < clock.now():
                         deadline_text = f"Deadline sudah lewat · {_deadline_label(deadline)}"
                         deadline_color = theme.DANGER
-                    elif task_ends.get(block.task_title, deadline) > deadline:
-                        deadline_text += " · rencana penuh melewati deadline"
+                    elif block.task_title in late_titles:
+                        deadline_text += " · rencana lanjut setelah deadline"
                         deadline_color = theme.DANGER
                     else:
                         deadline_color = theme.SUCCESS

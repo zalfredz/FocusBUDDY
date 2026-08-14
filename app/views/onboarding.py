@@ -68,6 +68,15 @@ def build(page: ft.Page, navigate) -> ft.Control:
         text_size=16,
         on_submit=lambda e: next_from_name(),
     )
+    custom_input_style = {
+        "color": TEXT_PRIMARY,
+        "cursor_color": TEXT_PRIMARY,
+        "bgcolor": INPUT_BG,
+        "filled": True,
+        "border": ft.InputBorder.NONE,
+        "border_radius": 10,
+        "hint_style": ft.TextStyle(color="#B9B8C8", font_family=FONT),
+    }
     status_field = ft.TextField(
         hint_text="Tulis kesibukan kamu",
         text_size=14,
@@ -76,6 +85,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         expand=True,
         autofocus=True,
         on_submit=lambda e: add_custom_status(),
+        **custom_input_style,
     )
     custom_field = ft.TextField(
         hint_text="Tulis sendiri, mis. rapat mendadak",
@@ -85,6 +95,7 @@ def build(page: ft.Page, navigate) -> ft.Control:
         expand=True,
         autofocus=True,
         on_submit=lambda e: add_custom_trigger(),
+        **custom_input_style,
     )
     body = ft.Column(
         spacing=0,
